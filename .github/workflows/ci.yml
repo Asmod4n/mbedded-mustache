@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    if: ${{ !contains(github.event.head_commit.message, '[noci]') && !contains(github.event.pull_request.title, '[noci]') }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    container: fedora:44
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86-64 g++ C++20
+            runner: ubuntu-24.04
+            cxx: g++
+            cc: gcc
+            std: 20
+            flags: -O2 -march=x86-64-v3 -Wall -Wextra -Werror
+          - name: x86-64 g++ C++26 reflection
+            runner: ubuntu-24.04
+            cxx: g++
+            cc: gcc
+            std: 26
+            flags: -freflection -O2 -march=x86-64-v3 -Wall -Wextra -Werror
+          - name: x86-64 g++ C++26 reflection ASan
+            runner: ubuntu-24.04
+            cxx: g++
+            cc: gcc
+            std: 26
+            flags: -freflection -O1 -g -march=x86-64-v3 -fsanitize=address -Wall -Wextra -Werror
+          - name: x86-64 clang C++20
+            runner: ubuntu-24.04
+            cxx: clang++
+            cc: clang
+            std: 20
+            flags: -O2 -march=x86-64-v3 -Wall -Wextra -Werror
+          - name: aarch64 g++ C++26 reflection
+            runner: ubuntu-24.04-arm
+            cxx: g++
+            cc: gcc
+            std: 26
+            flags: -freflection -O2 -Wall -Wextra -Werror
+          - name: aarch64 clang C++20
+            runner: ubuntu-24.04-arm
+            cxx: clang++
+            cc: clang
+            std: 20
+            flags: -O2 -Wall -Wextra -Werror
+    steps:
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          -DCMAKE_C_COMPILER=${{ matrix.cc }}
+          -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+          "-DCMAKE_CXX_FLAGS=${{ matrix.flags }}"
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
