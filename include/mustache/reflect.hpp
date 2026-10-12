@@ -315,7 +315,7 @@ struct Renderer {
   }
 
   template <class W>
-  static constexpr void indent_if_pending(W &out, bool &pending)
+  [[gnu::always_inline]] static constexpr void indent_if_pending(W &out, bool &pending)
   {
     if constexpr (kIndented) {
       if (pending) {
@@ -326,7 +326,7 @@ struct Renderer {
   }
 
   template <class W>
-  static constexpr void text(W &out, bool &pending, const std::string_view all)
+  [[gnu::always_inline]] static constexpr void text(W &out, bool &pending, const std::string_view all)
   {
     if constexpr (!kIndented) {
       out.raw(all);
@@ -345,7 +345,7 @@ struct Renderer {
   }
 
   template <Tag tag, class W>
-  static constexpr void value(W &out, bool &pending, const std::string_view s)
+  [[gnu::always_inline]] static constexpr void value(W &out, bool &pending, const std::string_view s)
   {
     if (s.empty()) return;
     indent_if_pending(out, pending);

@@ -139,14 +139,14 @@ struct HostString {
     return true;
   }
 
-  void raw(const std::string_view s)
+  [[gnu::always_inline]] void raw(const std::string_view s)
   {
     if (size + s.size() > capacity() && !grown(size + s.size())) [[unlikely]] return;
     std::ranges::copy(s, bytes.subspan(size).begin());
     size += s.size();
   }
 
-  void escaped(const std::string_view s)
+  [[gnu::always_inline]] void escaped(const std::string_view s)
   {
     if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
     char *const w = bytes.subspan(size).data();
