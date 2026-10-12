@@ -4,10 +4,14 @@
 
 #include <simdjson.h>
 
-#include <cstdio>
+#include <gtest/gtest.h>
+
+#include <array>
+#include <vector>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <cctype>
 
 namespace {
 
@@ -130,37 +134,47 @@ renders_as_expected_through_c(const Case &c)
   return rendered == 0 && string == &user && user.answer == c.expected;
 }
 
-}
-
-// One run reads one file of the spec and renders every case in it. A
-// case that fails prints its name. The file holds the template, the
-// data and the expected answer of that name.
-int
-main(const int argc, const char *const argv[])
+// Every case of every module of the Mustache spec in refs/mustache-spec
+// is one test, run through the C++ Walk and through the C API.
+// ~inheritance is the optional module this library implements.
+std::vector<Case>
+every_case()
 {
-  const bool through_c = argc == 3 && std::string_view(argv[2]) == "c";
-  if (argc != 2 && !through_c) [[unlikely]] {
-    std::fprintf(stderr, "usage: %s spec.json [c]\n", argv[0]);
-    return 2;
-  }
-  simdjson::padded_string json;
-  if (simdjson::padded_string::load(argv[1]).get(json) != simdjson::SUCCESS) [[unlikely]] {
-    std::fprintf(stderr, "%s: cannot read\n", argv[1]);
-    return 2;
-  }
-  simdjson::ondemand::parser parser;
-  simdjson::ondemand::document doc = parser.iterate(json);
-  int failed = 0;
-  int passed = 0;
-  for (auto t : doc["tests"].get_array()) {
-    const Case c = case_of(t.get_object());
-    if (through_c ? renders_as_expected_through_c(c) : renders_as_expected(c)) {
-      passed++;
+  constexpr std::array kModules = {"comments", "delimiters", "interpolation", "inverted",
+                                   "partials", "sections", "~inheritance"};
+  std::vector<Case> all;
+  for (const char *const module : kModules) {
+    const std::string path = std::string(MUSTACHE_SPEC_DIR) + "/" + module + ".json";
+    simdjson::padded_string json;
+    if (simdjson::padded_string::load(path).get(json) != simdjson::SUCCESS) [[unlikely]] {
+      all.push_back(Case{std::string(module) + ": cannot read " + path, "", "<unread>", Value{nullptr}, {}});
       continue;
     }
-    failed++;
-    std::printf("FAIL %s: %s\n", argv[1], c.name.c_str());
+    simdjson::ondemand::parser parser;
+    simdjson::ondemand::document doc = parser.iterate(json);
+    for (auto t : doc["tests"].get_array()) {
+      Case c = case_of(t.get_object());
+      c.name = std::string(module) + ": " + c.name;
+      all.push_back(std::move(c));
+    }
   }
-  std::printf("%s%s: %d passed, %d failed\n", argv[1], through_c ? " through C" : "", passed, failed);
-  return failed == 0 ? 0 : 1;
+  return all;
+}
+
+class Spec : public testing::TestWithParam<Case> {};
+
+TEST_P(Spec, RendersThroughTheWalk) { EXPECT_TRUE(renders_as_expected(GetParam())) << GetParam().name; }
+
+TEST_P(Spec, RendersThroughTheCApi) { EXPECT_TRUE(renders_as_expected_through_c(GetParam())) << GetParam().name; }
+
+std::string
+name_of(const testing::TestParamInfo<Case> &info)
+{
+  std::string name = std::to_string(info.index) + "_";
+  for (const char c : info.param.name) name += std::isalnum((unsigned char)c) != 0 ? c : '_';
+  return name;
+}
+
+INSTANTIATE_TEST_SUITE_P(Mustache, Spec, testing::ValuesIn(every_case()), name_of);
+
 }

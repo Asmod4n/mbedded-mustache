@@ -2,7 +2,8 @@
 
 #include "c_host.hpp"
 
-#include <cstdio>
+#include <gtest/gtest.h>
+
 #include <string>
 #include <string_view>
 
@@ -57,64 +58,58 @@ repeated(const std::string_view s, const size_t n)
   return r;
 }
 
-int failed = 0;
-
-void
-expect(const bool ok, const char *const what, const size_t n)
+// The string of the host starts at the initial capacity and doubles.
+// A value that does not fit makes it grow before the copy. Every
+// length around a doubled capacity has to come back whole, from an
+// initial capacity of one byte as well as from the default.
+TEST(Output, GrowsAroundEachDoubledCapacity)
 {
-  if (ok) return;
-  failed++;
-  std::printf("FAIL %s at %zu\n", what, n);
-}
-
-}
-
-int
-main()
-{
-  // The string of the host starts at the initial capacity and doubles.
-  // A value that does not fit makes it grow before the copy. Every
-  // length around a doubled capacity has to come back whole, from an
-  // initial capacity of one byte as well as from the default.
   for (const size_t initial : {size_t{1}, mustache::kInitialCapacity}) {
     for (const size_t n : {4000, 4090, 4095, 4096, 4097, 8191, 8192, 8193, 20000}) {
+      SCOPED_TRACE(testing::Message() << "initial " << initial << ", length " << n);
       Map m;
       m.insert_or_assign("a", Value{std::string(n, 'x')});
       m.insert_or_assign("b", Value{repeated("<&", 3000)});
       m.insert_or_assign("c", Value{std::string(n, 'y')});
-      const Rendered r = rendered("{{{a}}}{{b}}{{{c}}}", m, initial, mustache::kMaxCapacity);
       const std::string expected = std::string(n, 'x') + repeated("&lt;&amp;", 3000) + std::string(n, 'y');
-      expect(r.fault == mustache::Fault::none && r.answer == expected, "growth", n);
+      const Rendered r = rendered("{{{a}}}{{b}}{{{c}}}", m, initial, mustache::kMaxCapacity);
+      EXPECT_EQ(r.fault, mustache::Fault::none);
+      EXPECT_EQ(r.answer, expected);
       const Rendered c = rendered_through_c("{{{a}}}{{b}}{{{c}}}", m);
-      expect(c.fault == mustache::Fault::none && c.answer == expected, "growth through C", n);
+      EXPECT_EQ(c.fault, mustache::Fault::none);
+      EXPECT_EQ(c.answer, expected);
     }
   }
+}
 
-  // An escaped value grows up to six times. The string grows to the
-  // exact escaped size before the escape, and the escape writes whole
-  // 32-byte blocks, so the end of the escape near a doubled capacity is
-  // where a write past the end would show under ASan.
+// An escaped value grows up to six times. The string grows to the
+// exact escaped size before the escape, and the escape writes whole
+// 32-byte blocks, so the end of the escape near a doubled capacity is
+// where a write past the end would show under ASan.
+TEST(Output, EscapesNearTheEndOfTheString)
+{
   for (size_t n = 4080; n <= 4100; n++) {
+    SCOPED_TRACE(testing::Message() << "length " << n);
     Map m;
     m.insert_or_assign("a", Value{std::string(n, 'x')});
     m.insert_or_assign("b", Value{std::string(700, '"')});
+    const std::string expected = std::string(n, 'x') + repeated("&quot;", 700);
     const Rendered r = rendered("{{{a}}}{{b}}", m, mustache::kInitialCapacity, mustache::kMaxCapacity);
-    expect(r.fault == mustache::Fault::none && r.answer == std::string(n, 'x') + repeated("&quot;", 700),
-           "escape near the end", n);
+    EXPECT_EQ(r.fault, mustache::Fault::none);
+    EXPECT_EQ(r.answer, expected);
     const Rendered c = rendered_through_c("{{{a}}}{{b}}", m);
-    expect(c.fault == mustache::Fault::none && c.answer == std::string(n, 'x') + repeated("&quot;", 700),
-           "escape near the end through C", n);
+    EXPECT_EQ(c.fault, mustache::Fault::none);
+    EXPECT_EQ(c.answer, expected);
   }
+}
 
-  // A render that needs more than max_capacity stops with over_limit
-  // and hands the host a string it can still read.
-  {
-    Map m;
-    m.insert_or_assign("a", Value{std::string(5000, 'x')});
-    const Rendered r = rendered("{{{a}}}", m, mustache::kInitialCapacity, 4096);
-    expect(r.fault == mustache::Fault::over_limit, "over_limit", 5000);
-  }
+// A render that needs more than max_capacity stops with over_limit
+// and hands the host a string it can still read.
+TEST(Output, StopsOverTheLimit)
+{
+  Map m;
+  m.insert_or_assign("a", Value{std::string(5000, 'x')});
+  EXPECT_EQ(rendered("{{{a}}}", m, mustache::kInitialCapacity, 4096).fault, mustache::Fault::over_limit);
+}
 
-  std::printf("output: %s\n", failed == 0 ? "passed" : "failed");
-  return failed == 0 ? 0 : 1;
 }
