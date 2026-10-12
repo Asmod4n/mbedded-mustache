@@ -16,3 +16,18 @@ add_executable(c_api c_api.c)
 target_link_libraries(c_api PRIVATE mustache::mustache-c)
 set_target_properties(c_api PROPERTIES LINKER_LANGUAGE CXX C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
 add_test(NAME c_api COMMAND c_api)
+
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+add_executable(escape escape.cpp)
+target_link_libraries(escape PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(escape)
+
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("#ifndef __cpp_impl_reflection\n#error no reflection\n#endif\nint main() { return 0; }" MUSTACHE_HAS_REFLECTION)
+if(MUSTACHE_HAS_REFLECTION)
+  add_executable(reflect reflect.cpp)
+  target_link_libraries(reflect PRIVATE mustache::mustache GTest::gtest_main)
+  gtest_discover_tests(reflect)
+endif()

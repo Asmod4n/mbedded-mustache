@@ -11,6 +11,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace mustache {
@@ -71,6 +72,20 @@ escape_bytes(char *const out, const std::string_view s)
   return w;
 }
 
+struct Copied {
+  char    *w;
+  uint64_t marks;
+};
+
+inline Copied
+copied_string_scalar(char *const out, const std::string &s)
+{
+  if (s.size() > 32) [[unlikely]] return {nullptr, 0};
+  const bool marked = std::ranges::any_of(s, is_marked);
+  std::ranges::copy(s, out);
+  return {out + s.size(), marked ? uint64_t{1} : uint64_t{0}};
+}
+
 #if defined(__AVX2__)
 
 inline uint32_t
@@ -122,6 +137,37 @@ escape_into(char *const out, const std::string_view s)
     w += 32 - done;
   }
   return escape_bytes(w, s.substr(at));
+}
+
+inline uint32_t
+marks16_of(const __m128i b)
+{
+  const __m128i hit = _mm_or_si128(
+      _mm_or_si128(_mm_cmpeq_epi8(b, _mm_set1_epi8('&')), _mm_cmpeq_epi8(b, _mm_set1_epi8('<'))),
+      _mm_or_si128(_mm_cmpeq_epi8(b, _mm_set1_epi8('>')),
+                   _mm_or_si128(_mm_cmpeq_epi8(b, _mm_set1_epi8('"')), _mm_cmpeq_epi8(b, _mm_set1_epi8('\'')))));
+  return (uint32_t)_mm_movemask_epi8(hit);
+}
+
+[[gnu::always_inline]] inline Copied
+copied_string(char *const out, const std::string &s)
+{
+  const size_t n = s.size();
+#if defined(_GLIBCXX_RELEASE)
+  if (n <= 16 && s.capacity() >= 15) {
+    const __m128i b = _mm_loadu_si128((const __m128i *)s.data());
+    _mm_storeu_si128((__m128i *)out, b);
+    return {out + n, marks16_of(b) & ((1u << n) - 1)};
+  }
+#endif
+  if (n >= 16 && n <= 32) {
+    const __m128i a = _mm_loadu_si128((const __m128i *)s.data());
+    const __m128i b = _mm_loadu_si128((const __m128i *)s.substr(n - 16).data());
+    _mm_storeu_si128((__m128i *)out, a);
+    _mm_storeu_si128((__m128i *)(out + n - 16), b);
+    return {out + n, marks16_of(a) | marks16_of(b)};
+  }
+  return copied_string_scalar(out, s);
 }
 
 #elif defined(__ARM_NEON)
@@ -176,6 +222,28 @@ escape_into(char *const out, const std::string_view s)
   return escape_bytes(w, s.substr(at));
 }
 
+[[gnu::always_inline]] inline Copied
+copied_string(char *const out, const std::string &s)
+{
+  const size_t n = s.size();
+#if defined(_GLIBCXX_RELEASE)
+  if (n <= 16 && s.capacity() >= 15) {
+    const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
+    vst1q_u8(reinterpret_cast<uint8_t *>(out), b);
+    const uint64_t lanes = n == 16 ? ~uint64_t{0} : (uint64_t{1} << (4 * n)) - 1;
+    return {out + n, marks_of(b) & 0x8888888888888888ull & lanes};
+  }
+#endif
+  if (n >= 16 && n <= 32) {
+    const uint8x16_t a = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
+    const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.substr(n - 16).data()));
+    vst1q_u8(reinterpret_cast<uint8_t *>(out), a);
+    vst1q_u8(reinterpret_cast<uint8_t *>(out + n - 16), b);
+    return {out + n, (marks_of(a) | marks_of(b)) & 0x8888888888888888ull};
+  }
+  return copied_string_scalar(out, s);
+}
+
 #else
 
 constexpr char *
@@ -184,6 +252,20 @@ escape_into(char *const out, const std::string_view s)
   return escape_bytes(out, s);
 }
 
+inline Copied
+copied_string(char *const out, const std::string &s)
+{
+  return copied_string_scalar(out, s);
+}
+
 #endif
+
+[[gnu::always_inline]] inline char *
+escape_string_into(char *const out, const std::string &s)
+{
+  const Copied c = copied_string(out, s);
+  if (c.w != nullptr && c.marks == 0) [[likely]] return c.w;
+  return escape_into(out, s);
+}
 
 }

@@ -7,6 +7,7 @@
 #include <optional>
 #include <tuple>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <type_traits>
@@ -314,6 +315,18 @@ struct Renderer {
     }
   }
 
+  static consteval size_t batch_bound(const uint32_t from, const uint32_t stop)
+  {
+    size_t bound = 0;
+    for (uint32_t q = from; q < stop; q++) {
+      const Op op = P.ops.at(q);
+      if (op.tag == Tag::text) bound += op.b;
+      else if (op.tag == Tag::var || op.tag == Tag::raw) bound += 32;
+      else return 0;
+    }
+    return bound;
+  }
+
   template <class W>
   [[gnu::always_inline]] static constexpr void indent_if_pending(W &out, bool &pending)
   {
@@ -329,7 +342,8 @@ struct Renderer {
   [[gnu::always_inline]] static constexpr void text(W &out, bool &pending, const std::string_view all)
   {
     if constexpr (!kIndented) {
-      out.raw(all);
+      if constexpr (requires { out.text(all); }) out.text(all);
+      else out.raw(all);
     }
     else {
       std::string_view s = all;
@@ -397,6 +411,13 @@ struct Renderer {
         else if constexpr (!detail::text_like<V>) {
           detail::is_not_text<V>();
         }
+        else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
+                           requires { out.escaped_string(v); }) {
+          if (!v.empty()) {
+            indent_if_pending(out, pending);
+            out.escaped_string(v);
+          }
+        }
         else {
           value<op.tag>(out, pending, std::string_view(v));
         }
@@ -412,7 +433,22 @@ struct Renderer {
           if (v) run<pc + 1, op.c>(out, pending, ctx..., *v);
         }
         else if constexpr (detail::list_like<V>) {
-          for (const auto &e : v) run<pc + 1, op.c>(out, pending, ctx..., e);
+          constexpr size_t bound = batch_bound(pc + 1, op.c);
+          if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
+            for (const auto &e : v) {
+              if (!out.reserved(bound)) [[unlikely]] return;
+              char *const start = out.bytes.subspan(out.size).data();
+              Batch b{start};
+              run<pc + 1, op.c>(b, pending, ctx..., e);
+              if (!b.dirty) [[likely]]
+                out.size += (size_t)std::distance(start, b.w);
+              else
+                run<pc + 1, op.c>(out, pending, ctx..., e);
+            }
+          }
+          else {
+            for (const auto &e : v) run<pc + 1, op.c>(out, pending, ctx..., e);
+          }
         }
         else {
           run<pc + 1, op.c>(out, pending, ctx..., v);
