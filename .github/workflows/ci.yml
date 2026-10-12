@@ -52,7 +52,7 @@ jobs:
             std: 20
             flags: -O2 -Wall -Wextra -Werror
     steps:
-      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan
       - uses: actions/checkout@v4
         with:
           submodules: recursive
