@@ -390,9 +390,7 @@ struct Renderer {
     if (s.empty()) return;
     indent_if_pending(out, pending);
     if constexpr (tag != Tag::var) out.raw(s);
-    else if constexpr (context == Context::html_text || context == Context::html_attribute ||
-                       context == Context::html_url_rest)
-      out.escaped(s);
+    else if constexpr (context == Context::html_text) out.escaped(s);
     else out.escaped_in(context, s);
   }
 
@@ -441,19 +439,11 @@ struct Renderer {
           detail::is_not_text<V>();
         }
         else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
-                           ((Context)op.d == Context::html_text || (Context)op.d == Context::html_attribute ||
-                            (Context)op.d == Context::html_url_rest) &&
+                           (Context)op.d == Context::html_text &&
                            requires { out.escaped_string(v); }) {
           if (!v.empty()) {
             indent_if_pending(out, pending);
             out.escaped_string(v);
-          }
-        }
-        else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
-                           (Context)op.d == Context::html_url_start && requires { out.escaped_url_string(v); }) {
-          if (!v.empty()) {
-            indent_if_pending(out, pending);
-            out.escaped_url_string(v);
           }
         }
         else {
@@ -565,25 +555,6 @@ rendered_as(Host &host, const T &data, const size_t initial_capacity)
   }
 }
 
-}
-
-template <fixed_string Src>
-consteval auto
-content_types_provided()
-{
-  constexpr std::array<std::string_view, 5> all = {detail::kHtml.view(), detail::kXml.view(), detail::kJson.view(),
-                                                   detail::kJs.view(), detail::kCss.view()};
-  constexpr std::array<bool, 5> safe = {
-      !static_program_of<Src, detail::kHtml>.refused, !static_program_of<Src, detail::kXml>.refused,
-      !static_program_of<Src, detail::kJson>.refused, !static_program_of<Src, detail::kJs>.refused,
-      !static_program_of<Src, detail::kCss>.refused};
-  constexpr size_t n = (size_t)std::ranges::count(safe, true);
-  std::array<std::string_view, n> types{};
-  size_t at = 0;
-  for (size_t i = 0; i < all.size(); i++) {
-    if (safe.at(i)) types.at(at++) = all.at(i);
-  }
-  return types;
 }
 
 template <fixed_string Src, class... Partials, class Host, class T>

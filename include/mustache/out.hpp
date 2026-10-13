@@ -41,10 +41,8 @@ constexpr size_t
 escaped_size_max_in(const Context c, const size_t n)
 {
   switch (c) {
-    case Context::none:           return n;
     case Context::css_string:
     case Context::js_string:      return 4 * n;
-    case Context::html_url_start: return std::max(kEntityMax * n, kUnsafeUrlReplacement.size());
     default:                      return kEntityMax * n;
   }
 }
@@ -53,15 +51,10 @@ constexpr char *
 escaped_into_in(const Context c, char *const w, const std::string_view s)
 {
   switch (c) {
-    case Context::none:           return bytes_into(w, s);
-    case Context::xml_text:
-    case Context::xml_attribute:  return xml_escaped_into(w, s);
+    case Context::xml_text:       return xml_escaped_into(w, s);
     case Context::json_string:    return json_string_escaped_into(w, s);
     case Context::js_string:      return js_string_escaped_into(w, s);
     case Context::css_string:     return css_string_escaped_into(w, s);
-    case Context::html_url_start:
-      if (!has_safe_url_scheme(s)) [[unlikely]] return bytes_into(w, kUnsafeUrlReplacement);
-      return escaped_into(w, s);
     default:                      return escaped_into(w, s);
   }
 }

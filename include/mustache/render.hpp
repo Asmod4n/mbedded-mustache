@@ -152,14 +152,6 @@ struct HostString {
     return size + bound <= capacity() || grown(size + bound);
   }
 
-  [[gnu::always_inline]] void escaped_url_string(const std::string &s)
-  {
-    if (!has_safe_url_scheme(s)) [[unlikely]] {
-      raw(kUnsafeUrlReplacement);
-      return;
-    }
-    escaped_string(s);
-  }
 
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
@@ -170,7 +162,7 @@ struct HostString {
 
   void escaped_in(const Context c, const std::string_view s)
   {
-    if (c == Context::html_text || c == Context::html_attribute || c == Context::html_url_rest) {
+    if (c == Context::html_text) {
       escaped(s);
       return;
     }
@@ -212,14 +204,6 @@ struct Batch {
 
   [[gnu::always_inline]] void escaped_in(const Context, const std::string_view) { dirty = true; }
 
-  [[gnu::always_inline]] void escaped_url_string(const std::string &s)
-  {
-    if (!has_safe_url_scheme(s)) [[unlikely]] {
-      dirty = true;
-      return;
-    }
-    escaped_string(s);
-  }
 
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {

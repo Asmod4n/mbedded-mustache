@@ -166,33 +166,6 @@ css_string_escaped_into(char *w, const std::string_view s)
   return w;
 }
 
-constexpr bool
-is_url_ignored_byte(const char c)
-{
-  return (unsigned char)c <= 0x20;
-}
-
-constexpr bool
-has_safe_url_scheme(const std::string_view url)
-{
-  std::string scheme;
-  bool leading = true;
-  for (const char c : url) {
-    if (leading && is_url_ignored_byte(c)) continue;
-    leading = false;
-    if (c == '\t' || c == '\n' || c == '\r') continue;
-    if (c == ':') {
-      std::ranges::transform(scheme, scheme.begin(), [](const char x) { return x >= 'A' && x <= 'Z' ? (char)(x - 'A' + 'a') : x; });
-      return scheme == "http" || scheme == "https" || scheme == "mailto";
-    }
-    if (c == '/' || c == '?' || c == '#') return true;
-    scheme += c;
-  }
-  return true;
-}
-
-inline constexpr std::string_view kUnsafeUrlReplacement = "about:invalid";
-
 struct Copied {
   char    *w;
   uint64_t marks;
