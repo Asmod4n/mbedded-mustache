@@ -39,6 +39,12 @@ jobs:
             cc: gcc
             std: 26
             flags: -freflection -O1 -g -march=x86-64-v3 -fsanitize=undefined -fno-sanitize-recover=all -Wall -Wextra -Werror
+          - name: x86-64 g++ C++26 reflection ASan without SIMD
+            runner: ubuntu-24.04
+            cxx: g++
+            cc: gcc
+            std: 26
+            flags: -freflection -O1 -g -march=x86-64 -fno-tree-vectorize -fsanitize=address -Wall -Wextra -Werror
           - name: x86-64 clang C++23
             runner: ubuntu-24.04
             cxx: clang++
