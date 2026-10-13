@@ -165,6 +165,18 @@ css_string_escaped_into(char *w, const std::string_view s)
   }
   return w;
 }
+inline constexpr size_t kShortStringRead = 16;
+
+#if defined(_GLIBCXX_RELEASE)
+static_assert(std::string().capacity() + 1 >= kShortStringRead,
+              "copied_string reads kShortStringRead bytes from a short std::string; its own buffer must hold them");
+
+constexpr bool
+reads_past_size_safely(const std::string &s)
+{
+  return s.size() <= kShortStringRead && s.capacity() + 1 >= kShortStringRead;
+}
+#endif
 
 struct Copied {
   char    *w;
@@ -248,7 +260,7 @@ copied_string(char *const out, const std::string &s)
 {
   const size_t n = s.size();
 #if defined(_GLIBCXX_RELEASE)
-  if (n <= 16 && s.capacity() >= 15) {
+  if (reads_past_size_safely(s)) {
     const __m128i b = _mm_loadu_si128((const __m128i *)s.data());
     _mm_storeu_si128((__m128i *)out, b);
     return {out + n, marks16_of(b) & ((1u << n) - 1)};
@@ -321,7 +333,7 @@ copied_string(char *const out, const std::string &s)
 {
   const size_t n = s.size();
 #if defined(_GLIBCXX_RELEASE)
-  if (n <= 16 && s.capacity() >= 15) {
+  if (reads_past_size_safely(s)) {
     const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
     vst1q_u8(reinterpret_cast<uint8_t *>(out), b);
     const uint64_t lanes = n == 16 ? ~uint64_t{0} : (uint64_t{1} << (4 * n)) - 1;
