@@ -33,6 +33,12 @@ jobs:
             cc: gcc
             std: 26
             flags: -freflection -O1 -g -march=x86-64-v3 -fsanitize=address -Wall -Wextra -Werror
+          - name: x86-64 g++ C++26 reflection UBSan
+            runner: ubuntu-24.04
+            cxx: g++
+            cc: gcc
+            std: 26
+            flags: -freflection -O1 -g -march=x86-64-v3 -fsanitize=undefined -fno-sanitize-recover=all -Wall -Wextra -Werror
           - name: x86-64 clang C++20
             runner: ubuntu-24.04
             cxx: clang++
@@ -52,7 +58,7 @@ jobs:
             std: 20
             flags: -O2 -Wall -Wextra -Werror
     steps:
-      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan
       - uses: actions/checkout@v4
         with:
           submodules: recursive

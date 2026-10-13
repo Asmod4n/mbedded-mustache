@@ -87,7 +87,23 @@ make_static(const std::string_view src)
 }
 
 template <fixed_string Src>
-inline constexpr auto static_program_of = make_static<sizes_of(Src.view())>(Src.view());
+consteval Sizes
+sizes_from_copy()
+{
+  const fixed_string copy = Src;
+  return sizes_of(copy.view());
+}
+
+template <fixed_string Src>
+consteval auto
+static_program_from_copy()
+{
+  const fixed_string copy = Src;
+  return make_static<sizes_from_copy<Src>()>(copy.view());
+}
+
+template <fixed_string Src>
+inline constexpr auto static_program_of = static_program_from_copy<Src>();
 
 namespace detail {
 
