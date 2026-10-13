@@ -17,6 +17,17 @@ namespace mustache {
 
 enum class Tag : uint32_t { text, var, raw, section, inverted, partial, block, parent };
 
+enum class Context : uint32_t {
+  html_text = 0,
+  html_attribute,
+  html_url_start,
+  html_url_rest,
+  xml_text,
+  xml_attribute,
+  json_string,
+  none,
+};
+
 struct Op {
   Tag      tag;
   uint32_t a;
@@ -48,9 +59,12 @@ enum class Problem : uint8_t {
   blocks_too_deep,
   too_large,
   delimiter_too_long,
+  unknown_media_type,
+  placeholder_in_unsafe_place,
+  context_changes_in_section,
 };
 
-inline constexpr std::array<std::string_view, 15> kProblemTitles = {
+inline constexpr std::array<std::string_view, 18> kProblemTitles = {
     "unclosed {{{",
     "unclosed {{",
     "empty tag",
@@ -66,6 +80,9 @@ inline constexpr std::array<std::string_view, 15> kProblemTitles = {
     "blocks and parents nest deeper than 64",
     "the compiled template does not fit 32-bit offsets",
     "a delimiter is longer than 16 bytes",
+    "no escaping is known for this media type",
+    "a tag stands where no escaping makes its value safe",
+    "a section or partial ends in another context than the one it starts in",
 };
 
 struct Refusal {
