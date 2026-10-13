@@ -105,4 +105,49 @@ TEST(ReflectBatch, RawValueOverThirtyTwoBytes)
   EXPECT_EQ(rendered<"{{single}}|{{#rows}}[{{{a}}}]{{/rows}}">(page, 64), want);
 }
 
+struct Pair {
+  std::string x;
+  std::string y;
+};
+
+template <mustache::fixed_string Src>
+std::string
+rendered_as(const std::string_view media_type, const std::string &value)
+{
+  mustache::std_host::Host h;
+  const Pair data{value, value};
+  if (mustache::render<Src>(h, data, media_type) != mustache::Fault::none) return "<fault>";
+  return h.answer;
+}
+
+// The reflection render compiles a template once for each grammar and
+// picks one by the media type the request negotiated. These are the
+// cases of test/media_type.cpp, through that path.
+TEST(ReflectMediaType, EscapesByTheNegotiatedType)
+{
+  EXPECT_EQ(rendered_as<"<a href=\"{{x}}\">{{y}}</a>">("text/html", "javascript:x"),
+            "<a href=\"about:invalid\">javascript:x</a>");
+  EXPECT_EQ(rendered_as<"<a b=\"{{x}}\">{{y}}</a>">("application/xml", "'"), "<a b=\"&apos;\">&apos;</a>");
+  EXPECT_EQ(rendered_as<"{\"a\":\"{{x}}\"}">("application/json; charset=utf-8", "\"\n"), "{\"a\":\"\\\"\\n\"}");
+  EXPECT_EQ(rendered_as<"var a = '{{x}}';">("text/javascript", "'"), "var a = '\\x27';");
+  EXPECT_EQ(rendered_as<"a { content: '{{x}}' }">("text/css", "'"), "a { content: '\\27 ' }");
+}
+
+// A template whose tag stands where one grammar cannot make it safe
+// still compiles for the others; asked for that type, it renders nothing
+// and gives a fault. The same answer at compile time tells the resource
+// which types it can provide.
+TEST(ReflectMediaType, RefusesATypeTheTemplateCannotServe)
+{
+  EXPECT_EQ(rendered_as<"<p>{{x}}</p>">("application/json", "v"), "<fault>");
+  EXPECT_EQ(rendered_as<"<p>{{x}}</p>">("image/svg+xml", "v"), "<fault>");
+  constexpr auto types = mustache::content_types_provided<"<p>{{x}}</p>">();
+  EXPECT_EQ(std::vector<std::string_view>(types.begin(), types.end()),
+            (std::vector<std::string_view>{"text/html", "application/xml"}));
+  constexpr auto string_only = mustache::content_types_provided<"{\"a\":\"{{x}}\"}">();
+  EXPECT_EQ(std::vector<std::string_view>(string_only.begin(), string_only.end()),
+            (std::vector<std::string_view>{"text/html", "application/xml", "application/json", "text/javascript",
+                                           "text/css"}));
+}
+
 }

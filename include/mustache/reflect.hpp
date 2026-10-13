@@ -15,6 +15,7 @@
 #include "compile.hpp"
 #include "out.hpp"
 #include "render.hpp"
+#include "media_type.hpp"
 
 namespace mustache {
 
@@ -48,10 +49,17 @@ struct Sizes {
   bool   refused;
 };
 
-consteval Sizes
-sizes_of(const std::string_view src)
+consteval std::variant<Compiled, Refusal>
+compiled_for(const std::string_view src, const std::string_view media_type)
 {
-  const std::variant<Compiled, Refusal> r = compile(src);
+  if (media_type.empty()) return compile(src);
+  return compile(src, media_type);
+}
+
+consteval Sizes
+sizes_of(const std::string_view src, const std::string_view media_type)
+{
+  const std::variant<Compiled, Refusal> r = compiled_for(src, media_type);
   if (std::holds_alternative<Refusal>(r)) [[unlikely]] return {0, 0, 0, 0, true};
   const Compiled &c = std::get<Compiled>(r);
   size_t keys = 0;
@@ -70,10 +78,10 @@ struct StaticProgram {
 
 template <Sizes S>
 consteval StaticProgram<S>
-make_static(const std::string_view src)
+make_static(const std::string_view src, const std::string_view media_type)
 {
   StaticProgram<S> p;
-  const std::variant<Compiled, Refusal> r = compile(src);
+  const std::variant<Compiled, Refusal> r = compiled_for(src, media_type);
   if (std::holds_alternative<Refusal>(r)) [[unlikely]] return p;
   const Compiled &c = std::get<Compiled>(r);
   for (size_t i = 0; i < S.ops; i++) p.ops.at(i) = c.ops.at(i);
@@ -86,24 +94,26 @@ make_static(const std::string_view src)
   return p;
 }
 
-template <fixed_string Src>
+template <fixed_string Src, fixed_string Media>
 consteval Sizes
 sizes_from_copy()
 {
   const fixed_string copy = Src;
-  return sizes_of(copy.view());
+  const fixed_string media = Media;
+  return sizes_of(copy.view(), media.view());
 }
 
-template <fixed_string Src>
+template <fixed_string Src, fixed_string Media>
 consteval auto
 static_program_from_copy()
 {
   const fixed_string copy = Src;
-  return make_static<sizes_from_copy<Src>()>(copy.view());
+  const fixed_string media = Media;
+  return make_static<sizes_from_copy<Src, Media>()>(copy.view(), media.view());
 }
 
-template <fixed_string Src>
-inline constexpr auto static_program_of = static_program_from_copy<Src>();
+template <fixed_string Src, fixed_string Media = fixed_string<1>{}>
+inline constexpr auto static_program_of = static_program_from_copy<Src, Media>();
 
 namespace detail {
 
@@ -246,9 +256,9 @@ struct Argument {
 inline constexpr int kMaxStaticDepth = 64;
 
 template <fixed_string Src, class Partials = static_partial_list<>, class Args = no_frame, class Indent = no_indent,
-          int Depth = 0>
+          int Depth = 0, fixed_string Media = fixed_string<1>{}>
 struct Renderer {
-  static constexpr const auto &P = static_program_of<Src>;
+  static constexpr const auto &P = static_program_of<Src, Media>;
   static constexpr bool kIndented = !std::is_same_v<Indent, no_indent>;
 
   static consteval std::string_view key(uint32_t i)
@@ -374,13 +384,16 @@ struct Renderer {
     }
   }
 
-  template <Tag tag, class W>
+  template <Tag tag, Context context, class W>
   [[gnu::always_inline]] static constexpr void value(W &out, bool &pending, const std::string_view s)
   {
     if (s.empty()) return;
     indent_if_pending(out, pending);
-    if constexpr (tag == Tag::var) out.escaped(s);
-    else out.raw(s);
+    if constexpr (tag != Tag::var) out.raw(s);
+    else if constexpr (context == Context::html_text || context == Context::html_attribute ||
+                       context == Context::html_url_rest)
+      out.escaped(s);
+    else out.escaped_in(context, s);
   }
 
   template <fixed_string Source, class InnerArgs, uint32_t IndentLength, uint32_t IndentAt, uint32_t From, uint32_t Stop,
@@ -390,17 +403,17 @@ struct Renderer {
     if constexpr (Depth + 1 > kMaxStaticDepth) {
       detail::nests_too_deep<Depth + 1>();
     }
-    else if constexpr (static_program_of<Source>.refused) {
+    else if constexpr (static_program_of<Source, Media>.refused) {
       detail::does_not_compile<Source>();
     }
     else if constexpr (IndentLength == 0) {
       indent_if_pending(out, pending);
-      Renderer<Source, Partials, InnerArgs, Indent, Depth + 1>::template run<From, Stop>(out, pending, ctx...);
+      Renderer<Source, Partials, InnerArgs, Indent, Depth + 1, Media>::template run<From, Stop>(out, pending, ctx...);
     }
     else {
       using Inner = indent_frame<fixed_of<IndentLength>(text_at(IndentAt, IndentLength)), Indent>;
       bool inner = true;
-      Renderer<Source, Partials, InnerArgs, Inner, Depth + 1>::template run<From, Stop>(out, inner, ctx...);
+      Renderer<Source, Partials, InnerArgs, Inner, Depth + 1, Media>::template run<From, Stop>(out, inner, ctx...);
       if constexpr (kIndented) pending = inner;
     }
   }
@@ -422,20 +435,29 @@ struct Renderer {
         using V = std::remove_cvref_t<decltype(v)>;
         if constexpr (detail::is_optional<V>::value) {
           if constexpr (!detail::text_like<typename V::value_type>) detail::is_not_text<V>();
-          else if (v) value<op.tag>(out, pending, std::string_view(*v));
+          else if (v) value<op.tag, (Context)op.d>(out, pending, std::string_view(*v));
         }
         else if constexpr (!detail::text_like<V>) {
           detail::is_not_text<V>();
         }
         else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
+                           ((Context)op.d == Context::html_text || (Context)op.d == Context::html_attribute ||
+                            (Context)op.d == Context::html_url_rest) &&
                            requires { out.escaped_string(v); }) {
           if (!v.empty()) {
             indent_if_pending(out, pending);
             out.escaped_string(v);
           }
         }
+        else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
+                           (Context)op.d == Context::html_url_start && requires { out.escaped_url_string(v); }) {
+          if (!v.empty()) {
+            indent_if_pending(out, pending);
+            out.escaped_url_string(v);
+          }
+        }
         else {
-          value<op.tag>(out, pending, std::string_view(v));
+          value<op.tag, (Context)op.d>(out, pending, std::string_view(v));
         }
         run<pc + 1, stop>(out, pending, ctx...);
       }
@@ -486,7 +508,7 @@ struct Renderer {
         constexpr int i = detail::partials_of<Partials>::index_of(key(op.a));
         if constexpr (i >= 0) {
           using Found = typename detail::partials_of<Partials>::template at<i>;
-          run_nested<Found::source, no_frame, op.b, op.c, 0, (uint32_t)static_program_of<Found::source>.ops.size()>(
+          run_nested<Found::source, no_frame, op.b, op.c, 0, (uint32_t)static_program_of<Found::source, Media>.ops.size()>(
               out, pending, ctx...);
         }
         run<pc + 1, stop>(out, pending, ctx...);
@@ -496,7 +518,7 @@ struct Renderer {
         if constexpr (i >= 0) {
           using Found = typename detail::partials_of<Partials>::template at<i>;
           run_nested<Found::source, args_frame<Src, pc + 1, op.c, Args>, op.b, op.d, 0,
-                     (uint32_t)static_program_of<Found::source>.ops.size()>(out, pending, ctx...);
+                     (uint32_t)static_program_of<Found::source, Media>.ops.size()>(out, pending, ctx...);
         }
         run<op.c, stop>(out, pending, ctx...);
       }
@@ -505,7 +527,7 @@ struct Renderer {
         if constexpr (found.depth >= 0) {
           using Frame = typename detail::frame_at<Args, (size_t)found.depth>::type;
           run_nested<Frame::source, Args, op.d, op.e, found.at + 1,
-                     static_program_of<Frame::source>.ops.at(found.at).c>(out, pending, ctx...);
+                     static_program_of<Frame::source, Media>.ops.at(found.at).c>(out, pending, ctx...);
         }
         else {
           run_nested<Src, Args, op.d, op.e, pc + 1, op.c>(out, pending, ctx...);
@@ -515,6 +537,71 @@ struct Renderer {
     }
   }
 };
+
+namespace detail {
+
+inline constexpr fixed_string kHtml = "text/html";
+inline constexpr fixed_string kXml = "application/xml";
+inline constexpr fixed_string kJson = "application/json";
+inline constexpr fixed_string kJs = "text/javascript";
+inline constexpr fixed_string kCss = "text/css";
+
+template <fixed_string Src, fixed_string Media, class Partials, class Host, class T>
+Fault
+rendered_as(Host &host, const T &data, const size_t initial_capacity)
+{
+  if constexpr (static_program_of<Src, Media>.refused) {
+    return Fault::parse;
+  }
+  else {
+    HostString<Host> out{host, {}};
+    if (!out.opened(initial_capacity)) [[unlikely]] return out.fault;
+    bool pending = false;
+    Renderer<Src, Partials, no_frame, no_indent, 0, Media>::template run<
+        0, (uint32_t)static_program_of<Src, Media>.ops.size()>(out, pending, data);
+    const Fault closed = done(host, out.size);
+    if (out.fault != Fault::none) [[unlikely]] return out.fault;
+    return closed;
+  }
+}
+
+}
+
+template <fixed_string Src>
+consteval auto
+content_types_provided()
+{
+  constexpr std::array<std::string_view, 5> all = {detail::kHtml.view(), detail::kXml.view(), detail::kJson.view(),
+                                                   detail::kJs.view(), detail::kCss.view()};
+  constexpr std::array<bool, 5> safe = {
+      !static_program_of<Src, detail::kHtml>.refused, !static_program_of<Src, detail::kXml>.refused,
+      !static_program_of<Src, detail::kJson>.refused, !static_program_of<Src, detail::kJs>.refused,
+      !static_program_of<Src, detail::kCss>.refused};
+  constexpr size_t n = (size_t)std::ranges::count(safe, true);
+  std::array<std::string_view, n> types{};
+  size_t at = 0;
+  for (size_t i = 0; i < all.size(); i++) {
+    if (safe.at(i)) types.at(at++) = all.at(i);
+  }
+  return types;
+}
+
+template <fixed_string Src, class... Partials, class Host, class T>
+[[nodiscard]] Fault
+render(Host &host, const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
+{
+  using List = static_partial_list<Partials...>;
+  const std::optional<Grammar> g = grammar_of(media_type);
+  if (!g) [[unlikely]] return Fault::parse;
+  switch (*g) {
+    case Grammar::html: return detail::rendered_as<Src, detail::kHtml, List>(host, data, initial_capacity);
+    case Grammar::xml:  return detail::rendered_as<Src, detail::kXml, List>(host, data, initial_capacity);
+    case Grammar::json: return detail::rendered_as<Src, detail::kJson, List>(host, data, initial_capacity);
+    case Grammar::js:   return detail::rendered_as<Src, detail::kJs, List>(host, data, initial_capacity);
+    case Grammar::css:  return detail::rendered_as<Src, detail::kCss, List>(host, data, initial_capacity);
+    default:            return Fault::parse;
+  }
+}
 
 template <fixed_string Src, class... Partials, class Host, class T>
 [[nodiscard]] Fault

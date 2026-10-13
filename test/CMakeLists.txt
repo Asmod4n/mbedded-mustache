@@ -19,6 +19,10 @@ add_executable(c_api c_api_test.cpp $<TARGET_OBJECTS:c_api_checks>)
 target_link_libraries(c_api PRIVATE mustache::mustache-c GTest::gtest_main)
 gtest_discover_tests(c_api)
 
+add_executable(media_type media_type.cpp)
+target_link_libraries(media_type PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(media_type)
+
 add_executable(escape escape.cpp)
 target_link_libraries(escape PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(escape)

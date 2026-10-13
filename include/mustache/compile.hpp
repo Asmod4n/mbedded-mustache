@@ -25,6 +25,8 @@ enum class Context : uint32_t {
   xml_text,
   xml_attribute,
   json_string,
+  js_string,
+  css_string,
   none,
 };
 

@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "compile.hpp"
+#include "media_type.hpp"
 #include "out.hpp"
 
 namespace mustache {
@@ -151,11 +152,32 @@ struct HostString {
     return size + bound <= capacity() || grown(size + bound);
   }
 
+  [[gnu::always_inline]] void escaped_url_string(const std::string &s)
+  {
+    if (!has_safe_url_scheme(s)) [[unlikely]] {
+      raw(kUnsafeUrlReplacement);
+      return;
+    }
+    escaped_string(s);
+  }
+
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
     if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
     char *const w = bytes.subspan(size).data();
     size += (size_t)std::distance(w, escape_string_into(w, s));
+  }
+
+  void escaped_in(const Context c, const std::string_view s)
+  {
+    if (c == Context::html_text || c == Context::html_attribute || c == Context::html_url_rest) {
+      escaped(s);
+      return;
+    }
+    const size_t needed = escaped_size_max_in(c, s.size());
+    if (size + needed > capacity() && !grown(size + needed)) [[unlikely]] return;
+    char *const w = bytes.subspan(size).data();
+    size += (size_t)std::distance(w, escaped_into_in(c, w, s));
   }
 
   [[gnu::always_inline]] void escaped(const std::string_view s)
@@ -188,6 +210,17 @@ struct Batch {
 
   [[gnu::always_inline]] void escaped(const std::string_view) { dirty = true; }
 
+  [[gnu::always_inline]] void escaped_in(const Context, const std::string_view) { dirty = true; }
+
+  [[gnu::always_inline]] void escaped_url_string(const std::string &s)
+  {
+    if (!has_safe_url_scheme(s)) [[unlikely]] {
+      dirty = true;
+      return;
+    }
+    escaped_string(s);
+  }
+
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
     const Copied c = copied_string(w, s);
@@ -200,13 +233,13 @@ struct Batch {
   }
 };
 
-template <class Key, class Host>
+template <class Key, class Host, class Compile>
 std::optional<Program<Key>>
-program_of(Host &host, const std::string_view source, const size_t source_max)
+program_compiled_by(Host &host, const std::string_view source, const size_t source_max, const Compile &compile_source)
 {
   if (!within_limit(host, "template", source.size(), std::min(source_max, kSourceMax))) [[unlikely]] return std::nullopt;
   std::optional<std::variant<Compiled, Refusal>> compiled =
-      allocated_or_failed(host, "template", source.size(), [&] { return compile(source); });
+      allocated_or_failed(host, "template", source.size(), compile_source);
   if (!compiled) [[unlikely]] return std::nullopt;
   if (std::holds_alternative<Refusal>(*compiled)) [[unlikely]] {
     const Refusal r = std::get<Refusal>(*compiled);
@@ -220,6 +253,20 @@ program_of(Host &host, const std::string_view source, const size_t source_max)
     for (const std::string &k : c.keys) p.keys.push_back(key_of(host, std::string_view(k)));
     return p;
   });
+}
+
+template <class Key, class Host>
+std::optional<Program<Key>>
+program_of(Host &host, const std::string_view source, const size_t source_max)
+{
+  return program_compiled_by<Key>(host, source, source_max, [source] { return compile(source); });
+}
+
+template <class Key, class Host>
+std::optional<Program<Key>>
+program_of(Host &host, const std::string_view source, const size_t source_max, const std::string_view media_type)
+{
+  return program_compiled_by<Key>(host, source, source_max, [source, media_type] { return compile(source, media_type); });
 }
 
 inline constexpr int kMaxDepth = 32;
@@ -305,6 +352,12 @@ private:
   void escaped(const std::string_view s)
   {
     out_.escaped(s);
+    if (out_.fault != Fault::none) [[unlikely]] fault_ = out_.fault;
+  }
+
+  void escaped_in(const Context c, const std::string_view s)
+  {
+    out_.escaped_in(c, s);
     if (out_.fault != Fault::none) [[unlikely]] fault_ = out_.fault;
   }
 
@@ -435,7 +488,7 @@ private:
           const std::string_view s = text_of(host_, *v);
           if (s.empty()) break;
           indent_if_pending(ind);
-          if (op.tag == Tag::var) escaped(s);
+          if (op.tag == Tag::var) escaped_in((Context)op.d, s);
           else raw(s);
           break;
         }

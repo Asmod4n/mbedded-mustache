@@ -14,7 +14,7 @@
 
 namespace mustache {
 
-enum class Grammar : uint8_t { html, xml, json, plain };
+enum class Grammar : uint8_t { html, xml, json, js, css };
 
 namespace detail {
 
@@ -68,6 +68,22 @@ lowered(const std::string_view s)
 
 }
 
+namespace detail {
+
+constexpr bool
+equals_ignoring_case(const std::string_view a, const std::string_view lower_b)
+{
+  return a.size() == lower_b.size() && std::ranges::equal(a, lower_b, {}, lower);
+}
+
+constexpr bool
+ends_with_ignoring_case(const std::string_view a, const std::string_view lower_b)
+{
+  return a.size() >= lower_b.size() && equals_ignoring_case(a.substr(a.size() - lower_b.size()), lower_b);
+}
+
+}
+
 constexpr std::optional<Grammar>
 grammar_of(const std::string_view media_type)
 {
@@ -75,19 +91,21 @@ grammar_of(const std::string_view media_type)
   const std::string_view essence = ows_trimmed(media_type.substr(0, media_type.find(';')));
   const size_t slash = essence.find('/');
   if (slash == std::string_view::npos) [[unlikely]] return std::nullopt;
-  const std::string_view type = essence.substr(0, slash);
-  const std::string_view subtype = essence.substr(slash + 1);
-  if (!is_restricted_name(type) || !is_restricted_name(subtype)) [[unlikely]] return std::nullopt;
-  const std::string t = lowered(type);
-  const std::string st = lowered(subtype);
-  if (t == "text" && st == "html") return Grammar::html;
-  if (t == "application" && st == "xhtml+xml") return Grammar::html;
-  if (t == "text" && st == "plain") return Grammar::plain;
-  if (t == "application" && st == "json") return Grammar::json;
-  if (st.ends_with("+json")) return Grammar::json;
-  if ((t == "application" || t == "text") && st == "xml") return Grammar::xml;
-  if (t == "image" && st == "svg+xml") return std::nullopt;
-  if (st.ends_with("+xml")) return Grammar::xml;
+  const std::string_view t = essence.substr(0, slash);
+  const std::string_view st = essence.substr(slash + 1);
+  if (!is_restricted_name(t) || !is_restricted_name(st)) [[unlikely]] return std::nullopt;
+  const bool text = equals_ignoring_case(t, "text");
+  const bool application = equals_ignoring_case(t, "application");
+  if (text && equals_ignoring_case(st, "html")) return Grammar::html;
+  if (application && equals_ignoring_case(st, "xhtml+xml")) return Grammar::html;
+  if (application && equals_ignoring_case(st, "json")) return Grammar::json;
+  if (ends_with_ignoring_case(st, "+json")) return Grammar::json;
+  if ((application || text) && equals_ignoring_case(st, "xml")) return Grammar::xml;
+  if (text && equals_ignoring_case(st, "css")) return Grammar::css;
+  if ((text || application) && (equals_ignoring_case(st, "javascript") || equals_ignoring_case(st, "ecmascript")))
+    return Grammar::js;
+  if (equals_ignoring_case(t, "image") && equals_ignoring_case(st, "svg+xml")) return std::nullopt;
+  if (ends_with_ignoring_case(st, "+xml")) return Grammar::xml;
   return std::nullopt;
 }
 
@@ -111,13 +129,19 @@ enum class HtmlState : uint8_t {
   rcdata,
 };
 
-enum class AttributeKind : uint8_t { plain, url, unsafe };
+enum class AttributeKind : uint8_t { plain, url, js, css, unsafe };
 
 enum class UrlState : uint8_t { empty, static_prefix, after_value, past_scheme };
 
 enum class XmlState : uint8_t { text, tag, quoted_value, comment, cdata, processing_instruction, doctype };
 
 enum class JsonState : uint8_t { outside, string, string_escape };
+
+enum class JsState : uint8_t { code, string, string_escape, template_text, line_comment, block_comment, ambiguous };
+
+enum class CssState : uint8_t { code, string, string_escape, comment };
+
+enum class Embedded : uint8_t { none, js, css };
 
 struct Place {
   HtmlState     html = HtmlState::text;
@@ -129,7 +153,19 @@ struct Place {
   std::string   name;
   std::string   element;
   std::string   tail;
+  std::string   raw_tail;
   int           doctype_depth = 0;
+  Embedded      embedded = Embedded::none;
+  JsState       js = JsState::code;
+  char          js_quote = 0;
+  char          js_last = 0;
+  CssState      css = CssState::code;
+  char          css_quote = 0;
+  bool          css_string_is_url = false;
+  std::string   css_word;
+  std::string   script_type;
+  bool          script_type_seen = false;
+  bool          embedded_refused = false;
 
   constexpr bool operator==(const Place &) const = default;
 };
@@ -151,17 +187,176 @@ is_html_space(const char c)
 constexpr AttributeKind
 attribute_kind_of(const std::string_view name)
 {
-  if (name.starts_with("on") || name == "style" || name == "srcset") return AttributeKind::unsafe;
+  if (name.starts_with("on")) return AttributeKind::js;
+  if (name == "style") return AttributeKind::css;
+  if (name == "srcset") return AttributeKind::unsafe;
   if (std::ranges::find(kUrlAttributes, name) != kUrlAttributes.end()) return AttributeKind::url;
   return AttributeKind::plain;
+}
+
+
+constexpr Place
+js_after(Place p, const char c)
+{
+  switch (p.js) {
+    case JsState::code:
+      if (p.tail == "/") {
+        p.tail.clear();
+        if (c == '/') {
+          p.js = JsState::line_comment;
+          return p;
+        }
+        if (c == '*') {
+          p.js = JsState::block_comment;
+          return p;
+        }
+        p.js = JsState::ambiguous;
+        return p;
+      }
+      if (c == '/') p.tail = "/";
+      else if (c == '"' || c == '\'') {
+        p.js = JsState::string;
+        p.js_quote = c;
+      }
+      else if (c == '`') {
+        p.js = JsState::template_text;
+        p.js_last = 0;
+      }
+      return p;
+    case JsState::string:
+      if (c == '\\') p.js = JsState::string_escape;
+      else if (c == p.js_quote) {
+        p.js = JsState::code;
+        p.js_quote = 0;
+      }
+      else if (c == '\n' || c == '\r') p.js = JsState::ambiguous;
+      return p;
+    case JsState::string_escape:
+      p.js = JsState::string;
+      return p;
+    case JsState::template_text:
+      if (p.js_last == '\\') p.js_last = 0;
+      else if (c == '\\') p.js_last = '\\';
+      else if (c == '`') p.js = JsState::code;
+      else if (c == '{' && p.js_last == '$') p.js = JsState::ambiguous;
+      else p.js_last = c;
+      return p;
+    case JsState::line_comment:
+      if (c == '\n' || c == '\r') p.js = JsState::code;
+      return p;
+    case JsState::block_comment:
+      if (p.js_last == '*' && c == '/') {
+        p.js = JsState::code;
+        p.js_last = 0;
+      }
+      else p.js_last = c;
+      return p;
+    case JsState::ambiguous:
+      return p;
+  }
+  return p;
+}
+
+constexpr Place
+css_after(Place p, const char c)
+{
+  switch (p.css) {
+    case CssState::code:
+      if (p.tail == "/") {
+        p.tail.clear();
+        if (c == '*') {
+          p.css = CssState::comment;
+          p.css_word.clear();
+          return p;
+        }
+      }
+      if (c == '/') p.tail = "/";
+      else if (c == '"' || c == '\'') {
+        p.css = CssState::string;
+        p.css_quote = c;
+        p.css_string_is_url = p.css_word == "url(" || p.css_word == "@import" || p.css_word == "image-set(";
+        p.css_word.clear();
+      }
+      else if (is_html_space(c)) {
+        if (p.css_word != "@import") p.css_word.clear();
+      }
+      else {
+        if (p.css_word == "@import") p.css_word.clear();
+        p.css_word += lower(c);
+        if (p.css_word.size() > 16) p.css_word.erase(0, p.css_word.size() - 16);
+        const std::string_view w = p.css_word;
+        if (w.ends_with("url(")) p.css_word = "url(";
+        else if (w.ends_with("image-set(")) p.css_word = "image-set(";
+        else if (w.ends_with("@import")) p.css_word = "@import";
+      }
+      return p;
+    case CssState::string:
+      if (c == '\\') p.css = CssState::string_escape;
+      else if (c == p.css_quote) {
+        p.css = CssState::code;
+        p.css_quote = 0;
+        p.css_string_is_url = false;
+      }
+      return p;
+    case CssState::string_escape:
+      p.css = CssState::string;
+      return p;
+    case CssState::comment:
+      if (p.tail == "*" && c == '/') {
+        p.css = CssState::code;
+        p.tail.clear();
+      }
+      else p.tail = c == '*' ? "*" : "";
+      return p;
+  }
+  return p;
+}
+
+constexpr Place
+embedded_after(Place p, const char c)
+{
+  if (p.embedded == Embedded::js) return js_after(std::move(p), c);
+  if (p.embedded == Embedded::css) return css_after(std::move(p), c);
+  return p;
+}
+
+constexpr bool
+is_js_type(const std::string_view type)
+{
+  const std::string t = lowered(ows_trimmed(type));
+  return t.empty() || t == "module" || t == "text/javascript" || t == "application/javascript" ||
+         t == "application/ecmascript" || t == "text/ecmascript";
+}
+
+constexpr Place
+embedded_reset(Place p, const Embedded e)
+{
+  p.embedded = e;
+  p.js = JsState::code;
+  p.js_quote = 0;
+  p.js_last = 0;
+  p.css = CssState::code;
+  p.css_quote = 0;
+  p.css_string_is_url = false;
+  p.css_word.clear();
+  p.embedded_refused = false;
+  return p;
 }
 
 constexpr Place
 html_tag_closed(Place p)
 {
+  Embedded e = Embedded::none;
+  if (p.element == "script" && is_js_type(p.script_type_seen ? std::string_view(p.script_type) : "")) e = Embedded::js;
+  else if (p.element == "style") e = Embedded::css;
   if (std::ranges::find(kRawTextElements, p.element) != kRawTextElements.end()) p.html = HtmlState::raw_text;
   else if (std::ranges::find(kRcdataElements, p.element) != kRcdataElements.end()) p.html = HtmlState::rcdata;
   else p.html = HtmlState::text;
+  p = embedded_reset(std::move(p), p.html == HtmlState::raw_text ? e : Embedded::none);
+  if (p.html == HtmlState::text) p.element.clear();
+  p.name.clear();
+  p.script_type.clear();
+  p.script_type_seen = false;
   p.tail.clear();
   return p;
 }
@@ -191,6 +386,8 @@ html_after(Place p, const char c)
       else if (is_alpha_or_digit(c) && !(c >= '0' && c <= '9')) {
         p.html = HtmlState::tag_name;
         p.element = std::string(1, lower(c));
+        p.script_type.clear();
+        p.script_type_seen = false;
       }
       else p.html = HtmlState::text;
       return p;
@@ -208,7 +405,10 @@ html_after(Place p, const char c)
       else p.element += lower(c);
       return p;
     case HtmlState::end_tag:
-      if (c == '>') p.html = HtmlState::text;
+      if (c == '>') {
+        p.html = HtmlState::text;
+        p.element.clear();
+      }
       return p;
     case HtmlState::before_attribute_name:
       if (c == '>') return html_tag_closed(p);
@@ -239,9 +439,19 @@ html_after(Place p, const char c)
         p.quote = c;
         p.attribute = attribute_kind_of(p.name);
         p.url = UrlState::empty;
+        if (p.element == "script" && p.name == "type") p.script_type_seen = true;
+        p = embedded_reset(std::move(p), p.attribute == AttributeKind::js    ? Embedded::js
+                                         : p.attribute == AttributeKind::css ? Embedded::css
+                                                                             : Embedded::none);
       }
       else if (c == '>') return html_tag_closed(p);
-      else if (!is_html_space(c)) p.html = HtmlState::unquoted_value;
+      else if (!is_html_space(c)) {
+        p.html = HtmlState::unquoted_value;
+        if (p.element == "script" && p.name == "type") {
+          p.script_type_seen = true;
+          p.script_type = std::string(1, c);
+        }
+      }
       return p;
     case HtmlState::quoted_value:
       if (c == p.quote) {
@@ -249,7 +459,13 @@ html_after(Place p, const char c)
         p.quote = 0;
         p.attribute = AttributeKind::plain;
         p.url = UrlState::empty;
+        p = embedded_reset(std::move(p), Embedded::none);
       }
+      else if (p.embedded != Embedded::none) {
+        if (c == '&') p.embedded_refused = true;
+        else p = embedded_after(std::move(p), c);
+      }
+      else if (p.element == "script" && p.name == "type") p.script_type += c;
       else if (p.attribute == AttributeKind::url && p.url != UrlState::past_scheme) {
         if (c == ':' || c == '/' || c == '?' || c == '#') p.url = UrlState::past_scheme;
         else if (p.url == UrlState::empty) p.url = UrlState::static_prefix;
@@ -258,6 +474,7 @@ html_after(Place p, const char c)
     case HtmlState::unquoted_value:
       if (is_html_space(c)) p.html = HtmlState::before_attribute_name;
       else if (c == '>') return html_tag_closed(p);
+      else if (p.element == "script" && p.name == "type") p.script_type += c;
       return p;
     case HtmlState::comment:
       p.tail += c;
@@ -271,14 +488,19 @@ html_after(Place p, const char c)
       if (c == '>') p.html = HtmlState::text;
       return p;
     case HtmlState::raw_text:
-    case HtmlState::rcdata:
-      p.tail += c;
-      if (p.tail.size() > p.element.size() + 3) p.tail.erase(0, p.tail.size() - p.element.size() - 3);
-      if (ends_raw_element(p.tail, p.element)) {
-        p.html = p.tail.back() == '>' ? HtmlState::text : HtmlState::end_tag;
-        p.tail.clear();
+    case HtmlState::rcdata: {
+      std::string tail = p.raw_tail + c;
+      if (tail.size() > p.element.size() + 3) tail.erase(0, tail.size() - p.element.size() - 3);
+      p.raw_tail = tail;
+      if (ends_raw_element(tail, p.element)) {
+        p.html = tail.back() == '>' ? HtmlState::text : HtmlState::end_tag;
+        p.raw_tail.clear();
+        if (p.html == HtmlState::text) p.element.clear();
+        return embedded_reset(std::move(p), Embedded::none);
       }
-      return p;
+      if (p.embedded == Embedded::js && tail.ends_with("<!--")) p.js = JsState::ambiguous;
+      return embedded_after(std::move(p), c);
+    }
   }
   return p;
 }
@@ -368,6 +590,8 @@ place_after(Place p, const Grammar g, const std::string_view text)
     if (g == Grammar::html) p = html_after(std::move(p), c);
     else if (g == Grammar::xml) p = xml_after(std::move(p), c);
     else if (g == Grammar::json) p = json_after(std::move(p), c);
+    else if (g == Grammar::js) p = js_after(std::move(p), c);
+    else if (g == Grammar::css) p = css_after(std::move(p), c);
   }
   return p;
 }
@@ -376,8 +600,6 @@ constexpr std::optional<Context>
 context_of(const Place &p, const Grammar g)
 {
   switch (g) {
-    case Grammar::plain:
-      return Context::none;
     case Grammar::json:
       if (p.json == JsonState::string) return Context::json_string;
       return std::nullopt;
@@ -385,8 +607,19 @@ context_of(const Place &p, const Grammar g)
       if (p.xml == XmlState::text) return Context::xml_text;
       if (p.xml == XmlState::quoted_value) return Context::xml_attribute;
       return std::nullopt;
+    case Grammar::js:
+      if (p.tail.empty() && (p.js == JsState::string || p.js == JsState::template_text)) return Context::js_string;
+      return std::nullopt;
+    case Grammar::css:
+      if (p.css == CssState::string && !p.css_string_is_url) return Context::css_string;
+      return std::nullopt;
     case Grammar::html:
       if (p.html == HtmlState::text || p.html == HtmlState::rcdata) return Context::html_text;
+      if (p.embedded != Embedded::none && p.embedded_refused) return std::nullopt;
+      if ((p.html == HtmlState::raw_text || p.html == HtmlState::quoted_value) && p.embedded == Embedded::js)
+        return context_of(p, Grammar::js);
+      if ((p.html == HtmlState::raw_text || p.html == HtmlState::quoted_value) && p.embedded == Embedded::css)
+        return context_of(p, Grammar::css);
       if (p.html != HtmlState::quoted_value || p.attribute == AttributeKind::unsafe) return std::nullopt;
       if (p.attribute == AttributeKind::plain) return Context::html_attribute;
       if (p.url == UrlState::empty) return Context::html_url_start;

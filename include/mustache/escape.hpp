@@ -72,6 +72,127 @@ escape_bytes(char *const out, const std::string_view s)
   return w;
 }
 
+constexpr char *
+bytes_into(char *w, const std::string_view s)
+{
+  return std::ranges::copy(s, w).out;
+}
+
+constexpr char *
+xml_escaped_into(char *w, const std::string_view s)
+{
+  for (const char c : s) {
+    if (c == '&') w = bytes_into(w, "&amp;");
+    else if (c == '<') w = bytes_into(w, "&lt;");
+    else if (c == '>') w = bytes_into(w, "&gt;");
+    else if (c == '"') w = bytes_into(w, "&quot;");
+    else if (c == '\'') w = bytes_into(w, "&apos;");
+    else *w++ = c;
+  }
+  return w;
+}
+
+inline constexpr std::string_view kHexDigits = "0123456789abcdef";
+
+constexpr char *
+json_string_escaped_into(char *w, const std::string_view s)
+{
+  for (const char c : s) {
+    const unsigned char u = (unsigned char)c;
+    if (c == '"') w = bytes_into(w, "\\\"");
+    else if (c == '\\') w = bytes_into(w, "\\\\");
+    else if (c == '\b') w = bytes_into(w, "\\b");
+    else if (c == '\f') w = bytes_into(w, "\\f");
+    else if (c == '\n') w = bytes_into(w, "\\n");
+    else if (c == '\r') w = bytes_into(w, "\\r");
+    else if (c == '\t') w = bytes_into(w, "\\t");
+    else if (u < 0x20) {
+      w = bytes_into(w, "\\u00");
+      *w++ = kHexDigits.at(u >> 4);
+      *w++ = kHexDigits.at(u & 15);
+    }
+    else *w++ = c;
+  }
+  return w;
+}
+
+constexpr bool
+is_js_plain(const char c)
+{
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' || c == '_' ||
+         c == ',' || c == '.' || (unsigned char)c >= 0x80;
+}
+
+constexpr char *
+js_string_escaped_into(char *w, const std::string_view s)
+{
+  for (size_t i = 0; i < s.size(); i++) {
+    const unsigned char u = (unsigned char)s.at(i);
+    if (u == 0xe2 && i + 2 < s.size() && (unsigned char)s.at(i + 1) == 0x80 &&
+        ((unsigned char)s.at(i + 2) == 0xa8 || (unsigned char)s.at(i + 2) == 0xa9)) {
+      w = bytes_into(w, (unsigned char)s.at(i + 2) == 0xa8 ? "\\u2028" : "\\u2029");
+      i += 2;
+    }
+    else if (is_js_plain(s.at(i))) *w++ = s.at(i);
+    else {
+      w = bytes_into(w, "\\x");
+      *w++ = kHexDigits.at(u >> 4);
+      *w++ = kHexDigits.at(u & 15);
+    }
+  }
+  return w;
+}
+
+constexpr bool
+is_css_plain(const char c)
+{
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == ' ' || c == '_' ||
+         c == '-' || c == ',' || c == '.' || (unsigned char)c >= 0x80;
+}
+
+constexpr char *
+css_string_escaped_into(char *w, const std::string_view s)
+{
+  for (const char c : s) {
+    const unsigned char u = (unsigned char)c;
+    if (is_css_plain(c)) *w++ = c;
+    else {
+      *w++ = '\\';
+      *w++ = kHexDigits.at(u >> 4);
+      *w++ = kHexDigits.at(u & 15);
+      *w++ = ' ';
+    }
+  }
+  return w;
+}
+
+constexpr bool
+is_url_ignored_byte(const char c)
+{
+  return (unsigned char)c <= 0x20;
+}
+
+constexpr bool
+has_safe_url_scheme(const std::string_view url)
+{
+  std::string scheme;
+  bool leading = true;
+  for (const char c : url) {
+    if (leading && is_url_ignored_byte(c)) continue;
+    leading = false;
+    if (c == '\t' || c == '\n' || c == '\r') continue;
+    if (c == ':') {
+      std::ranges::transform(scheme, scheme.begin(), [](const char x) { return x >= 'A' && x <= 'Z' ? (char)(x - 'A' + 'a') : x; });
+      return scheme == "http" || scheme == "https" || scheme == "mailto";
+    }
+    if (c == '/' || c == '?' || c == '#') return true;
+    scheme += c;
+  }
+  return true;
+}
+
+inline constexpr std::string_view kUnsafeUrlReplacement = "about:invalid";
+
 struct Copied {
   char    *w;
   uint64_t marks;
