@@ -1,4 +1,4 @@
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include "c_host.hpp"
 
@@ -15,47 +15,37 @@
 
 namespace {
 
-using mustache::std_host::Host;
-using mustache::std_host::Key;
-using mustache::std_host::KeyEqual;
-using mustache::std_host::KeyHash;
-using mustache::std_host::List;
-using mustache::std_host::Map;
-using mustache::std_host::Value;
-using Program = mustache::Program<Key>;
-using Partials = std::unordered_map<std::string, const Program *, KeyHash, KeyEqual>;
-
-// Each JSON type becomes the C++ type that holds it. A number stays a
-// number, so the render writes it with std::to_chars, and null stays
+// Each JSON type becomes the standard type that holds it. A number stays
+// a number, so the render writes it with std::to_chars, and null stays
 // null, a value of its own that is falsy.
-Value
+Node
 value_of(simdjson::ondemand::value v)
 {
   switch (v.type().value()) {
     case simdjson::ondemand::json_type::object: {
-      Map m;
+      NodeMap m;
       for (auto field : v.get_object()) {
         const std::string key(field.unescaped_key().value());
         m.insert_or_assign(key, value_of(field.value()));
       }
-      return Value{std::move(m)};
+      return Node{std::move(m)};
     }
     case simdjson::ondemand::json_type::array: {
-      List l;
+      NodeList l;
       for (auto e : v.get_array()) l.push_back(value_of(e.value()));
-      return Value{std::move(l)};
+      return Node{std::move(l)};
     }
     case simdjson::ondemand::json_type::string:
-      return Value{std::string(v.get_string().value())};
+      return Node{std::string(v.get_string().value())};
     case simdjson::ondemand::json_type::number:
       if (v.get_number_type().value() == simdjson::ondemand::number_type::floating_point_number) {
-        return Value{v.get_double().value()};
+        return Node{v.get_double().value()};
       }
-      return Value{v.get_int64().value()};
+      return Node{v.get_int64().value()};
     case simdjson::ondemand::json_type::boolean:
-      return Value{v.get_bool().value()};
+      return Node{v.get_bool().value()};
     default:
-      return Value{nullptr};
+      return Node{nullptr};
   }
 }
 
@@ -63,7 +53,7 @@ struct Case {
   std::string                                  name;
   std::string                                  source;
   std::string                                  expected;
-  Value                                        data;
+  Node                                         data;
   std::unordered_map<std::string, std::string> partials;
 };
 
@@ -92,19 +82,16 @@ case_of(simdjson::ondemand::object t)
 bool
 renders_as_expected(const Case &c)
 {
-  Host h;
-  std::unordered_map<std::string, Program> compiled;
-  Partials partials;
+  mustache::Partials partials;
   for (const auto &[name, source] : c.partials) {
-    std::optional<Program> p = mustache::program_of<Key>(h, source, mustache::kSourceMax);
+    std::expected<mustache::Template, mustache::Error> p = mustache::compile(source);
     if (!p) return false;
-    partials.emplace(name, &compiled.emplace(name, std::move(*p)).first->second);
+    partials.emplace(name, std::move(*p));
   }
-  h.partials = &partials;
-  const std::optional<Program> p = mustache::program_of<Key>(h, c.source, mustache::kSourceMax);
-  if (!p) return false;
-  const mustache::Fault f = mustache::Walk<Host, const Value *, Key>(h).run(*p, &c.data);
-  return f == mustache::Fault::none && h.answer == c.expected;
+  const std::expected<mustache::Template, mustache::Error> t = mustache::compile(c.source);
+  if (!t) return false;
+  const std::expected<std::string, mustache::Error> r = mustache::render(*t, c.data, partials);
+  return r && *r == c.expected;
 }
 
 // The same cases run through the C API, partials included: the partial
@@ -147,7 +134,7 @@ every_case()
     const std::string path = std::string(MUSTACHE_SPEC_DIR) + "/" + module + ".json";
     simdjson::padded_string json;
     if (simdjson::padded_string::load(path).get(json) != simdjson::SUCCESS) [[unlikely]] {
-      all.push_back(Case{std::string(module) + ": cannot read " + path, "", "<unread>", Value{nullptr}, {}});
+      all.push_back(Case{std::string(module) + ": cannot read " + path, "", "<unread>", Node{nullptr}, {}});
       continue;
     }
     simdjson::ondemand::parser parser;

@@ -6,7 +6,7 @@ add_library(mustache::mustache ALIAS mustache)
 target_include_directories(mustache INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(mustache INTERFACE cxx_std_20)
+target_compile_features(mustache INTERFACE cxx_std_23)
 
 add_library(mustache-c src/mustache-c.cpp)
 add_library(mustache::mustache-c ALIAS mustache-c)

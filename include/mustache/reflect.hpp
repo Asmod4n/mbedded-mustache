@@ -4,6 +4,8 @@
 
 #include <meta>
 #include <array>
+#include <charconv>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include <ranges>
@@ -52,8 +54,8 @@ struct Sizes {
 consteval std::variant<Compiled, Refusal>
 compiled_for(const std::string_view src, const std::string_view media_type)
 {
-  if (media_type.empty()) return compile(src);
-  return compile(src, media_type);
+  if (media_type.empty()) return detail::compile(src);
+  return detail::compile(src, media_type);
 }
 
 consteval Sizes
@@ -150,6 +152,9 @@ is_cxx_keyword(const std::string_view name)
 
 template <class T>
 concept text_like = std::is_convertible_v<const T &, std::string_view>;
+
+template <class T>
+concept number_like = std::is_arithmetic_v<T> && !std::is_same_v<T, bool> && !std::is_same_v<T, char>;
 
 template <class T>
 concept list_like = std::ranges::range<T> && !text_like<T>;
@@ -435,6 +440,11 @@ struct Renderer {
           if constexpr (!detail::text_like<typename V::value_type>) detail::is_not_text<V>();
           else if (v) value<op.tag, (Context)op.d>(out, pending, std::string_view(*v));
         }
+        else if constexpr (detail::number_like<V>) {
+          std::array<char, 32> digits{};
+          const std::to_chars_result r = std::to_chars(digits.data(), std::to_address(digits.end()), v);
+          value<op.tag, (Context)op.d>(out, pending, std::string_view(digits.data(), r.ptr));
+        }
         else if constexpr (!detail::text_like<V>) {
           detail::is_not_text<V>();
         }
@@ -557,28 +567,30 @@ rendered_as(Host &host, const T &data, const size_t initial_capacity)
 
 }
 
+namespace detail {
+
 template <fixed_string Src, class... Partials, class Host, class T>
 [[nodiscard]] Fault
-render(Host &host, const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
+render_with_host(Host &host, const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
 {
   using List = static_partial_list<Partials...>;
   const std::optional<Grammar> g = grammar_of(media_type);
   if (!g) [[unlikely]] return Fault::parse;
   switch (*g) {
-    case Grammar::html: return detail::rendered_as<Src, detail::kHtml, List>(host, data, initial_capacity);
-    case Grammar::xml:  return detail::rendered_as<Src, detail::kXml, List>(host, data, initial_capacity);
-    case Grammar::json: return detail::rendered_as<Src, detail::kJson, List>(host, data, initial_capacity);
-    case Grammar::js:   return detail::rendered_as<Src, detail::kJs, List>(host, data, initial_capacity);
-    case Grammar::css:  return detail::rendered_as<Src, detail::kCss, List>(host, data, initial_capacity);
+    case Grammar::html: return rendered_as<Src, detail::kHtml, List>(host, data, initial_capacity);
+    case Grammar::xml:  return rendered_as<Src, detail::kXml, List>(host, data, initial_capacity);
+    case Grammar::json: return rendered_as<Src, detail::kJson, List>(host, data, initial_capacity);
+    case Grammar::js:   return rendered_as<Src, detail::kJs, List>(host, data, initial_capacity);
+    case Grammar::css:  return rendered_as<Src, detail::kCss, List>(host, data, initial_capacity);
     default:            return Fault::parse;
   }
 }
 
 template <fixed_string Src, class... Partials, class Host, class T>
 [[nodiscard]] Fault
-render(Host &host, const T &data, const size_t initial_capacity = kInitialCapacity)
+render_with_host(Host &host, const T &data, const size_t initial_capacity = kInitialCapacity)
 {
-  if constexpr (static_program_of<Src>.refused) detail::does_not_compile<Src>();
+  if constexpr (static_program_of<Src>.refused) does_not_compile<Src>();
   HostString<Host> out{host, {}};
   if (!out.opened(initial_capacity)) [[unlikely]] return out.fault;
   bool pending = false;
@@ -587,6 +599,8 @@ render(Host &host, const T &data, const size_t initial_capacity = kInitialCapaci
   const Fault closed = done(host, out.size);
   if (out.fault != Fault::none) [[unlikely]] return out.fault;
   return closed;
+}
+
 }
 
 }

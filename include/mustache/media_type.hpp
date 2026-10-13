@@ -122,17 +122,21 @@ context_of(const Grammar g)
   return Context::html_text;
 }
 
+namespace detail {
+
 constexpr std::variant<Compiled, Refusal>
 compile(const std::string_view src, const std::string_view media_type)
 {
   const std::optional<Grammar> g = grammar_of(media_type);
   if (!g) [[unlikely]] return Refusal{Problem::unknown_media_type, 0};
-  std::variant<Compiled, Refusal> compiled = compile(src);
+  std::variant<Compiled, Refusal> compiled = detail::compile(src);
   if (std::holds_alternative<Refusal>(compiled)) [[unlikely]] return compiled;
   for (Op &op : std::get<Compiled>(compiled).ops) {
     if (op.tag == Tag::var) op.d = (uint32_t)context_of(*g);
   }
   return compiled;
+}
+
 }
 
 }

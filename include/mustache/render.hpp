@@ -243,14 +243,14 @@ template <class Key, class Host>
 std::optional<Program<Key>>
 program_of(Host &host, const std::string_view source, const size_t source_max)
 {
-  return program_compiled_by<Key>(host, source, source_max, [source] { return compile(source); });
+  return program_compiled_by<Key>(host, source, source_max, [source] { return detail::compile(source); });
 }
 
 template <class Key, class Host>
 std::optional<Program<Key>>
 program_of(Host &host, const std::string_view source, const size_t source_max, const std::string_view media_type)
 {
-  return program_compiled_by<Key>(host, source, source_max, [source, media_type] { return compile(source, media_type); });
+  return program_compiled_by<Key>(host, source, source_max, [source, media_type] { return detail::compile(source, media_type); });
 }
 
 inline constexpr int kMaxDepth = 32;

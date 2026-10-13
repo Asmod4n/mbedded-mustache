@@ -1,23 +1,29 @@
 #pragma once
 
 #include <mustache-c/mustache.h>
-#include <mustache/std.hpp>
+#include <mustache/render.hpp>
+
+#include "node.hpp"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
+#include <type_traits>
+#include <variant>
 #include <cerrno>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
-// A host of the C API whose callbacks read the std_host values. The C++
-// Walk reads the same values through its tags, so a case that passes one
-// way and fails the other shows a fault of the C API.
+// The callbacks of the C API read the same Node values that the C++
+// render reads through its concepts, so a case that passes one way and
+// fails the other shows a fault of the C API.
 //
 // The string is a heap block of exactly the capacity the render asks
 // for, so a write past it is a write past the block that ASan sees.
 struct CUser {
-  mustache::std_host::Host                                    host;
+  std::string                                                 number;
   const std::unordered_map<std::string, mustache_template *> *partials = nullptr;
   std::unique_ptr<char[]>                                     block;
   size_t                                                      block_size = 0;
@@ -25,41 +31,66 @@ struct CUser {
   int                                                         released = 0;
 };
 
+inline const Node &
+node_of(const void *const v)
+{
+  return *static_cast<const Node *>(v);
+}
+
 inline const void *
 c_find(void *, const void *const v, const char *const key, const size_t size)
 {
-  using mustache::std_host::Map;
-  const Map *const map = std::get_if<Map>(&static_cast<const mustache::std_host::Value *>(v)->v);
+  const NodeMap *const map = std::get_if<NodeMap>(&node_of(v));
   if (map == nullptr) return nullptr;
   const auto found = map->find(std::string_view(key, size));
   return found == map->end() ? nullptr : &found->second;
 }
 
 inline int
-c_kind(void *const user, const void *const v)
+c_kind(void *, const void *const v)
 {
-  return (int)mustache::kind_of(static_cast<CUser *>(user)->host, static_cast<const mustache::std_host::Value *>(v));
+  const Node &n = node_of(v);
+  if (std::holds_alternative<std::string>(n) || std::holds_alternative<std::int64_t>(n) ||
+      std::holds_alternative<double>(n))
+    return MUSTACHE_KIND_TEXT;
+  if (std::holds_alternative<NodeList>(n)) return MUSTACHE_KIND_LIST;
+  if (const NodeMap *m = std::get_if<NodeMap>(&n)) return m->empty() ? MUSTACHE_KIND_FALSY : MUSTACHE_KIND_MAP;
+  if (const bool *b = std::get_if<bool>(&n)) return *b ? MUSTACHE_KIND_TRUTHY : MUSTACHE_KIND_FALSY;
+  return MUSTACHE_KIND_FALSY;
 }
 
 inline const char *
 c_text(void *const user, const void *const v, size_t *const size)
 {
-  const std::string_view text =
-      mustache::text_of(static_cast<CUser *>(user)->host, static_cast<const mustache::std_host::Value *>(v));
-  *size = text.size();
-  return text.data();
+  CUser *const u = static_cast<CUser *>(user);
+  const Node &n = node_of(v);
+  if (const std::string *s = std::get_if<std::string>(&n)) {
+    *size = s->size();
+    return s->data();
+  }
+  std::array<char, 32> digits{};
+  const std::to_chars_result r =
+      std::visit([&digits](const auto &x) -> std::to_chars_result {
+        if constexpr (std::is_same_v<std::decay_t<decltype(x)>, std::int64_t> ||
+                      std::is_same_v<std::decay_t<decltype(x)>, double>)
+          return std::to_chars(digits.data(), std::to_address(digits.end()), x);
+        else return {digits.data(), std::errc{}};
+      }, static_cast<const Node::variant &>(n));
+  u->number.assign(digits.data(), r.ptr);
+  *size = u->number.size();
+  return u->number.data();
 }
 
 inline size_t
-c_size(void *const user, const void *const v)
+c_size(void *, const void *const v)
 {
-  return mustache::size_of(static_cast<CUser *>(user)->host, static_cast<const mustache::std_host::Value *>(v));
+  return std::get<NodeList>(node_of(v)).size();
 }
 
 inline const void *
-c_element(void *const user, const void *const v, const size_t i)
+c_element(void *, const void *const v, const size_t i)
 {
-  return mustache::element(static_cast<CUser *>(user)->host, static_cast<const mustache::std_host::Value *>(v), i);
+  return &std::get<NodeList>(node_of(v)).at(i);
 }
 
 inline const mustache_template *

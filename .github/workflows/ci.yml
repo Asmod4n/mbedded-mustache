@@ -15,11 +15,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: x86-64 g++ C++20
+          - name: x86-64 g++ C++23
             runner: ubuntu-24.04
             cxx: g++
             cc: gcc
-            std: 20
+            std: 23
             flags: -O2 -march=x86-64-v3 -Wall -Wextra -Werror
           - name: x86-64 g++ C++26 reflection
             runner: ubuntu-24.04
@@ -39,11 +39,11 @@ jobs:
             cc: gcc
             std: 26
             flags: -freflection -O1 -g -march=x86-64-v3 -fsanitize=undefined -fno-sanitize-recover=all -Wall -Wextra -Werror
-          - name: x86-64 clang C++20
+          - name: x86-64 clang C++23
             runner: ubuntu-24.04
             cxx: clang++
             cc: clang
-            std: 20
+            std: 23
             flags: -O2 -march=x86-64-v3 -Wall -Wextra -Werror
           - name: aarch64 g++ C++26 reflection
             runner: ubuntu-24.04-arm
@@ -51,11 +51,11 @@ jobs:
             cc: gcc
             std: 26
             flags: -freflection -O2 -Wall -Wextra -Werror
-          - name: aarch64 clang C++20
+          - name: aarch64 clang C++23
             runner: ubuntu-24.04-arm
             cxx: clang++
             cc: clang
-            std: 20
+            std: 23
             flags: -O2 -Wall -Wextra -Werror
     steps:
       - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan

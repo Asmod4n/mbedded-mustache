@@ -1,10 +1,9 @@
 #include <mustache-c/mustache.h>
-#include <mustache/reflect.hpp>
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include <benchmark/benchmark.h>
 
-#include "walk2.hpp"
+#include "../test/c_host.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -13,27 +12,20 @@
 #include <vector>
 
 // One binary answers one question for one workload: how long a render
-// takes through the C++ Walk with its tags, through the C API with its
-// callbacks, and, where the compiler has reflection, through the
-// reflection render as the reference. The build picks the workload with -DWORKLOAD=1, 2 or 3.
+// takes for a template compiled at run time on standard types, through
+// the C API with its callbacks, and, where the compiler has reflection,
+// through the reflection render on structs. The build picks the
+// workload with -DWORKLOAD=1, 2 or 3.
 //
-// Every arm renders into a fresh std::string per render and asks for
-// the size of the last output as its first capacity, so every arm pays
-// the same allocation. Every value is text, because the reflection
-// render writes only text.
+// Every arm renders into a fresh std::string per render, so every arm
+// pays the same allocation.
 
 namespace {
 
-using mustache::std_host::Host;
-using mustache::std_host::Key;
-using mustache::std_host::List;
-using mustache::std_host::Map;
-using mustache::std_host::Value;
-
-Value
+Node
 text(const std::string_view s)
 {
-  return Value{std::string(s)};
+  return Node{std::string(s)};
 }
 
 #if WORKLOAD == 1
@@ -53,13 +45,13 @@ data()
   return {"Hello, Ramhorns!", "This is a really simple test of the rendering!"};
 }
 
-Value
+Node
 value_of(const Data &d)
 {
-  Map m;
+  NodeMap m;
   m.insert_or_assign("title", text(d.title));
   m.insert_or_assign("body", text(d.body));
-  return Value{std::move(m)};
+  return Node{std::move(m)};
 }
 
 #elif WORKLOAD == 2
@@ -140,28 +132,28 @@ data()
   return d;
 }
 
-Value
+Node
 value_of(const Data &d)
 {
-  List items;
+  NodeList items;
   for (const Item &it : d.items) {
-    Map stock;
+    NodeMap stock;
     stock.insert_or_assign("symbol", text(it.value.symbol));
     stock.insert_or_assign("url", text(it.value.url));
     stock.insert_or_assign("name", text(it.value.name));
     stock.insert_or_assign("price", text(it.value.price));
     stock.insert_or_assign("change", text(it.value.change));
     stock.insert_or_assign("ratio", text(it.value.ratio));
-    Map item;
+    NodeMap item;
     item.insert_or_assign("rowClass", text(it.rowClass));
     item.insert_or_assign("index", text(it.index));
     item.insert_or_assign("negativeClass", text(it.negativeClass));
-    item.insert_or_assign("value", Value{std::move(stock)});
-    items.push_back(Value{std::move(item)});
+    item.insert_or_assign("value", Node{std::move(stock)});
+    items.push_back(Node{std::move(item)});
   }
-  Map m;
-  m.insert_or_assign("items", Value{std::move(items)});
-  return Value{std::move(m)};
+  NodeMap m;
+  m.insert_or_assign("items", Node{std::move(items)});
+  return Node{std::move(m)};
 }
 
 #elif WORKLOAD == 3
@@ -208,154 +200,53 @@ data()
   return d;
 }
 
-Value
+Node
 value_of(const Data &d)
 {
-  List articles;
+  NodeList articles;
   for (const Article &a : d.articles) {
-    List tags;
+    NodeList tags;
     for (const Tag &t : a.tags) {
-      Map tag;
+      NodeMap tag;
       tag.insert_or_assign("name", text(t.name));
-      tags.push_back(Value{std::move(tag)});
+      tags.push_back(Node{std::move(tag)});
     }
-    Map m;
+    NodeMap m;
     m.insert_or_assign("title", text(a.title));
     m.insert_or_assign("url", text(a.url));
     m.insert_or_assign("author", text(a.author));
     m.insert_or_assign("date", text(a.date));
     m.insert_or_assign("teaser", text(a.teaser));
-    m.insert_or_assign("tags", Value{std::move(tags)});
-    articles.push_back(Value{std::move(m)});
+    m.insert_or_assign("tags", Node{std::move(tags)});
+    articles.push_back(Node{std::move(m)});
   }
-  Map m;
+  NodeMap m;
   m.insert_or_assign("title", text(d.title));
-  m.insert_or_assign("articles", Value{std::move(articles)});
-  return Value{std::move(m)};
+  m.insert_or_assign("articles", Node{std::move(articles)});
+  return Node{std::move(m)};
 }
 
 #endif
 
-const Data       kData = data();
-const Value      kRoot = value_of(kData);
+const Data kData = data();
+const Node kRoot = value_of(kData);
 
-mustache::Program<Key>
-program()
+mustache::Template
+compiled()
 {
-  Host h;
-  std::optional<mustache::Program<Key>> p = mustache::program_of<Key>(h, kSource, mustache::kSourceMax);
-  if (!p) std::abort();
-  return *p;
+  std::expected<mustache::Template, mustache::Error> t = mustache::compile(kSource);
+  if (!t) std::abort();
+  return std::move(*t);
 }
 
-const mustache::Program<Key> kProgram = program();
-
-// std_host in every tag but find and found: find gives nullptr where it
-// finds nothing, and found asks for that.
-struct ValueHost : Host {};
-
-const Value *
-tag_invoke(mustache::find_tag, ValueHost &, const Value *const v, const Key &key)
-{
-  const Map *const map = std::get_if<Map>(&v->v);
-  if (map == nullptr) return nullptr;
-  const auto it = map->find(key);
-  return it == map->end() ? nullptr : &it->second;
-}
-
-bool
-tag_invoke(mustache::found_tag, ValueHost &, const Value *const v)
-{
-  return v != nullptr;
-}
+const mustache::Template kTemplate = compiled();
 
 std::string
-rendered_by_walk2(ValueHost &h, const size_t capacity)
+rendered_at_run_time()
 {
-  mustache::Walk2<ValueHost, const Value *, Key>(h, mustache::kMaxRenderScore, capacity).run(kProgram, &kRoot);
-  return std::move(h.answer);
-}
-
-std::string
-rendered_by_walk(Host &h, const size_t capacity)
-{
-  mustache::Walk<Host, const Value *, Key>(h, mustache::kMaxRenderScore, capacity).run(kProgram, &kRoot);
-  return std::move(h.answer);
-}
-
-// The callbacks of the C API read the same std_host values. The string
-// is a std::string, grown the way std_host grows it.
-struct CUser {
-  Host        host;
-  std::string answer;
-};
-
-const void *
-c_find(void *, const void *const v, const char *const key, const size_t size)
-{
-  const Map *const map = std::get_if<Map>(&static_cast<const Value *>(v)->v);
-  if (map == nullptr) return nullptr;
-  const auto found = map->find(std::string_view(key, size));
-  return found == map->end() ? nullptr : &found->second;
-}
-
-int
-c_kind(void *const user, const void *const v)
-{
-  return (int)mustache::kind_of(static_cast<CUser *>(user)->host, static_cast<const Value *>(v));
-}
-
-const char *
-c_text(void *const user, const void *const v, size_t *const size)
-{
-  const std::string_view text = mustache::text_of(static_cast<CUser *>(user)->host, static_cast<const Value *>(v));
-  *size = text.size();
-  return text.data();
-}
-
-size_t
-c_size(void *const user, const void *const v)
-{
-  return mustache::size_of(static_cast<CUser *>(user)->host, static_cast<const Value *>(v));
-}
-
-const void *
-c_element(void *const user, const void *const v, const size_t i)
-{
-  return mustache::element(static_cast<CUser *>(user)->host, static_cast<const Value *>(v), i);
-}
-
-const mustache_template *
-c_partial(void *, const char *, size_t)
-{
-  return nullptr;
-}
-
-char *
-c_new_string(void *const user, const size_t capacity, void **const string, size_t *const real_capacity)
-{
-  std::string &answer = static_cast<CUser *>(user)->answer;
-  answer = std::string();
-  answer.resize(capacity);
-  *string = &answer;
-  *real_capacity = answer.size();
-  return answer.data();
-}
-
-char *
-c_grow(void *, void **const string, const size_t, const size_t capacity, size_t *const real_capacity)
-{
-  std::string &answer = *static_cast<std::string *>(*string);
-  answer.resize(capacity);
-  *real_capacity = answer.size();
-  return answer.data();
-}
-
-int
-c_done(void *, void *const string, const size_t size)
-{
-  static_cast<std::string *>(string)->resize(size);
-  return 0;
+  std::expected<std::string, mustache::Error> r = mustache::render(kTemplate, kRoot);
+  if (!r) std::abort();
+  return std::move(*r);
 }
 
 mustache_template *
@@ -363,56 +254,34 @@ compiled_for_c()
 {
   mustache_template *tpl = nullptr;
   if (mustache_compile(kSource.data(), kSource.size(), &tpl) != 0) std::abort();
-  mustache_set_find(tpl, c_find);
-  mustache_set_kind(tpl, c_kind);
-  mustache_set_text(tpl, c_text);
-  mustache_set_size(tpl, c_size);
-  mustache_set_element(tpl, c_element);
-  mustache_set_partial(tpl, c_partial);
-  mustache_set_new_string(tpl, c_new_string);
-  mustache_set_grow(tpl, c_grow);
-  mustache_set_done(tpl, c_done);
+  c_set_callbacks(tpl);
   return tpl;
 }
 
 std::string
-rendered_by_c_api(mustache_template *const tpl, CUser &user)
+rendered_by_c_api(mustache_template *const tpl)
 {
+  CUser user;
   void *string = nullptr;
-  if (mustache_render(tpl, &kRoot, nullptr, &user, &string) != 0) std::abort();
+  if (mustache_render(tpl, &kRoot, c_release, &user, &string) != 0) std::abort();
   return std::move(user.answer);
 }
 
 #ifdef __cpp_impl_reflection
 std::string
-rendered_by_reflection(Host &h, const size_t capacity)
+rendered_by_reflection()
 {
-  if (mustache::render<SOURCE>(h, kData, capacity) != mustache::Fault::none) std::abort();
-  return std::move(h.answer);
+  std::expected<std::string, mustache::Error> r = mustache::render<SOURCE>(kData);
+  if (!r) std::abort();
+  return std::move(*r);
 }
 #endif
 
 void
-walk(benchmark::State &state)
+run_time(benchmark::State &state)
 {
-  Host h;
-  size_t last = mustache::kInitialCapacity;
   for (auto _ : state) {
-    std::string answer = rendered_by_walk(h, last);
-    last = answer.size();
-    benchmark::DoNotOptimize(answer.data());
-    benchmark::ClobberMemory();
-  }
-}
-
-void
-walk_value(benchmark::State &state)
-{
-  ValueHost h;
-  size_t last = mustache::kInitialCapacity;
-  for (auto _ : state) {
-    std::string answer = rendered_by_walk2(h, last);
-    last = answer.size();
+    std::string answer = rendered_at_run_time();
     benchmark::DoNotOptimize(answer.data());
     benchmark::ClobberMemory();
   }
@@ -421,10 +290,9 @@ walk_value(benchmark::State &state)
 void
 c_api(benchmark::State &state)
 {
-  CUser user;
   mustache_template *const tpl = compiled_for_c();
   for (auto _ : state) {
-    std::string answer = rendered_by_c_api(tpl, user);
+    std::string answer = rendered_by_c_api(tpl);
     benchmark::DoNotOptimize(answer.data());
     benchmark::ClobberMemory();
   }
@@ -435,11 +303,8 @@ c_api(benchmark::State &state)
 void
 reflection(benchmark::State &state)
 {
-  Host h;
-  size_t last = mustache::kInitialCapacity;
   for (auto _ : state) {
-    std::string answer = rendered_by_reflection(h, last);
-    last = answer.size();
+    std::string answer = rendered_by_reflection();
     benchmark::DoNotOptimize(answer.data());
     benchmark::ClobberMemory();
   }
@@ -448,8 +313,7 @@ reflection(benchmark::State &state)
 
 }
 
-BENCHMARK(walk);
-BENCHMARK(walk_value);
+BENCHMARK(run_time);
 BENCHMARK(c_api);
 #ifdef __cpp_impl_reflection
 BENCHMARK(reflection);
@@ -459,15 +323,11 @@ BENCHMARK(reflection);
 int
 main(int argc, char **argv)
 {
-  Host h;
-  const std::string expected = rendered_by_walk(h, mustache::kInitialCapacity);
+  const std::string expected = rendered_at_run_time();
   mustache_template *const tpl = compiled_for_c();
-  CUser user;
-  ValueHost vh;
-  const bool same = rendered_by_c_api(tpl, user) == expected &&
-                    rendered_by_walk2(vh, mustache::kInitialCapacity) == expected
+  const bool same = rendered_by_c_api(tpl) == expected
 #ifdef __cpp_impl_reflection
-                    && rendered_by_reflection(h, mustache::kInitialCapacity) == expected
+                    && rendered_by_reflection() == expected
 #endif
       ;
   mustache_dispose_template(tpl);

@@ -1,5 +1,4 @@
-#include <mustache/reflect.hpp>
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include <gtest/gtest.h>
 
@@ -38,9 +37,8 @@ template <mustache::fixed_string Src>
 std::string
 rendered(const Page &page, const size_t capacity)
 {
-  mustache::std_host::Host h;
-  if (mustache::render<Src>(h, page, capacity) != mustache::Fault::none) return "<fault>";
-  return h.answer;
+  const std::expected<std::string, mustache::Error> r = mustache::render<Src>(page, capacity);
+  return r ? *r : "<fault>";
 }
 
 std::string
@@ -114,10 +112,9 @@ template <mustache::fixed_string Src>
 std::string
 rendered_as(const std::string_view media_type, const std::string &value)
 {
-  mustache::std_host::Host h;
   const Pair data{value, value};
-  if (mustache::render<Src>(h, data, media_type) != mustache::Fault::none) return "<fault>";
-  return h.answer;
+  const std::expected<std::string, mustache::Error> r = mustache::render<Src>(data, media_type);
+  return r ? *r : "<fault>";
 }
 
 // The reflection render compiles a template once for each media type

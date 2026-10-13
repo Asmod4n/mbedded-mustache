@@ -539,6 +539,8 @@ blocks_dedented(Stripped s)
 
 }
 
+namespace detail {
+
 constexpr std::variant<Compiled, Refusal>
 compile(const std::string_view src)
 {
@@ -629,6 +631,8 @@ compile(const std::string_view src)
     return Refusal{Problem::too_large, 0};
   }
   return out;
+}
+
 }
 
 }

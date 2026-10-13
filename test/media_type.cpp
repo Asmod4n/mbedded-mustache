@@ -1,5 +1,7 @@
 #include <mustache/media_type.hpp>
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
+
+#include "node.hpp"
 
 #include <gtest/gtest.h>
 
@@ -9,31 +11,23 @@
 
 namespace {
 
-using mustache::std_host::Host;
-using mustache::std_host::Key;
-using mustache::std_host::Map;
-using mustache::std_host::Value;
 
 struct Rendered {
   bool        compiled;
   std::string answer;
 };
 
-// Every case renders through the Walk, the runtime path that a dynamic
-// language uses. test/reflect.cpp runs the same cases through the
-// reflection render.
+// Every case renders a template compiled at run time. test/reflect.cpp
+// runs the same cases through the reflection render.
 Rendered
 rendered(const std::string_view source, const std::string_view media_type, const std::string_view value)
 {
-  Host h;
-  const std::optional<mustache::Program<Key>> p = mustache::program_of<Key>(h, source, mustache::kSourceMax, media_type);
-  if (!p) return {false, {}};
-  Map m;
-  m.insert_or_assign("x", Value{std::string(value)});
-  m.insert_or_assign("y", Value{std::string(value)});
-  const Value root{m};
-  if (mustache::Walk<Host, const Value *, Key>(h).run(*p, &root) != mustache::Fault::none) return {false, {}};
-  return {true, h.answer};
+  const std::expected<mustache::Template, mustache::Error> t = mustache::compile(source, media_type);
+  if (!t) return {false, {}};
+  const NodeMap data{{"x", Node{std::string(value)}}, {"y", Node{std::string(value)}}};
+  const std::expected<std::string, mustache::Error> r = mustache::render(*t, data);
+  if (!r) return {false, {}};
+  return {true, *r};
 }
 
 // RFC 6838 4.2 names a media type type "/" subtype, case-insensitive;

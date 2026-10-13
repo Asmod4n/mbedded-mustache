@@ -3,11 +3,10 @@
 Mustache templates for C++, with a C API for every other language.
 
 The library compiles a template once and renders it many times. It
-writes the answer directly into a string of the caller, and it escapes
-HTML by default. It passes 163 cases of the Mustache specification. It
+reads your data as standard C++ types, and it escapes HTML by default. It passes 163 cases of the Mustache specification. It
 never runs code of the data it renders.
 
-- C++20, header only: `include/mustache/`.
+- C++23, header only: `include/mustache/mustache.hpp`.
 - A reflection render for C++26 compilers with reflection: the
   template is compiled at compile time, and a key that names no member
   is a compile error.
@@ -18,13 +17,14 @@ never runs code of the data it renders.
 
 1. [Install](#install)
 2. [A first render](#a-first-render)
-3. [Sections, lists, partials](#sections-lists-partials)
-4. [Render a C++ struct with reflection](#render-a-c-struct-with-reflection)
-5. [Errors and limits](#errors-and-limits)
-6. [Render your own data types](#render-your-own-data-types)
-7. [The C API](#the-c-api)
-8. [What the library does not do](#what-the-library-does-not-do)
-9. [Tests and benchmarks](#tests-and-benchmarks)
+3. [What the render reads](#what-the-render-reads)
+4. [Sections, lists, partials](#sections-lists-partials)
+5. [Escaping by media type](#escaping-by-media-type)
+6. [Render a C++ struct with reflection](#render-a-c-struct-with-reflection)
+7. [Errors](#errors)
+8. [The C API](#the-c-api)
+9. [What the library does not do](#what-the-library-does-not-do)
+10. [Tests and benchmarks](#tests-and-benchmarks)
 
 ## Install
 
@@ -68,38 +68,29 @@ target_link_libraries(app-c PRIVATE mustache::mustache-c)  # C
 
 ## A first render
 
-`std_host` is the host for data that C++ holds: text, numbers, true,
-false, null, lists and maps.
-
 ```cpp
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include <cstdio>
+#include <map>
+#include <string>
 
 int main()
 {
-  using namespace mustache::std_host;
-
-  Host host;
-  const auto program = mustache::program_of<Key>(host, "Hello, {{name}}! You have {{count}} new {{what}}.",
-                                                 mustache::kSourceMax);
-  if (!program) {
-    std::printf("the template does not compile: %.*s\n", (int)host.what.size(), host.what.data());
+  const auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new {{what}}.");
+  if (!tpl) {
+    std::printf("the template does not compile: %.*s\n", (int)tpl.error().what.size(), tpl.error().what.data());
     return 1;
   }
 
-  Map data;
-  data.insert_or_assign("name", Value{std::string("Ada <admin>")});
-  data.insert_or_assign("count", Value{std::int64_t{3}});
-  data.insert_or_assign("what", Value{std::string("messages")});
-  const Value root{data};
+  const std::map<std::string, std::string> data{{"name", "Ada <admin>"}, {"count", "3"}, {"what", "messages"}};
 
-  const mustache::Fault fault = mustache::Walk<Host, const Value *, Key>(host).run(*program, &root);
-  if (fault != mustache::Fault::none) {
-    std::printf("the render failed: %.*s\n", (int)host.what.size(), host.what.data());
+  const auto answer = mustache::render(*tpl, data);
+  if (!answer) {
+    std::printf("the render failed: %.*s\n", (int)answer.error().what.size(), answer.error().what.data());
     return 1;
   }
-  std::printf("%s\n", host.answer.c_str());
+  std::printf("%s\n", answer->c_str());
 }
 ```
 
@@ -109,94 +100,120 @@ Output:
 Hello, Ada &lt;admin&gt;! You have 3 new messages.
 ```
 
-- `program_of` compiles the template once. Keep the program and render
-  it as often as you need.
+- `compile` compiles the template once. Keep the template and render it
+  as often as you need.
+- `render` reads your data where it is, as standard C++ types, and gives
+  back a `std::string`.
 - `{{name}}` escapes `&`, `<`, `>`, `"` and `'`. `{{{name}}}` and
   `{{&name}}` write the value as it is.
-- A number is written with `std::to_chars`, in its shortest form.
-- The answer is in `host.answer`, a `std::string`.
+
+## What the render reads
+
+The render reads standard C++ types and asks each type with its own
+interface. There is no type of this library to fill in.
+
+| your data | what Mustache sees |
+|---|---|
+| `std::string`, `std::string_view`, anything that converts to `std::string_view` | text |
+| `int`, `double` and the other arithmetic types | text, written with `std::to_chars` |
+| `bool` | a condition |
+| `std::nullptr_t`, `std::monostate` | false |
+| `std::optional<T>` | false when empty, else the `T` |
+| `std::variant<…>`, or a type derived from one | the active alternative |
+| a map with string keys, e.g. `std::map`, `std::unordered_map` | a map; `{{a.b}}` looks keys up with `find` |
+| a random-access range, e.g. `std::vector` | a list |
+
+A value that holds itself needs a named type. Derive it from the
+variant:
+
+```cpp
+struct Node : std::variant<std::nullptr_t, bool, double, std::string, std::vector<Node>, std::map<std::string, Node>> {
+  using variant::variant;
+};
+```
 
 ## Sections, lists, partials
 
 ```cpp
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include <cstdio>
+#include <map>
 #include <string>
-#include <unordered_map>
+#include <variant>
+#include <vector>
+
+struct Item {
+  std::string name;
+  double      price;
+};
+
+using Field = std::variant<std::string, double, bool, std::vector<std::map<std::string, std::variant<std::string, double>>>>;
 
 int main()
 {
-  using namespace mustache::std_host;
+  const auto page = mustache::compile("<h1>{{title}}</h1>\n"
+                                      "{{#items}}{{> item}}{{/items}}"
+                                      "{{^items}}<p>The cart is empty.</p>{{/items}}"
+                                      "{{#member}}<p>Members pay no shipping.</p>\n{{/member}}");
+  const auto item = mustache::compile("<li>{{name}}: {{price}} EUR</li>\n");
+  if (!page || !item) return 1;
 
-  Host host;
-  const auto page = mustache::program_of<Key>(host,
-                                              "<ul>\n"
-                                              "{{#items}}\n"
-                                              "  {{> item}}\n"
-                                              "{{/items}}\n"
-                                              "{{^items}}\n"
-                                              "  <li>Nothing here.</li>\n"
-                                              "{{/items}}\n"
-                                              "</ul>\n"
-                                              "{{#admin}}<a href=\"/edit\">Edit</a>{{/admin}}\n",
-                                              mustache::kSourceMax);
-  const auto item = mustache::program_of<Key>(host, "<li>{{name}}: {{price}} EUR</li>\n", mustache::kSourceMax);
+  mustache::Partials partials;
+  partials.emplace("item", *item);
 
-  const std::unordered_map<std::string, const mustache::Program<Key> *, KeyHash, KeyEqual> partials = {
-      {"item", &*item}};
-  host.partials = &partials;
+  const std::map<std::string, Field> data{
+      {"title", std::string("Cart")},
+      {"items", std::vector<std::map<std::string, std::variant<std::string, double>>>{
+                    {{"name", std::string("Tea")}, {"price", 4.5}}, {{"name", std::string("Mug")}, {"price", 12.0}}}},
+      {"member", true}};
 
-  List items;
-  for (const auto &[name, price] : {std::pair{"Tea", 3.5}, std::pair{"Cake", 4.25}}) {
-    Map row;
-    row.insert_or_assign("name", Value{std::string(name)});
-    row.insert_or_assign("price", Value{price});
-    items.push_back(Value{row});
-  }
-  Map data;
-  data.insert_or_assign("items", Value{items});
-  data.insert_or_assign("admin", Value{true});
-  const Value root{data};
-
-  if (mustache::Walk<Host, const Value *, Key>(host).run(*page, &root) != mustache::Fault::none) return 1;
-  std::printf("%s", host.answer.c_str());
+  const auto answer = mustache::render(*page, data, partials);
+  if (!answer) return 1;
+  std::printf("%s", answer->c_str());
 }
 ```
 
 Output:
 
 ```
-<ul>
-  <li>Tea: 3.5 EUR</li>
-  <li>Cake: 4.25 EUR</li>
-</ul>
-<a href="/edit">Edit</a>
+<h1>Cart</h1>
+<li>Tea: 4.5 EUR</li>
+<li>Mug: 12 EUR</li>
+<p>Members pay no shipping.</p>
 ```
 
-| tag | what it does |
-|---|---|
-| `{{#items}}…{{/items}}` | renders the body once for each element of a list, or once for a map, for true or for text |
-| `{{^items}}…{{/items}}` | renders the body when the value is missing, false, null or an empty list |
-| `{{> item}}` | renders the partial `item` in the current context, with the indent of the tag |
-| `{{< layout}}{{$block}}…{{/block}}{{/layout}}` | renders the parent `layout` and replaces its block `block` |
-| `{{a.b.c}}` | looks up `a`, then `b` in it, then `c` |
-| `{{.}}` | the current value |
-| `{{! comment }}` | writes nothing |
-| `{{=<% %>=}}` | sets new delimiters |
+- `{{#items}}` repeats its body for each element of a list, enters a
+  map, or shows its body when a condition is true.
+- `{{^items}}` shows its body when the value is false or an empty list.
+- `{{> item}}` renders the partial of that name from `Partials`.
 
-true, false and null are conditions. A section renders for true and not
-for false or null. `{{x}}` writes nothing for false and null.
+## Escaping by media type
+
+`compile(source, media_type)` takes the media type the caller
+negotiated and escapes every `{{tag}}` for that format:
+
+| media type | escaping |
+|---|---|
+| `text/html`, `application/xhtml+xml` | HTML: `&amp; &lt; &gt; &quot; &#39;` |
+| `application/xml`, `text/xml`, `…+xml` | XML: the five predefined entities |
+| `application/json`, `…+json` | a JSON string (RFC 8259) |
+| `text/javascript` | a JavaScript string: `\xHH`, `\u2028`, `\u2029` |
+| `text/css` | a CSS string: hex escapes |
+
+The escaping makes a value safe inside a text in HTML and XML, or
+inside a string in JSON, JavaScript and CSS. Where a tag stands in the
+template is the author's choice, as in Mustache. A media type that is
+not in the table does not compile. `image/svg+xml` is refused, because
+SVG carries script that XML escaping does not guard.
 
 ## Render a C++ struct with reflection
 
-With a C++26 compiler that has reflection, a template renders a struct
-directly. The template is a template argument, so the compiler compiles
-it, and a render is plain C++ code with no lookup at run time.
+With a C++26 compiler with reflection, the template can be compiled at
+compile time and a struct is read by its members:
 
 ```cpp
-#include <mustache/reflect.hpp>
-#include <mustache/std.hpp>
+#include <mustache/mustache.hpp>
 
 #include <cstdio>
 #include <optional>
@@ -205,60 +222,57 @@ it, and a render is plain C++ code with no lookup at run time.
 
 struct Item {
   std::string name;
-  std::string price;
+  double      price;
 };
 
 struct Page {
   std::string                title;
-  std::optional<std::string> subtitle;
-  bool                       admin;
   std::vector<Item>          items;
+  std::optional<std::string> note;
 };
 
 int main()
 {
-  const Page page{"Menu", std::nullopt, true, {{"Tea", "3.50"}, {"Cake", "4.25"}}};
+  const Page page{"Cart", {{"Tea", 4.5}, {"Mug", 12}}, std::nullopt};
+  const auto answer = mustache::render<"<h1>{{title}}</h1>\n{{#items}}<li>{{name}}: {{price}} EUR</li>\n{{/items}}"
+                                       "{{#note}}<p>{{note}}</p>\n{{/note}}">(page);
+  if (!answer) return 1;
+  std::printf("%s", answer->c_str());
 
-  mustache::std_host::Host host;
-  const mustache::Fault fault =
-      mustache::render<"<h1>{{title}}</h1>{{#subtitle}}<h2>{{.}}</h2>{{/subtitle}}\n"
-                       "{{#items}}{{> item}}{{/items}}"
-                       "{{#admin}}<a href=\"/edit\">Edit</a>{{/admin}}\n",
-                       mustache::static_partial<"item", "<p>{{name}}: {{price}} EUR</p>\n">>(host, page);
-  if (fault != mustache::Fault::none) return 1;
-  std::printf("%s", host.answer.c_str());
+  const auto json = mustache::render<"{\"title\":\"{{title}}\"}\n">(page, "application/json");
+  if (json) std::printf("%s", json->c_str());
 }
 ```
 
 Output:
 
 ```
-<h1>Menu</h1>
-<p>Tea: 3.50 EUR</p>
-<p>Cake: 4.25 EUR</p>
-<a href="/edit">Edit</a>
+<h1>Cart</h1>
+<li>Tea: 4.5 EUR</li>
+<li>Mug: 12 EUR</li>
+{"title":"Cart"}
 ```
 
-- A member is text: anything that converts to `std::string_view`.
-- `bool` and `std::optional` are conditions. A range is a list.
-- A key that names no member is a compile error that names the key:
+- Every type of the table above works here too; a struct is read by its
+  members.
+- A key that names no member is a compile error that names the key.
+- This render is the fast one: the text of the template is copied with
+  lengths known at compile time, and a list element is written in one
+  piece.
 
-```
-error: use of deleted function 'names_no_member() [with Key = fixed_string<6>{"titel"}]':
-a key names no member of any context
-```
+## Errors
 
-The other compile errors are `does_not_compile`, `nests_too_deep`,
-`names_a_cxx_keyword` and `is_not_text`.
+`compile` and `render` give back a `std::expected`. The error holds:
 
-## Errors and limits
-
-A render gives back a `mustache::Fault`. The host keeps the message in
-`host.what`.
+| field | meaning |
+|---|---|
+| `fault` | a `mustache::Fault`, below |
+| `what` | a message, a static string |
+| `asked` | the offset in the source for `parse`; the size asked for otherwise |
+| `allowed` | the limit, for `over_limit` |
 
 | Fault | when |
 |---|---|
-| `none` | the render succeeded |
 | `parse` | the template does not compile |
 | `not_text` | `{{x}}` names a list or a map |
 | `too_deep` | sections nest deeper than 32, or partials deeper than 64 |
@@ -266,40 +280,9 @@ A render gives back a `mustache::Fault`. The host keeps the message in
 | `over_limit` | the answer is larger than its limit |
 | `no_memory` | an allocation failed |
 
-Every limit has a default, and a render can lower it:
-
-```cpp
-mustache::Walk<Host, const Value *, Key> walk(host,
-                                             1 << 20,   // work limit
-                                             4096,      // first capacity of the answer
-                                             1 << 20);  // largest answer
-```
-
 The work limit counts each run of a template body. It stops a small
 template with partials that call each other before it takes the
 machine.
-
-## Render your own data types
-
-The core does not know your types. It asks a host through
-`tag_invoke`, so your values are rendered where they are, with no copy
-into a map of ours. A host gives answers to these tags:
-
-| tag | the question |
-|---|---|
-| `key_of(host, name)` | make the key for a name of the template, once, when the template compiles |
-| `find(host, value, key)` | the value under `key` in `value`, or `std::nullopt` |
-| `kind_of(host, value)` | `Kind::falsy`, `text`, `list`, `map` or `truthy` |
-| `text_of(host, value)` | the text of a value, as `std::string_view` |
-| `size_of(host, value)` | the number of elements of a list |
-| `element(host, value, i)` | the element `i` of a list |
-| `partial(host, key)` | the program of a partial, or `nullptr` |
-| `new_string(host, capacity)` | a fresh string for the answer, as `std::span<char>` |
-| `grow(host, size, capacity)` | a larger string that keeps the first `size` bytes |
-| `done(host, size)` | the answer has `size` bytes; comes after every render that opened a string |
-| `fail(host, fault, what, asked, allowed)` | why the render stopped |
-
-`include/mustache/std.hpp` is a complete host in 163 lines.
 
 ## The C API
 
@@ -316,8 +299,8 @@ Fiddle, LuaJIT and Java Panama can call it as it is.
 #include <stdlib.h>
 #include <string.h>
 
-/* The data of the host: one map, the root, with two text values. A
- * value is any pointer the host chooses; the core only passes it back. */
+/* The data of the caller: one map, the root, with two text values. A
+ * value is any pointer the caller chooses; the core only passes it back. */
 struct pair {
   const char *key;
   const char *text;
@@ -378,7 +361,7 @@ partial(void *user, const char *name, size_t size)
   return NULL;
 }
 
-/* The string is the host's. The render writes into it and asks for
+/* The string is the caller's. The render writes into it and asks for
  * more room when it needs it. */
 static char *
 new_string(void *user, size_t capacity, void **string, size_t *real_capacity)
@@ -465,8 +448,8 @@ Ada lives in London.
 - `mustache_next` names the setter that is still missing, or gives
   `MUSTACHE_RENDER`. A render with a missing callback does not start:
   it gives the same code.
-- A value is any pointer of the host. The core only passes it back.
-- The host owns the string. `done` comes after every render that got a
+- A value is any pointer of the caller. The core only passes it back.
+- The caller owns the string. `done` comes after every render that got a
   string, also after a failure.
 - `mustache_render` owns the root it is given. It calls `release` when
   the render ends, whether it succeeded or not.
@@ -499,8 +482,8 @@ cmake --build build
 ctest --test-dir build
 ```
 
-The tests need simdjson. They run every case of the specification
-through the C++ host and through the C API.
+The tests need simdjson and GoogleTest. They run every case of the specification
+through the C++ render and through the C API.
 
 `bench/build.sh` builds one benchmark binary for each workload and each
 compiler, and `bench/run.sh` runs them. They need Google Benchmark.
