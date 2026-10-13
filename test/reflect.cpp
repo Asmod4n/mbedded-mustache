@@ -135,4 +135,26 @@ TEST(ReflectMediaType, RefusesATypeWithoutEscaper)
   EXPECT_EQ(rendered_as<"<p>{{x}}</p>">("text/plain", "v"), "<fault>");
 }
 
+class Account {
+public:
+  std::string name = "ada";
+
+private:
+  std::string password = "secret";
+};
+
+// A template is data, and whoever writes it must not reach what the
+// type keeps private. Only a public member answers a key; a private
+// member is as absent as a member that does not exist.
+TEST(ReflectAccess, ReadsPublicMembersOnly)
+{
+  constexpr bool public_found = mustache::detail::member_named(^^Account, "name") != std::meta::info{};
+  constexpr bool private_hidden = mustache::detail::member_named(^^Account, "password") == std::meta::info{};
+  EXPECT_TRUE(public_found);
+  EXPECT_TRUE(private_hidden);
+  const std::expected<std::string, mustache::Error> r = mustache::render<"{{name}}">(Account{});
+  ASSERT_TRUE(r);
+  EXPECT_EQ(*r, "ada");
+}
+
 }

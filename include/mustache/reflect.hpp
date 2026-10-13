@@ -123,7 +123,7 @@ consteval std::meta::info
 member_named(std::meta::info type, std::string_view name)
 {
   if (!std::meta::is_class_type(type)) [[unlikely]] return std::meta::info{};
-  for (std::meta::info m : std::meta::nonstatic_data_members_of(type, std::meta::access_context::unchecked())) {
+  for (std::meta::info m : std::meta::nonstatic_data_members_of(type, std::meta::access_context::unprivileged())) {
     if (std::meta::has_identifier(m) && std::meta::identifier_of(m) == name) return m;
   }
   return std::meta::info{};
