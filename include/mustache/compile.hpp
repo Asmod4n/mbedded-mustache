@@ -88,6 +88,7 @@ struct Compiled {
   std::vector<std::string> keys;
   std::vector<Op>          ops;
   std::vector<uint32_t>    arguments;
+  Context                  context = Context::html_text;
 };
 
 namespace detail {

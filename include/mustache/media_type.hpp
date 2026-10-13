@@ -131,8 +131,10 @@ compile(const std::string_view src, const std::string_view media_type)
   if (!g) [[unlikely]] return Refusal{Problem::unknown_media_type, 0};
   std::variant<Compiled, Refusal> compiled = detail::compile(src);
   if (std::holds_alternative<Refusal>(compiled)) [[unlikely]] return compiled;
-  for (Op &op : std::get<Compiled>(compiled).ops) {
-    if (op.tag == Tag::var) op.d = (uint32_t)context_of(*g);
+  Compiled &c = std::get<Compiled>(compiled);
+  c.context = context_of(*g);
+  for (Op &op : c.ops) {
+    if (op.tag == Tag::var) op.d = (uint32_t)c.context;
   }
   return compiled;
 }

@@ -110,4 +110,28 @@ TEST(Escaper, Css)
             "a::after { content: '\\27 \\7d '; }");
 }
 
+// A partial is a piece of the template that includes it, so it escapes
+// by the media type of that template. A partial compiled for another
+// media type, or for none, must not bring its own escaper: HTML escaping
+// inside a JSON string lets a reverse solidus and a line feed through.
+TEST(Escaper, PartialTakesTheMediaTypeOfItsTemplate)
+{
+  const std::expected<mustache::Template, mustache::Error> json = mustache::compile("{\"a\":\"{{> p}}\"}", "application/json");
+  const std::expected<mustache::Template, mustache::Error> html = mustache::compile("<p>{{> p}}</p>", "text/html");
+  const std::expected<mustache::Template, mustache::Error> plain = mustache::compile("{{x}}");
+  const std::expected<mustache::Template, mustache::Error> as_css = mustache::compile("{{x}}", "text/css");
+  ASSERT_TRUE(json && html && plain && as_css);
+  const NodeMap data{{"x", Node{std::string("<\"\\\n")}}};
+
+  for (const mustache::Template *const p : {&*plain, &*as_css}) {
+    const mustache::Partials partials{{"p", *p}};
+    const std::expected<std::string, mustache::Error> a = mustache::render(*json, data, partials);
+    ASSERT_TRUE(a);
+    EXPECT_EQ(*a, "{\"a\":\"<\\\"\\\\\\n\"}");
+    const std::expected<std::string, mustache::Error> b = mustache::render(*html, data, partials);
+    ASSERT_TRUE(b);
+    EXPECT_EQ(*b, "<p>&lt;&quot;\\\n</p>");
+  }
+}
+
 }

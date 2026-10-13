@@ -222,6 +222,7 @@ public:
   {
     stack_.at(0) = root;
     depth_ = 1;
+    context_ = p.context;
     if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
     if (fault_ != Fault::none) [[unlikely]] return std::unexpected(error_of(fault_));
@@ -259,6 +260,7 @@ private:
   size_t score_max_;
   size_t initial_capacity_;
   Fault fault_ = Fault::none;
+  Context context_ = Context::html_text;
   std::array<char, detail::containers::kNumberTextMax> number_{};
 
   const Template *partial_named(const std::string &name) const
@@ -413,7 +415,7 @@ private:
           const std::string_view s = v->table->text_of(v->data, detail::containers::NumberText(number_));
           if (s.empty()) break;
           indent_if_pending(ind);
-          if (op.tag == Tag::var) escaped_in((Context)op.d, s);
+          if (op.tag == Tag::var) escaped_in(context_, s);
           else raw(s);
           break;
         }
