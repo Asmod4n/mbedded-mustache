@@ -1,6 +1,6 @@
 #include <mustache/mustache.hpp>
 
-#include "c_host.hpp"
+#include "node.hpp"
 
 #include <simdjson.h>
 
@@ -94,35 +94,8 @@ renders_as_expected(const Case &c)
   return r && *r == c.expected;
 }
 
-// The same cases run through the C API, partials included: the partial
-// callback gives the handle of a compiled partial.
-bool
-renders_as_expected_through_c(const Case &c)
-{
-  std::unordered_map<std::string, mustache_template *> partials;
-  bool compiled = true;
-  for (const auto &[name, source] : c.partials) {
-    mustache_template *p = nullptr;
-    compiled = mustache_compile(source.data(), source.size(), &p) == 0 && compiled;
-    partials.emplace(name, p);
-  }
-  mustache_template *tpl = nullptr;
-  compiled = mustache_compile(c.source.data(), c.source.size(), &tpl) == 0 && compiled;
-  CUser user;
-  user.partials = &partials;
-  void *string = nullptr;
-  int rendered = -1;
-  if (compiled) {
-    c_set_callbacks(tpl);
-    rendered = mustache_render(tpl, &c.data, c_release, &user, &string);
-  }
-  mustache_dispose_template(tpl);
-  for (const auto &[name, p] : partials) mustache_dispose_template(p);
-  return rendered == 0 && string == &user && user.answer == c.expected;
-}
-
 // Every case of every module of the Mustache spec in refs/mustache-spec
-// is one test, run through the C++ Walk and through the C API.
+// is one test.
 // ~inheritance is the optional module this library implements.
 std::vector<Case>
 every_case()
@@ -151,8 +124,6 @@ every_case()
 class Spec : public testing::TestWithParam<Case> {};
 
 TEST_P(Spec, RendersThroughTheWalk) { EXPECT_TRUE(renders_as_expected(GetParam())) << GetParam().name; }
-
-TEST_P(Spec, RendersThroughTheCApi) { EXPECT_TRUE(renders_as_expected_through_c(GetParam())) << GetParam().name; }
 
 std::string
 name_of(const testing::TestParamInfo<Case> &info)

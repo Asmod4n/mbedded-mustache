@@ -1,9 +1,8 @@
-#include <mustache-c/mustache.h>
 #include <mustache/mustache.hpp>
 
 #include <benchmark/benchmark.h>
 
-#include "../test/c_host.hpp"
+#include "../test/node.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -12,9 +11,9 @@
 #include <vector>
 
 // One binary answers one question for one workload: how long a render
-// takes for a template compiled at run time on standard types, through
-// the C API with its callbacks, and, where the compiler has reflection,
-// through the reflection render on structs. The build picks the
+// takes for a template compiled at run time on standard types and,
+// where the compiler has reflection, through the reflection render on
+// structs. The build picks the
 // workload with -DWORKLOAD=1, 2 or 3.
 //
 // Every arm renders into a fresh std::string per render, so every arm
@@ -249,24 +248,6 @@ rendered_at_run_time()
   return std::move(*r);
 }
 
-mustache_template *
-compiled_for_c()
-{
-  mustache_template *tpl = nullptr;
-  if (mustache_compile(kSource.data(), kSource.size(), &tpl) != 0) std::abort();
-  c_set_callbacks(tpl);
-  return tpl;
-}
-
-std::string
-rendered_by_c_api(mustache_template *const tpl)
-{
-  CUser user;
-  void *string = nullptr;
-  if (mustache_render(tpl, &kRoot, c_release, &user, &string) != 0) std::abort();
-  return std::move(user.answer);
-}
-
 #ifdef __cpp_impl_reflection
 std::string
 rendered_by_reflection()
@@ -287,18 +268,6 @@ run_time(benchmark::State &state)
   }
 }
 
-void
-c_api(benchmark::State &state)
-{
-  mustache_template *const tpl = compiled_for_c();
-  for (auto _ : state) {
-    std::string answer = rendered_by_c_api(tpl);
-    benchmark::DoNotOptimize(answer.data());
-    benchmark::ClobberMemory();
-  }
-  mustache_dispose_template(tpl);
-}
-
 #ifdef __cpp_impl_reflection
 void
 reflection(benchmark::State &state)
@@ -314,7 +283,6 @@ reflection(benchmark::State &state)
 }
 
 BENCHMARK(run_time);
-BENCHMARK(c_api);
 #ifdef __cpp_impl_reflection
 BENCHMARK(reflection);
 #endif
@@ -324,17 +292,12 @@ int
 main(int argc, char **argv)
 {
   const std::string expected = rendered_at_run_time();
-  mustache_template *const tpl = compiled_for_c();
-  const bool same = rendered_by_c_api(tpl) == expected
 #ifdef __cpp_impl_reflection
-                    && rendered_by_reflection() == expected
-#endif
-      ;
-  mustache_dispose_template(tpl);
-  if (!same) {
+  if (rendered_by_reflection() != expected) {
     std::fprintf(stderr, "the arms render different bytes\n");
     return 1;
   }
+#endif
   std::fprintf(stderr, "output: %zu bytes\n", expected.size());
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

@@ -1,6 +1,6 @@
 #include <mustache/mustache.hpp>
 
-#include "c_host.hpp"
+#include "node.hpp"
 
 #include <gtest/gtest.h>
 
@@ -29,23 +29,6 @@ rendered(const std::string_view source, const Map &data, const size_t initial_ca
   return {f, h.answer};
 }
 
-// The same render through the C API. A template asks for the size of
-// its last output as its first capacity, so each render here uses a
-// fresh template and starts from the default, as the Walk does.
-Rendered
-rendered_through_c(const std::string_view source, const Map &data)
-{
-  mustache_template *tpl = nullptr;
-  if (mustache_compile(source.data(), source.size(), &tpl) != 0) return {mustache::Fault::parse, {}};
-  c_set_callbacks(tpl);
-  const Node root{data};
-  CUser user;
-  void *string = nullptr;
-  const int r = mustache_render(tpl, &root, c_release, &user, &string);
-  mustache_dispose_template(tpl);
-  return {r == 0 ? mustache::Fault::none : mustache::Fault::no_memory, user.answer};
-}
-
 std::string
 repeated(const std::string_view s, const size_t n)
 {
@@ -71,9 +54,6 @@ TEST(Output, GrowsAroundEachDoubledCapacity)
       const Rendered r = rendered("{{{a}}}{{b}}{{{c}}}", m, initial, mustache::kMaxCapacity);
       EXPECT_EQ(r.fault, mustache::Fault::none);
       EXPECT_EQ(r.answer, expected);
-      const Rendered c = rendered_through_c("{{{a}}}{{b}}{{{c}}}", m);
-      EXPECT_EQ(c.fault, mustache::Fault::none);
-      EXPECT_EQ(c.answer, expected);
     }
   }
 }
@@ -93,9 +73,6 @@ TEST(Output, EscapesNearTheEndOfTheString)
     const Rendered r = rendered("{{{a}}}{{b}}", m, mustache::kInitialCapacity, mustache::kMaxCapacity);
     EXPECT_EQ(r.fault, mustache::Fault::none);
     EXPECT_EQ(r.answer, expected);
-    const Rendered c = rendered_through_c("{{{a}}}{{b}}", m);
-    EXPECT_EQ(c.fault, mustache::Fault::none);
-    EXPECT_EQ(c.answer, expected);
   }
 }
 

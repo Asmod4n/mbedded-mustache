@@ -22,7 +22,7 @@ echo $jobs | tr ' ' '\n' | xargs -P 4 -I{} sh -c '
   esac
   name='"$out"'/render-$workload-$cxx$level
   $cxx $std $level -march=x86-64-v4 $align -DNDEBUG -DWORKLOAD=$workload -I'"$here"'/include \
-    '"$here"'/bench/render.cpp '"$here"'/src/mustache-c.cpp -lbenchmark -lpthread -o $name 2> $name.log \
+    '"$here"'/bench/render.cpp -lbenchmark -lpthread -o $name 2> $name.log \
     || echo "$name: $(grep -m1 error $name.log)"
 '
 ls "$out" | grep -v log

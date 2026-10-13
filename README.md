@@ -1,6 +1,7 @@
 # mustache
 
-Mustache templates for C++, with a C API for every other language.
+Mustache templates for C++. The library offers a C++ API and nothing
+else: a caller speaks C++.
 
 The library compiles a template once and renders it many times. It
 reads your data as standard C++ types, and it escapes HTML by default. It passes 163 cases of the Mustache specification. It
@@ -10,8 +11,6 @@ never runs code of the data it renders.
 - A reflection render for C++26 compilers with reflection: the
   template is compiled at compile time, and a key that names no member
   is a compile error.
-- A C API for other languages: `include/mustache-c/mustache.h` and the
-  library `mustache-c`.
 
 ## Contents
 
@@ -22,30 +21,28 @@ never runs code of the data it renders.
 5. [Escaping by media type](#escaping-by-media-type)
 6. [Render a C++ struct with reflection](#render-a-c-struct-with-reflection)
 7. [Errors](#errors)
-8. [The C API](#the-c-api)
-9. [What the library does not do](#what-the-library-does-not-do)
-10. [Tests and benchmarks](#tests-and-benchmarks)
+8. [What the library does not do](#what-the-library-does-not-do)
+9. [Tests and benchmarks](#tests-and-benchmarks)
 
 ## Install
 
-The library needs a C++20 compiler and CMake 3.25 or later. The
+The library needs a C++23 compiler and CMake 3.25 or later. The
 reflection render needs a compiler with C++26 reflection, for example
 g++ 16 with `-std=c++26 -freflection`.
 
-CMake exports two targets:
+CMake exports one target:
 
 | target | what it is |
 |---|---|
 | `mustache::mustache` | the C++ headers, an INTERFACE library |
-| `mustache::mustache-c` | the C API, a compiled library |
 
 ### With FetchContent
 
 ```cmake
 include(FetchContent)
 FetchContent_Declare(mustache
-  GIT_REPOSITORY https://github.com/Asmod4n/mruby-mustache.git
-  GIT_TAG mustache-cpp)
+  GIT_REPOSITORY https://github.com/Asmod4n/mbedded-mustache.git
+  GIT_TAG main)
 FetchContent_MakeAvailable(mustache)
 
 target_link_libraries(app PRIVATE mustache::mustache)
@@ -54,7 +51,7 @@ target_link_libraries(app PRIVATE mustache::mustache)
 ### As an installed package
 
 ```sh
-git clone --recursive -b mustache-cpp https://github.com/Asmod4n/mruby-mustache.git mustache
+git clone --recursive https://github.com/Asmod4n/mbedded-mustache.git mustache
 cmake -S mustache -B build -DBUILD_TESTING=OFF
 cmake --build build
 cmake --install build --prefix /usr/local
@@ -62,8 +59,7 @@ cmake --install build --prefix /usr/local
 
 ```cmake
 find_package(mustache REQUIRED)
-target_link_libraries(app PRIVATE mustache::mustache)      # C++
-target_link_libraries(app-c PRIVATE mustache::mustache-c)  # C
+target_link_libraries(app PRIVATE mustache::mustache)
 ```
 
 ## A first render
@@ -284,188 +280,6 @@ The work limit counts each run of a template body. It stops a small
 template with partials that call each other before it takes the
 machine.
 
-## The C API
-
-A function gives 0 or a code, or -1 with `errno` set. The template is a
-handle of an incomplete type, and each callback is set one by one, so a
-foreign function interface builds no struct. Python ctypes, Ruby
-Fiddle, LuaJIT and Java Panama can call it as it is.
-
-```c
-#include <mustache-c/mustache.h>
-
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* The data of the caller: one map, the root, with two text values. A
- * value is any pointer the caller chooses; the core only passes it back. */
-struct pair {
-  const char *key;
-  const char *text;
-};
-
-static const struct pair data[] = {{"name", "Ada"}, {"city", "London"}};
-static const char root[] = "the map";
-
-static const void *
-find(void *user, const void *value, const char *key, size_t size)
-{
-  size_t i;
-  (void)user;
-  if (value != root) return NULL;
-  for (i = 0; i < 2; i++)
-    if (strlen(data[i].key) == size && memcmp(data[i].key, key, size) == 0) return &data[i];
-  return NULL;
-}
-
-static int
-kind(void *user, const void *value)
-{
-  (void)user;
-  return value == root ? MUSTACHE_KIND_MAP : MUSTACHE_KIND_TEXT;
-}
-
-static const char *
-text(void *user, const void *value, size_t *size)
-{
-  const struct pair *p = value;
-  (void)user;
-  *size = strlen(p->text);
-  return p->text;
-}
-
-static size_t
-size_of(void *user, const void *value)
-{
-  (void)user;
-  (void)value;
-  return 0;
-}
-
-static const void *
-element(void *user, const void *value, size_t index)
-{
-  (void)user;
-  (void)index;
-  return value;
-}
-
-static const mustache_template *
-partial(void *user, const char *name, size_t size)
-{
-  (void)user;
-  (void)name;
-  (void)size;
-  return NULL;
-}
-
-/* The string is the caller's. The render writes into it and asks for
- * more room when it needs it. */
-static char *
-new_string(void *user, size_t capacity, void **string, size_t *real_capacity)
-{
-  char *bytes = malloc(capacity);
-  (void)user;
-  *string = bytes;
-  *real_capacity = capacity;
-  return bytes;
-}
-
-static char *
-grow(void *user, void **string, size_t size, size_t capacity, size_t *real_capacity)
-{
-  char *bytes = realloc(*string, capacity);
-  (void)user;
-  (void)size;
-  if (bytes == NULL) return NULL;
-  *string = bytes;
-  *real_capacity = capacity;
-  return bytes;
-}
-
-static int
-done(void *user, void *string, size_t size)
-{
-  (void)user;
-  ((char *)string)[size] = '\0';
-  return 0;
-}
-
-int
-main(void)
-{
-  const char *source = "{{name}} lives in {{city}}.";
-  mustache_template *tpl = NULL;
-  void *string = NULL;
-  int next;
-
-  if (mustache_compile(source, strlen(source), &tpl) != 0) {
-    const char *message;
-    size_t size;
-    mustache_message(tpl, &message, &size);
-    fprintf(stderr, "%.*s\n", (int)size, message);
-    mustache_dispose_template(tpl);
-    return 1;
-  }
-
-  /* mustache_next names the next setter to call, until every callback
-   * is set. */
-  while ((next = mustache_next(tpl)) != MUSTACHE_RENDER) {
-    switch (next) {
-      case MUSTACHE_SET_FIND:       mustache_set_find(tpl, find); break;
-      case MUSTACHE_SET_KIND:       mustache_set_kind(tpl, kind); break;
-      case MUSTACHE_SET_TEXT:       mustache_set_text(tpl, text); break;
-      case MUSTACHE_SET_SIZE:       mustache_set_size(tpl, size_of); break;
-      case MUSTACHE_SET_ELEMENT:    mustache_set_element(tpl, element); break;
-      case MUSTACHE_SET_PARTIAL:    mustache_set_partial(tpl, partial); break;
-      case MUSTACHE_SET_NEW_STRING: mustache_set_new_string(tpl, new_string); break;
-      case MUSTACHE_SET_GROW:       mustache_set_grow(tpl, grow); break;
-      case MUSTACHE_SET_DONE:       mustache_set_done(tpl, done); break;
-      default:                      return 1;
-    }
-  }
-
-  if (mustache_render(tpl, root, NULL, NULL, &string) != 0) {
-    fprintf(stderr, "the render failed: errno %d\n", errno);
-    mustache_dispose_template(tpl);
-    return 1;
-  }
-  printf("%s\n", (char *)string);
-  free(string);
-  mustache_dispose_template(tpl);
-  return 0;
-}
-```
-
-Output:
-
-```
-Ada lives in London.
-```
-
-- `mustache_next` names the setter that is still missing, or gives
-  `MUSTACHE_RENDER`. A render with a missing callback does not start:
-  it gives the same code.
-- A value is any pointer of the caller. The core only passes it back.
-- The caller owns the string. `done` comes after every render that got a
-  string, also after a failure.
-- `mustache_render` owns the root it is given. It calls `release` when
-  the render ends, whether it succeeded or not.
-- `mustache_message` gives the message of the last failure.
-
-| errno | why |
-|---|---|
-| `EILSEQ` | the template does not compile |
-| `EINVAL` | `{{x}}` names a list or a map, or an argument is wrong |
-| `ELOOP` | nesting too deep |
-| `ETIME` | the render does more work than its limit |
-| `E2BIG` | the answer is larger than its limit |
-| `ENOMEM` | an allocation failed |
-| `EBADF` | the handle is not a template |
-| `EBUSY` | the template renders already, for example from a callback |
-
 ## What the library does not do
 
 - Lambdas (`~lambdas` in the specification). Data never runs code in a
@@ -483,7 +297,7 @@ ctest --test-dir build
 ```
 
 The tests need simdjson and GoogleTest. They run every case of the specification
-through the C++ render and through the C API.
+through the C++ render.
 
 `bench/build.sh` builds one benchmark binary for each workload and each
 compiler, and `bench/run.sh` runs them. They need Google Benchmark.
