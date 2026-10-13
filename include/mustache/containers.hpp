@@ -4,6 +4,7 @@
 #include <charconv>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -16,11 +17,14 @@
 #include <unordered_map>
 #include <variant>
 
-#include "render.hpp"
+namespace mustache {
+
+enum class Kind : uint8_t { falsy, text, list, map, truthy };
+
+}
 
 namespace mustache::detail::containers {
 
-using mustache::Fault;
 using mustache::Kind;
 
 template <class... A>
@@ -60,10 +64,6 @@ concept list_like = std::ranges::random_access_range<const T> &&
                     std::is_lvalue_reference_v<std::ranges::range_reference_t<const T>> && !text_like<T> &&
                     !map_like<T>;
 
-struct Key {
-  std::string name;
-};
-
 inline constexpr size_t kNumberTextMax = 32;
 
 using NumberText = std::span<char, kNumberTextMax>;
@@ -80,7 +80,7 @@ struct Table {
   std::string_view (*text_of)(const void *, NumberText);
   size_t (*size_of)(const void *);
   Value (*element)(const void *, size_t);
-  std::optional<Value> (*find)(const void *, const Key &);
+  std::optional<Value> (*find)(const void *, const std::string &);
 };
 
 template <class T>
@@ -172,7 +172,7 @@ struct TableOf {
     }
   }
 
-  static std::optional<Value> find(const void *const p, const Key &key)
+  static std::optional<Value> find(const void *const p, const std::string &key)
   {
     const T &v = of(p);
     if constexpr (variant_like<T>) {
@@ -183,7 +183,7 @@ struct TableOf {
       return value_of(*v).table->find(std::addressof(*v), key);
     }
     else if constexpr (map_like<T>) {
-      const auto it = v.find(key.name);
+      const auto it = v.find(key);
       if (it == v.end()) return std::nullopt;
       return value_of(it->second);
     }
@@ -200,105 +200,6 @@ Value
 value_of(const T &v)
 {
   return Value{std::addressof(v), &TableOf<T>::kTable};
-}
-
-struct StringHash {
-  using is_transparent = void;
-  size_t operator()(const std::string_view s) const { return std::hash<std::string_view>{}(s); }
-};
-
-using Program = mustache::Program<Key>;
-
-using Partials = std::unordered_map<std::string, Program, StringHash, std::equal_to<>>;
-
-struct Host {
-  const Partials                *partials = nullptr;
-  Fault                          fault = Fault::none;
-  std::string_view               what;
-  size_t                         asked = 0;
-  size_t                         allowed = 0;
-  std::string                    answer;
-  std::array<char, kNumberTextMax> text{};
-};
-
-inline Key
-tag_invoke(key_of_tag, Host &, const std::string_view name)
-{
-  return {std::string(name)};
-}
-
-inline std::optional<Value>
-tag_invoke(find_tag, Host &, const Value v, const Key &key)
-{
-  return v.table->find(v.data, key);
-}
-
-inline Kind
-tag_invoke(kind_of_tag, Host &, const Value v)
-{
-  return v.table->kind_of(v.data);
-}
-
-inline std::string_view
-tag_invoke(text_of_tag, Host &h, const Value v)
-{
-  return v.table->text_of(v.data, NumberText(h.text));
-}
-
-inline size_t
-tag_invoke(size_of_tag, Host &, const Value v)
-{
-  return v.table->size_of(v.data);
-}
-
-inline Value
-tag_invoke(element_tag, Host &, const Value v, const size_t i)
-{
-  return v.table->element(v.data, i);
-}
-
-inline const Program *
-tag_invoke(partial_tag, Host &h, const Key &name)
-{
-  if (h.partials == nullptr) return nullptr;
-  const auto it = h.partials->find(std::string_view(name.name));
-  return it == h.partials->end() ? nullptr : &it->second;
-}
-
-inline void
-tag_invoke(fail_tag, Host &h, const Fault fault, const std::string_view what, const size_t asked,
-           const size_t allowed)
-{
-  h.fault = fault;
-  h.what = what;
-  h.asked = asked;
-  h.allowed = allowed;
-}
-
-inline std::span<char>
-tag_invoke(new_string_tag, Host &h, const size_t capacity)
-{
-  h.answer = std::string();
-  return allocated_or_failed(h, "render output", capacity, [&h, capacity] {
-           h.answer.resize(capacity);
-           return std::span<char>(h.answer);
-         }).value_or(std::span<char>());
-}
-
-inline std::span<char>
-tag_invoke(grow_tag, Host &h, const size_t, const size_t capacity)
-{
-  return allocated_or_failed(h, "render output", capacity, [&h, capacity] {
-           h.answer.resize(capacity);
-           return std::span<char>(h.answer);
-         }).value_or(std::span<char>());
-}
-
-inline Fault
-tag_invoke(done_tag, Host &h, const size_t size)
-{
-  h.answer.resize(size);
-  return Fault::none;
 }
 
 }

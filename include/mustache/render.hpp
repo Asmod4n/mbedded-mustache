@@ -4,6 +4,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <new>
@@ -12,112 +14,76 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include "compile.hpp"
+#include "containers.hpp"
 #include "media_type.hpp"
 #include "out.hpp"
 
 namespace mustache {
 
-template <class Tag, class... Args>
-concept tag_invocable = requires(Tag tag, Args &&...args) {
-  tag_invoke(tag, std::forward<Args>(args)...);
-};
-
-#define MUSTACHE_TAG(name)                                                     \
-  struct name##_tag {                                                          \
-    template <class... Args>                                                   \
-      requires tag_invocable<name##_tag, Args...>                              \
-    constexpr decltype(auto) operator()(Args &&...args) const                  \
-    {                                                                          \
-      return tag_invoke(*this, std::forward<Args>(args)...);                   \
-    }                                                                          \
-  };                                                                           \
-  inline constexpr name##_tag name{};
-
-MUSTACHE_TAG(key_of)
-MUSTACHE_TAG(find)
-MUSTACHE_TAG(kind_of)
-MUSTACHE_TAG(text_of)
-MUSTACHE_TAG(size_of)
-MUSTACHE_TAG(element)
-MUSTACHE_TAG(partial)
-MUSTACHE_TAG(fail)
-MUSTACHE_TAG(new_string)
-MUSTACHE_TAG(grow)
-MUSTACHE_TAG(done)
-
-#undef MUSTACHE_TAG
-
-enum class Kind : uint8_t { falsy, text, list, map, truthy };
-
 enum class Fault : uint8_t { none, over_limit, not_text, too_deep, over_work, parse, no_memory };
 
-template <class Key>
-struct Program {
-  std::string           texts;
-  std::vector<Key>      keys;
-  std::vector<Op>       ops;
-  std::vector<uint32_t> arguments;
+struct Error {
+  Fault            fault;
+  std::string_view what;
+  size_t           asked;
+  size_t           allowed;
 };
 
-template <class Host, class Allocate>
-auto
-allocated_or_failed(Host &host, const std::string_view what, const size_t asked, const Allocate allocate)
-    -> std::optional<decltype(allocate())>
-{
-  try {
-    return allocate();
-  }
-  catch (const std::bad_alloc &) {
-    fail(host, Fault::no_memory, what, asked, size_t{0});
-  }
-  catch (const std::length_error &) {
-    fail(host, Fault::no_memory, what, asked, size_t{0});
-  }
-  return std::nullopt;
-}
+using Template = Compiled;
 
-template <class Host>
-bool
-within_limit(Host &host, const std::string_view what, const size_t asked, const size_t allowed)
-{
-  if (asked > allowed) [[unlikely]] {
-    fail(host, Fault::over_limit, what, asked, allowed);
-    return false;
-  }
-  return true;
-}
+struct StringHash {
+  using is_transparent = void;
+  size_t operator()(const std::string_view s) const { return std::hash<std::string_view>{}(s); }
+};
+
+using Partials = std::unordered_map<std::string, Template, StringHash, std::equal_to<>>;
 
 inline constexpr size_t kInitialCapacity = 1024;
 
 inline constexpr size_t kMaxCapacity = (size_t)std::numeric_limits<std::ptrdiff_t>::max() - kEscapeSlack;
 
-template <class Host>
-struct HostString {
-  Host           &host;
-  std::span<char> bytes;
-  size_t          size = 0;
-  size_t          max_capacity = kMaxCapacity;
-  Fault           fault = Fault::none;
-  size_t          asked = 0;
-  size_t          allowed = 0;
+struct Answer {
+  std::string bytes;
+  size_t      size = 0;
+  size_t      max_capacity = kMaxCapacity;
+  Fault       fault = Fault::none;
+  size_t      asked = 0;
+  size_t      allowed = 0;
 
   size_t capacity() const { return bytes.size() - kEscapeSlack; }
 
+  Error error() const { return Error{fault, "render output", asked, allowed}; }
+
+  bool resized(const size_t capacity)
+  {
+    try {
+      bytes.resize(capacity + kEscapeSlack);
+      return true;
+    }
+    catch (const std::bad_alloc &) {
+    }
+    catch (const std::length_error &) {
+    }
+    fault = Fault::no_memory;
+    asked = capacity;
+    return false;
+  }
+
   bool opened(const size_t initial_capacity)
   {
-    bytes = new_string(host, initial_capacity + kEscapeSlack);
-    if (bytes.size() < initial_capacity + kEscapeSlack) [[unlikely]] {
-      bytes = {};
-      fault = Fault::no_memory;
+    if (initial_capacity > max_capacity) [[unlikely]] {
+      fault = Fault::over_limit;
       asked = initial_capacity;
+      allowed = max_capacity;
       return false;
     }
-    return true;
+    return resized(initial_capacity);
   }
 
   bool grown(const size_t needed)
@@ -129,21 +95,21 @@ struct HostString {
       allowed = max_capacity;
       return false;
     }
-    const size_t target = std::min(std::max(capacity() * 2, needed), max_capacity);
-    const std::span<char> fresh = grow(host, size, target + kEscapeSlack);
-    if (fresh.size() < target + kEscapeSlack) [[unlikely]] {
-      fault = Fault::no_memory;
-      asked = target;
-      return false;
-    }
-    bytes = fresh;
-    return true;
+    return resized(std::min(std::max(capacity() * 2, needed), max_capacity));
+  }
+
+  std::span<char> rest() { return std::span<char>(bytes).subspan(size); }
+
+  std::string closed()
+  {
+    bytes.resize(size);
+    return std::move(bytes);
   }
 
   [[gnu::always_inline]] void raw(const std::string_view s)
   {
     if (size + s.size() > capacity() && !grown(size + s.size())) [[unlikely]] return;
-    std::ranges::copy(s, bytes.subspan(size).begin());
+    std::ranges::copy(s, rest().begin());
     size += s.size();
   }
 
@@ -152,11 +118,10 @@ struct HostString {
     return size + bound <= capacity() || grown(size + bound);
   }
 
-
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
     if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
-    char *const w = bytes.subspan(size).data();
+    char *const w = rest().data();
     size += (size_t)std::distance(w, escape_string_into(w, s));
   }
 
@@ -168,14 +133,14 @@ struct HostString {
     }
     const size_t needed = escaped_size_max_in(c, s.size());
     if (size + needed > capacity() && !grown(size + needed)) [[unlikely]] return;
-    char *const w = bytes.subspan(size).data();
+    char *const w = rest().data();
     size += (size_t)std::distance(w, escaped_into_in(c, w, s));
   }
 
   [[gnu::always_inline]] void escaped(const std::string_view s)
   {
     if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
-    char *const w = bytes.subspan(size).data();
+    char *const w = rest().data();
     size += (size_t)std::distance(w, escaped_into(w, s));
   }
 };
@@ -217,93 +182,61 @@ struct Batch {
   }
 };
 
-template <class Key, class Host, class Compile>
-std::optional<Program<Key>>
-program_compiled_by(Host &host, const std::string_view source, const size_t source_max, const Compile &compile_source)
+template <class Compile>
+std::expected<Template, Error>
+compiled_by(const std::string_view source, const Compile &compile_source)
 {
-  if (!within_limit(host, "template", source.size(), std::min(source_max, kSourceMax))) [[unlikely]] return std::nullopt;
-  std::optional<std::variant<Compiled, Refusal>> compiled =
-      allocated_or_failed(host, "template", source.size(), compile_source);
-  if (!compiled) [[unlikely]] return std::nullopt;
-  if (std::holds_alternative<Refusal>(*compiled)) [[unlikely]] {
-    const Refusal r = std::get<Refusal>(*compiled);
-    fail(host, Fault::parse, kProblemTitles.at((size_t)r.problem), size_t{r.at}, size_t{0});
-    return std::nullopt;
+  if (source.size() > kSourceMax) [[unlikely]] return std::unexpected(Error{Fault::over_limit, "template", source.size(), kSourceMax});
+  try {
+    std::variant<Compiled, Refusal> compiled = compile_source();
+    if (std::holds_alternative<Refusal>(compiled)) [[unlikely]] {
+      const Refusal r = std::get<Refusal>(compiled);
+      return std::unexpected(Error{Fault::parse, kProblemTitles.at((size_t)r.problem), size_t{r.at}, size_t{0}});
+    }
+    return std::get<Compiled>(std::move(compiled));
   }
-  const Compiled &c = std::get<Compiled>(*compiled);
-  return allocated_or_failed(host, "template", source.size(), [&] {
-    Program<Key> p{c.texts, {}, c.ops, c.arguments};
-    p.keys.reserve(c.keys.size());
-    for (const std::string &k : c.keys) p.keys.push_back(key_of(host, std::string_view(k)));
-    return p;
-  });
-}
-
-template <class Key, class Host>
-std::optional<Program<Key>>
-program_of(Host &host, const std::string_view source, const size_t source_max)
-{
-  return program_compiled_by<Key>(host, source, source_max, [source] { return detail::compile(source); });
-}
-
-template <class Key, class Host>
-std::optional<Program<Key>>
-program_of(Host &host, const std::string_view source, const size_t source_max, const std::string_view media_type)
-{
-  return program_compiled_by<Key>(host, source, source_max, [source, media_type] { return detail::compile(source, media_type); });
+  catch (const std::bad_alloc &) {
+  }
+  catch (const std::length_error &) {
+  }
+  return std::unexpected(Error{Fault::no_memory, "template", source.size(), size_t{0}});
 }
 
 inline constexpr int kMaxDepth = 32;
 inline constexpr int kMaxPartialDepth = 64;
 inline constexpr size_t kMaxRenderScore = size_t{1} << 24;
 
-template <class Host, class Value, class Key, int kDepthMax = kMaxDepth, int kPartialDepthMax = kMaxPartialDepth>
+template <int kDepthMax = kMaxDepth, int kPartialDepthMax = kMaxPartialDepth>
 class Walk {
 public:
-  Walk(Host &host, const size_t score_max = kMaxRenderScore, const size_t initial_capacity = kInitialCapacity,
-       const size_t max_capacity = kMaxCapacity)
-      : host_(host), out_{host, {}, 0, max_capacity}, score_max_(score_max), initial_capacity_(initial_capacity)
+  using Value = detail::containers::Value;
+
+  Walk(const Partials *const partials, const size_t score_max = kMaxRenderScore,
+       const size_t initial_capacity = kInitialCapacity, const size_t max_capacity = kMaxCapacity)
+      : partials_(partials), score_max_(score_max), initial_capacity_(initial_capacity)
   {
+    out_.max_capacity = max_capacity;
   }
 
-  Fault run(const Program<Key> &p, const Value &root)
+  std::expected<std::string, Error> run(const Template &p, const Value root)
   {
     stack_.at(0) = root;
     depth_ = 1;
-    score_ = 0;
-    fault_ = Fault::none;
-    out_.size = 0;
-    out_.fault = Fault::none;
-    if (!out_.opened(initial_capacity_)) [[unlikely]] return failed(out_.fault);
+    if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
-    const Fault closed = done(host_, out_.size);
-    if (fault_ != Fault::none) [[unlikely]] return failed(fault_);
-    if (closed != Fault::none) [[unlikely]] return failed(closed);
-    return Fault::none;
+    if (fault_ != Fault::none) [[unlikely]] return std::unexpected(error_of(fault_));
+    return out_.closed();
   }
 
 private:
-  Fault failed(const Fault fault)
+  Error error_of(const Fault fault) const
   {
     switch (fault) {
-      case Fault::not_text: [[unlikely]]
-        fail(host_, fault_, std::string_view("a value is not text"), size_t{0}, size_t{0});
-        break;
-      case Fault::too_deep: [[unlikely]]
-        fail(host_, fault_, std::string_view("nesting too deep"), size_t{0}, size_t{0});
-        break;
-      case Fault::over_work: [[unlikely]]
-        fail(host_, fault_, std::string_view("the render does more work than max_render_score"), score_, score_max_);
-        break;
-      case Fault::over_limit:
-      case Fault::no_memory: [[unlikely]]
-        if (out_.fault != Fault::none)
-          fail(host_, fault, std::string_view("render output"), out_.asked, out_.allowed);
-        break;
-      default:
-        break;
+      case Fault::not_text: return Error{fault, "a value is not text", 0, 0};
+      case Fault::too_deep: return Error{fault, "nesting too deep", 0, 0};
+      case Fault::over_work: return Error{fault, "the render does more work than max_render_score", score_, score_max_};
+      default: return out_.error();
     }
-    return fault;
   }
 
   struct Indent {
@@ -313,19 +246,27 @@ private:
   };
 
   struct Args {
-    const Program<Key> *program;
+    const Template *program;
     uint32_t            arguments;
     const Args         *outer;
   };
 
-  Host &host_;
-  HostString<Host> out_;
+  const Partials *partials_;
+  Answer out_;
   std::array<Value, kDepthMax> stack_{};
   int   depth_ = 0;
   size_t score_ = 0;
   size_t score_max_;
   size_t initial_capacity_;
   Fault fault_ = Fault::none;
+  std::array<char, detail::containers::kNumberTextMax> number_{};
+
+  const Template *partial_named(const std::string &name) const
+  {
+    if (partials_ == nullptr) return nullptr;
+    const auto it = partials_->find(name);
+    return it == partials_->end() ? nullptr : &it->second;
+  }
 
   void raw(const std::string_view s)
   {
@@ -377,20 +318,20 @@ private:
     raw(all);
   }
 
-  std::optional<Value> lookup(const Program<Key> &p, const Op &op)
+  std::optional<Value> lookup(const Template &p, const Op &op)
   {
     if (op.b == 0) return stack_.at(depth_ - 1);
-    const Key &first = p.keys.at(op.a);
+    const std::string &first = p.keys.at(op.a);
     std::optional<Value> base;
     for (int i = depth_ - 1; i >= 0; i--) {
-      base = find(host_, stack_.at(i), first);
+      base = stack_.at(i).table->find(stack_.at(i).data, first);
       if (base) break;
     }
-    for (uint32_t j = 1; j < op.b && base; j++) base = find(host_, *base, p.keys.at(op.a + j));
+    for (uint32_t j = 1; j < op.b && base; j++) base = base->table->find(base->data, p.keys.at(op.a + j));
     return base;
   }
 
-  bool push_run(const Program<Key> &p, const Value &v, const uint32_t pc, const uint32_t stop, const int pd,
+  bool push_run(const Template &p, const Value &v, const uint32_t pc, const uint32_t stop, const int pd,
                 Indent *const ind, const Args *const args)
   {
     if (depth_ >= kDepthMax) [[unlikely]] {
@@ -403,7 +344,7 @@ private:
     return ok;
   }
 
-  bool run_indented(const Program<Key> &p, const uint32_t from, const uint32_t stop, const int pd, Indent *const ind,
+  bool run_indented(const Template &p, const uint32_t from, const uint32_t stop, const int pd, Indent *const ind,
                     const std::string_view indent, const Args *const args)
   {
     if (indent.empty()) {
@@ -416,13 +357,13 @@ private:
     return ok;
   }
 
-  static std::string_view block_name_of(const Program<Key> &p, const Op &op)
+  static std::string_view block_name_of(const Template &p, const Op &op)
   {
     return std::string_view(p.texts).substr(op.a, op.b);
   }
 
   struct Argument {
-    const Program<Key> *program;
+    const Template *program;
     uint32_t            at;
   };
 
@@ -439,7 +380,7 @@ private:
     return found;
   }
 
-  bool run(const Program<Key> &p, const uint32_t from, const uint32_t stop, const int pd, Indent *const ind,
+  bool run(const Template &p, const uint32_t from, const uint32_t stop, const int pd, Indent *const ind,
            const Args *const args)
   {
     const size_t work = size_t{stop - from} + 1;
@@ -463,13 +404,13 @@ private:
           pc++;
           const std::optional<Value> v = lookup(p, op);
           if (!v) break;
-          const Kind k = kind_of(host_, *v);
+          const Kind k = v->table->kind_of(v->data);
           if (k == Kind::falsy) break;
           if (k != Kind::text) [[unlikely]] {
             fault_ = Fault::not_text;
             return false;
           }
-          const std::string_view s = text_of(host_, *v);
+          const std::string_view s = v->table->text_of(v->data, detail::containers::NumberText(number_));
           if (s.empty()) break;
           indent_if_pending(ind);
           if (op.tag == Tag::var) escaped_in((Context)op.d, s);
@@ -478,11 +419,11 @@ private:
         }
         case Tag::section: {
           const std::optional<Value> v = lookup(p, op);
-          const Kind k = v ? kind_of(host_, *v) : Kind::falsy;
+          const Kind k = v ? v->table->kind_of(v->data) : Kind::falsy;
           if (k == Kind::list) {
-            const size_t n = size_of(host_, *v);
+            const size_t n = v->table->size_of(v->data);
             for (size_t i = 0; i < n; i++) {
-              if (!push_run(p, element(host_, *v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+              if (!push_run(p, v->table->element(v->data, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
             }
           }
           else if (k != Kind::falsy) {
@@ -493,8 +434,8 @@ private:
         }
         case Tag::inverted: {
           const std::optional<Value> v = lookup(p, op);
-          const Kind k = v ? kind_of(host_, *v) : Kind::falsy;
-          const bool empty = k == Kind::falsy || (k == Kind::list && size_of(host_, *v) == 0);
+          const Kind k = v ? v->table->kind_of(v->data) : Kind::falsy;
+          const bool empty = k == Kind::falsy || (k == Kind::list && v->table->size_of(v->data) == 0);
           if (empty && !push_run(p, stack_.at(depth_ - 1), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
           pc = op.c;
           break;
@@ -505,7 +446,7 @@ private:
             fault_ = Fault::too_deep;
             return false;
           }
-          const Program<Key> *const sub = partial(host_, p.keys.at(op.a));
+          const Template *const sub = partial_named(p.keys.at(op.a));
           if (sub == nullptr) [[unlikely]] break;
           if (!run_indented(*sub, 0, (uint32_t)sub->ops.size(), pd + 1, ind,
                             std::string_view(p.texts).substr(op.c, op.b), nullptr)) [[unlikely]] {
@@ -518,7 +459,7 @@ private:
             fault_ = Fault::too_deep;
             return false;
           }
-          const Program<Key> *const sub = partial(host_, p.keys.at(op.a));
+          const Template *const sub = partial_named(p.keys.at(op.a));
           if (sub != nullptr) {
             const Args frame{&p, op.e, args};
             if (!run_indented(*sub, 0, (uint32_t)sub->ops.size(), pd + 1, ind,
@@ -535,7 +476,7 @@ private:
             return false;
           }
           const std::optional<Argument> found = argument_of(args, block_name_of(p, op));
-          const Program<Key> &body = found ? *found->program : p;
+          const Template &body = found ? *found->program : p;
           const uint32_t first = found ? found->at + 1 : pc + 1;
           const uint32_t last = found ? body.ops.at(found->at).c : op.c;
           if (!run_indented(body, first, last, pd + 1, ind, std::string_view(p.texts).substr(op.e, op.d),

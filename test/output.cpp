@@ -4,12 +4,13 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+#include <expected>
 #include <string>
 #include <string_view>
 
 namespace {
 
-namespace containers = mustache::detail::containers;
 using Map = NodeMap;
 
 struct Rendered {
@@ -20,13 +21,13 @@ struct Rendered {
 Rendered
 rendered(const std::string_view source, const Map &data, const size_t initial_capacity, const size_t max_capacity)
 {
-  containers::Host h;
-  const std::optional<containers::Program> p = mustache::program_of<containers::Key>(h, source, mustache::kSourceMax);
-  if (!p) return {mustache::Fault::parse, {}};
-  const mustache::Fault f = mustache::Walk<containers::Host, containers::Value, containers::Key>(
-                                h, mustache::kMaxRenderScore, initial_capacity, max_capacity)
-                                .run(*p, containers::value_of(data));
-  return {f, h.answer};
+  const std::expected<mustache::Template, mustache::Error> t = mustache::compile(source);
+  if (!t) return {mustache::Fault::parse, {}};
+  std::expected<std::string, mustache::Error> r =
+      mustache::Walk(nullptr, mustache::kMaxRenderScore, initial_capacity, max_capacity)
+          .run(*t, mustache::detail::containers::value_of(data));
+  if (!r) return {r.error().fault, {}};
+  return {mustache::Fault::none, std::move(*r)};
 }
 
 std::string
@@ -74,6 +75,23 @@ TEST(Output, EscapesNearTheEndOfTheString)
     EXPECT_EQ(r.fault, mustache::Fault::none);
     EXPECT_EQ(r.answer, expected);
   }
+}
+
+// An initial capacity above max_capacity is refused before the first
+// allocation. The string holds the capacity and the escape slack, and
+// SIZE_MAX plus the slack wraps around to a small number.
+TEST(Output, RefusesAnInitialCapacityOverTheLimit)
+{
+  Map m;
+  m.insert_or_assign("a", Node{std::string(100, 'x')});
+  EXPECT_EQ(rendered("{{{a}}}", m, SIZE_MAX, mustache::kMaxCapacity).fault, mustache::Fault::over_limit);
+  EXPECT_EQ(rendered("{{{a}}}", m, 4097, 4096).fault, mustache::Fault::over_limit);
+
+  const std::expected<mustache::Template, mustache::Error> t = mustache::compile("{{{a}}}");
+  ASSERT_TRUE(t);
+  const std::expected<std::string, mustache::Error> r = mustache::render(*t, m, {}, SIZE_MAX);
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::over_limit);
 }
 
 // A render that needs more than max_capacity stops with over_limit

@@ -475,7 +475,7 @@ struct Renderer {
           if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
             for (const auto &e : v) {
               if (!out.reserved(bound)) [[unlikely]] return;
-              char *const start = out.bytes.subspan(out.size).data();
+              char *const start = out.rest().data();
               Batch b{start};
               run<pc + 1, op.c>(b, pending, ctx..., e);
               if (!b.dirty) [[likely]]
@@ -546,61 +546,55 @@ inline constexpr fixed_string kJson = "application/json";
 inline constexpr fixed_string kJs = "text/javascript";
 inline constexpr fixed_string kCss = "text/css";
 
-template <fixed_string Src, fixed_string Media, class Partials, class Host, class T>
-Fault
-rendered_as(Host &host, const T &data, const size_t initial_capacity)
+template <fixed_string Src, fixed_string Media, class Partials, class T>
+std::expected<std::string, Error>
+rendered_as(const T &data, const size_t initial_capacity)
 {
   if constexpr (static_program_of<Src, Media>.refused) {
-    return Fault::parse;
+    return std::unexpected(Error{Fault::parse, {}, 0, 0});
   }
   else {
-    HostString<Host> out{host, {}};
-    if (!out.opened(initial_capacity)) [[unlikely]] return out.fault;
+    Answer out;
+    if (!out.opened(initial_capacity)) [[unlikely]] return std::unexpected(out.error());
     bool pending = false;
     Renderer<Src, Partials, no_frame, no_indent, 0, Media>::template run<
         0, (uint32_t)static_program_of<Src, Media>.ops.size()>(out, pending, data);
-    const Fault closed = done(host, out.size);
-    if (out.fault != Fault::none) [[unlikely]] return out.fault;
-    return closed;
+    if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
+    return out.closed();
   }
 }
 
 }
 
-namespace detail {
-
-template <fixed_string Src, class... Partials, class Host, class T>
-[[nodiscard]] Fault
-render_with_host(Host &host, const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
+template <fixed_string Src, class... Partials, class T>
+std::expected<std::string, Error>
+render(const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
 {
   using List = static_partial_list<Partials...>;
   const std::optional<Grammar> g = grammar_of(media_type);
-  if (!g) [[unlikely]] return Fault::parse;
+  if (!g) [[unlikely]] return std::unexpected(Error{Fault::parse, {}, 0, 0});
   switch (*g) {
-    case Grammar::html: return rendered_as<Src, detail::kHtml, List>(host, data, initial_capacity);
-    case Grammar::xml:  return rendered_as<Src, detail::kXml, List>(host, data, initial_capacity);
-    case Grammar::json: return rendered_as<Src, detail::kJson, List>(host, data, initial_capacity);
-    case Grammar::js:   return rendered_as<Src, detail::kJs, List>(host, data, initial_capacity);
-    case Grammar::css:  return rendered_as<Src, detail::kCss, List>(host, data, initial_capacity);
-    default:            return Fault::parse;
+    case Grammar::html: return detail::rendered_as<Src, detail::kHtml, List>(data, initial_capacity);
+    case Grammar::xml:  return detail::rendered_as<Src, detail::kXml, List>(data, initial_capacity);
+    case Grammar::json: return detail::rendered_as<Src, detail::kJson, List>(data, initial_capacity);
+    case Grammar::js:   return detail::rendered_as<Src, detail::kJs, List>(data, initial_capacity);
+    case Grammar::css:  return detail::rendered_as<Src, detail::kCss, List>(data, initial_capacity);
+    default:            return std::unexpected(Error{Fault::parse, {}, 0, 0});
   }
 }
 
-template <fixed_string Src, class... Partials, class Host, class T>
-[[nodiscard]] Fault
-render_with_host(Host &host, const T &data, const size_t initial_capacity = kInitialCapacity)
+template <fixed_string Src, class... Partials, class T>
+std::expected<std::string, Error>
+render(const T &data, const size_t initial_capacity = kInitialCapacity)
 {
-  if constexpr (static_program_of<Src>.refused) does_not_compile<Src>();
-  HostString<Host> out{host, {}};
-  if (!out.opened(initial_capacity)) [[unlikely]] return out.fault;
+  if constexpr (static_program_of<Src>.refused) detail::does_not_compile<Src>();
+  Answer out;
+  if (!out.opened(initial_capacity)) [[unlikely]] return std::unexpected(out.error());
   bool pending = false;
   Renderer<Src, static_partial_list<Partials...>>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(
       out, pending, data);
-  const Fault closed = done(host, out.size);
-  if (out.fault != Fault::none) [[unlikely]] return out.fault;
-  return closed;
-}
-
+  if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
+  return out.closed();
 }
 
 }
