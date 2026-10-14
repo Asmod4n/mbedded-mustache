@@ -6,7 +6,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#if defined(__cpp_impl_reflection)
 #include <meta>
+#else
+#include <boost/pfr/core.hpp>
+#include <boost/pfr/core_name.hpp>
+#endif
 #include <optional>
 #include <ranges>
 #include <string>
@@ -23,7 +28,8 @@ namespace mustache {
 namespace detail::typed {
 
 using containers::is_optional_v;
-using containers::list_like;
+template <class T>
+concept list_like = containers::list_like<T> && !containers::is_optional_v<T>;
 using containers::number_like;
 using containers::text_like;
 
@@ -31,7 +37,7 @@ template <class T>
 concept leaf_like = text_like<T> || number_like<T> || std::same_as<T, bool>;
 
 template <class T>
-concept struct_like = std::is_class_v<T> && !leaf_like<T> && !list_like<T> && !is_optional_v<T>;
+concept struct_like = std::is_class_v<T> && std::is_aggregate_v<T> && !leaf_like<T> && !list_like<T> && !is_optional_v<T>;
 
 template <class... Ts>
 struct types {};
@@ -43,6 +49,7 @@ struct joined<types<A...>, types<B...>> {
   using type = types<A..., B...>;
 };
 
+#if defined(__cpp_impl_reflection)
 consteval std::meta::info
 member_types_of(const std::meta::info t)
 {
@@ -52,6 +59,49 @@ member_types_of(const std::meta::info t)
   }
   return std::meta::substitute(^^types, found);
 }
+
+template <class T>
+consteval auto
+members_of_type()
+{
+  return std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unprivileged()));
+}
+
+template <class T>
+inline constexpr size_t member_count = members_of_type<T>().size();
+
+template <class T, size_t I>
+using member_type = std::remove_cvref_t<typename[:std::meta::type_of(members_of_type<T>()[I]):]>;
+
+template <class T, size_t I>
+constexpr std::string_view member_name = std::meta::identifier_of(members_of_type<T>()[I]);
+
+template <size_t I, class T>
+const auto &
+member_at_index(const T &v)
+{
+  return v.[:members_of_type<T>()[I]:];
+}
+#else
+template <class T>
+inline constexpr size_t member_count = boost::pfr::tuple_size_v<T>;
+
+template <class T, size_t I>
+using member_type = std::remove_cvref_t<boost::pfr::tuple_element_t<I, T>>;
+
+template <class T, size_t I>
+constexpr std::string_view member_name = boost::pfr::get_name<I, T>();
+
+template <size_t I, class T>
+const auto &
+member_at_index(const T &v)
+{
+  return boost::pfr::get<I>(v);
+}
+#endif
+
+template <class T, size_t... I>
+types<member_type<T, I>...> member_types_in(std::index_sequence<I...>);
 
 template <class T>
 struct children {
@@ -70,7 +120,7 @@ struct children<T> {
 template <class T>
   requires struct_like<T>
 struct children<T> {
-  using type = [:member_types_of(^^T):];
+  using type = decltype(member_types_in<T>(std::make_index_sequence<member_count<T>>{}));
 };
 
 template <class Seen, class Todo>
@@ -132,15 +182,10 @@ struct Types<types<Ts...>> {
   static std::optional<Step> member_named(const std::string_view name)
   {
     if constexpr (struct_like<T>) {
-      uint32_t i = 0;
       std::optional<Step> found;
-      template for (constexpr std::meta::info m : std::define_static_array(
-                        std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unprivileged()))) {
-        if (!found && std::meta::identifier_of(m) == name) {
-          found = Step{index_of<std::remove_cvref_t<typename [:std::meta::type_of(m):]>>, i};
-        }
-        i++;
-      }
+      [&]<size_t... I>(std::index_sequence<I...>) {
+        (void)((member_name<T, I> == name ? (found = Step{index_of<member_type<T, I>>, (uint32_t)I}, true) : false) || ...);
+      }(std::make_index_sequence<member_count<T>>{});
       return found;
     }
     else {
@@ -182,12 +227,9 @@ struct Types<types<Ts...>> {
   static const void *member_at(const T &v, const uint32_t index)
   {
     const void *found = nullptr;
-    uint32_t i = 0;
-    template for (constexpr std::meta::info m : std::define_static_array(
-                      std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unprivileged()))) {
-      if (i == index) found = std::addressof(v.[:m:]);
-      i++;
-    }
+    [&]<size_t... I>(std::index_sequence<I...>) {
+      (void)((index == I ? (found = std::addressof(member_at_index<I>(v)), true) : false) || ...);
+    }(std::make_index_sequence<member_count<T>>{});
     return found;
   }
 

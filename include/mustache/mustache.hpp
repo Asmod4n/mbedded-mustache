@@ -35,6 +35,6 @@ render(const Template &t, const T &data, const Partials &partials = {}, const si
 
 }
 
-#if defined(__cpp_impl_reflection)
+#if defined(__cpp_impl_reflection) || __has_include(<boost/pfr/core_name.hpp>)
 #include "typed.hpp"
 #endif

@@ -64,7 +64,7 @@ jobs:
             std: 23
             flags: -O2 -Wall -Wextra -Werror
     steps:
-      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel
       - uses: actions/checkout@v4
         with:
           submodules: recursive

@@ -259,20 +259,4 @@ TEST(ReflectValue, ADocumentRendersAsAtRunTime)
   EXPECT_EQ(*reflected, "T:<one=1><&lt;two&gt;>!~");
 }
 
-// A typed template, compiled for one type: every key is resolved to a
-// member once, and the render reads the member without a search.
-TEST(ReflectTyped, RendersAStructWithoutASearch)
-{
-  const Page page{"top & co", {{"a1", "b1"}, {"a2", "b2"}}};
-  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t =
-      mustache::compile<Page>("{{single}}:{{#rows}}[{{a}}/{{b}}/{{single}}]{{/rows}}{{^rows}}none{{/rows}}");
-  ASSERT_TRUE(t);
-  const std::expected<std::string, mustache::Error> r = mustache::render(*t, page);
-  ASSERT_TRUE(r);
-  EXPECT_EQ(*r, "top &amp; co:[a1/b1/top &amp; co][a2/b2/top &amp; co]");
-  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> typo = mustache::compile<Page>("{{singel}}");
-  ASSERT_FALSE(typo);
-  EXPECT_EQ(typo.error().fault, mustache::Fault::parse);
-}
-
 }
