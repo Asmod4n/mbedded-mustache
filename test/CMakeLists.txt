@@ -12,6 +12,10 @@ add_executable(output output.cpp)
 target_link_libraries(output PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(output)
 
+add_executable(limits limits.cpp)
+target_link_libraries(limits PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(limits)
+
 add_executable(media_type media_type.cpp)
 target_link_libraries(media_type PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(media_type)
