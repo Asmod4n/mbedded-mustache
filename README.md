@@ -337,7 +337,11 @@ machine.
 
 - Lambdas (`~lambdas` in the specification). Data never runs code in a
   render.
-- Dynamic names (`~dynamic-names`). The data never picks a template.
+- Dynamic names (`~dynamic-names`). The data never picks a template:
+  a compiled template fixes what it renders. With reflection, a name
+  that the data gives would also need every partial built at every
+  such tag, and the keys of each one checked against a context it may
+  never see.
 
 The specification is in `refs/mustache-spec/`, byte for byte.
 
