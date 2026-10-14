@@ -13,6 +13,9 @@
 #include <boost/pfr/core_name.hpp>
 #endif
 #include <optional>
+#include <tuple>
+#include <variant>
+#include <algorithm>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -36,8 +39,14 @@ using containers::text_like;
 template <class T>
 concept leaf_like = text_like<T> || number_like<T> || std::same_as<T, bool>;
 
+using containers::falsy_like;
+using containers::map_like;
+using containers::variant_base;
+using containers::variant_like;
+
 template <class T>
-concept struct_like = std::is_class_v<T> && std::is_aggregate_v<T> && !leaf_like<T> && !list_like<T> && !is_optional_v<T>;
+concept struct_like = std::is_class_v<T> && std::is_aggregate_v<T> && !leaf_like<T> && !list_like<T> && !is_optional_v<T> &&
+                      !map_like<T> && !variant_like<T> && !falsy_like<T>;
 
 template <class... Ts>
 struct types {};
@@ -113,7 +122,17 @@ struct children<T> {
   using type = types<typename T::value_type>;
 };
 template <class T>
-  requires list_like<T>
+  requires variant_like<T>
+struct children<T> {
+  using type = decltype([]<class... A>(const std::variant<A...> &) { return types<A...>{}; }(variant_base(std::declval<const T &>())));
+};
+template <class T>
+  requires(map_like<T> && !variant_like<T>)
+struct children<T> {
+  using type = types<typename T::mapped_type>;
+};
+template <class T>
+  requires(list_like<T> && !variant_like<T> && !map_like<T>)
 struct children<T> {
   using type = types<std::remove_cvref_t<std::ranges::range_reference_t<const T>>>;
 };
@@ -154,29 +173,48 @@ struct Step {
 };
 
 struct Binding {
+  bool     fixed = false;
   uint32_t level = 0;
   uint32_t first = 0;
   uint32_t count = 0;
   uint32_t type = kNone;
-  uint32_t pushes = kNone;
+};
+
+struct Entry {
+  const void *p = nullptr;
+  uint32_t    type = kNone;
 };
 
 template <class List>
 struct Types;
 template <class... Ts>
 struct Types<types<Ts...>> {
-  static constexpr size_t size = sizeof...(Ts);
-
-  template <class F>
-  static void with_type(const uint32_t index, const void *const p, const F &f)
-  {
-    [&]<size_t... I>(std::index_sequence<I...>) {
-      (void)((index == I ? (f(*static_cast<const Ts *>(p)), true) : false) || ...);
-    }(std::index_sequence_for<Ts...>{});
-  }
-
   template <class T>
   static constexpr uint32_t index_of = index_in<T, types<Ts...>>::value;
+
+  template <class F>
+  static decltype(auto) with_type(const Entry e, const F &f)
+  {
+    using R = std::invoke_result_t<const F &, const std::tuple_element_t<0, std::tuple<Ts...>> &>;
+    if constexpr (std::is_void_v<R>) {
+      [&]<size_t... I>(std::index_sequence<I...>) {
+        (void)((e.type == I ? (f(*static_cast<const Ts *>(e.p)), true) : false) || ...);
+      }(std::index_sequence_for<Ts...>{});
+    }
+    else {
+      R r{};
+      [&]<size_t... I>(std::index_sequence<I...>) {
+        (void)((e.type == I ? (r = f(*static_cast<const Ts *>(e.p)), true) : false) || ...);
+      }(std::index_sequence_for<Ts...>{});
+      return r;
+    }
+  }
+
+  template <class X>
+  static Entry entry(const X &x)
+  {
+    return Entry{std::addressof(x), index_of<X>};
+  }
 
   template <class T>
   static std::optional<Step> member_named(const std::string_view name)
@@ -202,46 +240,59 @@ struct Types<types<Ts...>> {
     return found;
   }
 
+  template <class T>
+  static constexpr bool fixed_type()
+  {
+    if constexpr (is_optional_v<T>) return leaf_like<typename T::value_type>;
+    else return struct_like<T> || leaf_like<T> || list_like<T> || falsy_like<T>;
+  }
+
+  static bool is_fixed(const uint32_t type)
+  {
+    bool fixed = false;
+    [&]<size_t... I>(std::index_sequence<I...>) {
+      (void)((type == I ? (fixed = fixed_type<Ts>(), true) : false) || ...);
+    }(std::index_sequence_for<Ts...>{});
+    return fixed;
+  }
+
+  template <class T>
+  static constexpr uint32_t pushed_type(const bool inverted)
+  {
+    if (inverted) return kNone;
+    if constexpr (list_like<T>) return index_of<std::remove_cvref_t<std::ranges::range_reference_t<const T>>>;
+    else return index_of<T>;
+  }
+
   static uint32_t pushed_by(const uint32_t type)
   {
     uint32_t pushed = kNone;
     [&]<size_t... I>(std::index_sequence<I...>) {
-      (void)((type == I ? (pushed = pushed_by_type<Ts>(), true) : false) || ...);
+      (void)((type == I ? (pushed = pushed_type<Ts>(false), true) : false) || ...);
     }(std::index_sequence_for<Ts...>{});
     return pushed;
-  }
-
-  template <class T>
-  static constexpr uint32_t pushed_by_type()
-  {
-    if constexpr (list_like<T>) return index_of<std::remove_cvref_t<std::ranges::range_reference_t<const T>>>;
-    else if constexpr (struct_like<T>) return index_of<T>;
-    else if constexpr (is_optional_v<T>) {
-      if constexpr (struct_like<typename T::value_type>) return index_of<typename T::value_type>;
-      else return kNone;
-    }
-    else return kNone;
   }
 
   template <class T>
   static const void *member_at(const T &v, const uint32_t index)
   {
     const void *found = nullptr;
-    [&]<size_t... I>(std::index_sequence<I...>) {
-      (void)((index == I ? (found = std::addressof(member_at_index<I>(v)), true) : false) || ...);
-    }(std::make_index_sequence<member_count<T>>{});
+    if constexpr (struct_like<T>) {
+      [&]<size_t... I>(std::index_sequence<I...>) {
+        (void)((index == I ? (found = std::addressof(member_at_index<I>(v)), true) : false) || ...);
+      }(std::make_index_sequence<member_count<T>>{});
+    }
     return found;
   }
 
-  static const void *followed(const uint32_t type, const void *const p, const uint32_t member)
+  static const void *followed(const Step s, const void *const p)
   {
-    const void *found = nullptr;
-    with_type(type, p, [&](const auto &v) {
-      if constexpr (struct_like<std::remove_cvref_t<decltype(v)>>) found = member_at(v, member);
-    });
-    return found;
+    return with_type(Entry{p, s.type}, [&](const auto &v) { return member_at(v, s.member); });
   }
 };
+
+template <class T>
+class Access;
 
 }
 
@@ -250,9 +301,9 @@ struct TypedTemplate {
   using Closure = typename detail::typed::closure<detail::typed::types<>, detail::typed::types<T>>::type;
   using Table = detail::typed::Types<Closure>;
 
-  Template                             program;
-  std::vector<detail::typed::Binding>  bindings;
-  std::vector<detail::typed::Step>     steps;
+  Template                            program;
+  std::vector<detail::typed::Binding> bindings;
+  std::vector<detail::typed::Step>    steps;
 };
 
 template <class T>
@@ -264,6 +315,7 @@ typed_template(Template program)
   TypedTemplate<T> b{std::move(program), {}, {}};
   const Template &p = b.program;
   b.bindings.resize(p.ops.size());
+  if (std::ranges::any_of(p.ops, [](const Op &op) { return op.tag == Tag::parent || op.tag == Tag::block; })) return b;
   std::vector<uint32_t> stack{Table::template index_of<T>};
   std::vector<std::pair<uint32_t, bool>> open;
   for (uint32_t pc = 0; pc < p.ops.size(); pc++) {
@@ -272,41 +324,56 @@ typed_template(Template program)
       open.pop_back();
     }
     const Op &op = p.ops.at(pc);
-    if (op.tag == Tag::partial || op.tag == Tag::parent || op.tag == Tag::block) [[unlikely]] {
-      return std::unexpected(Error{Fault::parse, "a typed template has no partials yet", pc, 0});
-    }
     if (op.tag != Tag::var && op.tag != Tag::raw && op.tag != Tag::section && op.tag != Tag::inverted) continue;
     Binding &bind = b.bindings.at(pc);
     bind.first = (uint32_t)b.steps.size();
+    bool fixed = true;
     if (op.b == 0) {
       bind.level = (uint32_t)stack.size() - 1;
       bind.type = stack.back();
+      fixed = bind.type != kNone;
     }
     else {
       std::optional<Step> found;
-      for (size_t i = stack.size(); i-- > 0 && !found;) {
+      for (size_t i = stack.size(); i-- > 0;) {
+        if (stack.at(i) == kNone || !Table::is_fixed(stack.at(i))) {
+          fixed = false;
+          break;
+        }
         found = Table::member_named(stack.at(i), p.keys.at(op.a));
-        if (found) bind.level = (uint32_t)i;
+        if (found) {
+          bind.level = (uint32_t)i;
+          break;
+        }
       }
-      if (!found) [[unlikely]] return std::unexpected(Error{Fault::parse, "a key names no member", pc, 0});
-      b.steps.push_back(Step{stack.at(bind.level), found->member});
-      uint32_t type = found->type;
-      for (uint32_t j = 1; j < op.b; j++) {
-        const std::optional<Step> next = Table::member_named(type, p.keys.at(op.a + j));
-        if (!next) [[unlikely]] return std::unexpected(Error{Fault::parse, "a key names no member", pc, 0});
-        b.steps.push_back(Step{type, next->member});
-        type = next->type;
+      if (fixed && !found) [[unlikely]] return std::unexpected(Error{Fault::parse, "a key names no member", pc, 0});
+      if (fixed) {
+        b.steps.push_back(Step{stack.at(bind.level), found->member});
+        uint32_t type = found->type;
+        for (uint32_t j = 1; j < op.b && fixed; j++) {
+          if (!Table::is_fixed(type)) {
+            fixed = false;
+            break;
+          }
+          const std::optional<Step> next = Table::member_named(type, p.keys.at(op.a + j));
+          if (!next) [[unlikely]] return std::unexpected(Error{Fault::parse, "a key names no member", pc, 0});
+          b.steps.push_back(Step{type, next->member});
+          type = next->type;
+        }
+        bind.type = type;
       }
-      bind.type = type;
     }
+    if (!fixed) b.steps.resize(bind.first);
+    bind.fixed = fixed;
     bind.count = (uint32_t)b.steps.size() - bind.first;
     if (op.tag == Tag::section) {
-      bind.pushes = Table::pushed_by(bind.type);
-      if (bind.pushes != kNone) stack.push_back(bind.pushes);
-      open.emplace_back(op.c, bind.pushes != kNone);
+      const uint32_t pushed = fixed ? Table::pushed_by(bind.type) : kNone;
+      stack.push_back(pushed);
+      open.emplace_back(op.c, true);
     }
     else if (op.tag == Tag::inverted) {
-      open.emplace_back(op.c, false);
+      stack.push_back(stack.back());
+      open.emplace_back(op.c, true);
     }
   }
   return b;
@@ -333,164 +400,107 @@ compile(const std::string_view source, const std::string_view media_type)
 namespace detail::typed {
 
 template <class T>
-class TypedWalk {
+class Access {
 public:
+  using Value = Entry;
   using Table = typename TypedTemplate<T>::Table;
 
-  TypedWalk(const TypedTemplate<T> &b, const size_t initial_capacity) : b_(b), initial_capacity_(initial_capacity) {}
+  explicit Access(const TypedTemplate<T> &t) : t_(&t) {}
 
-  std::expected<std::string, Error> run(const T &data)
+  mustache::Kind kind_of(const Entry e) const
   {
-    stack_.at(0) = std::addressof(data);
-    if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
-    run(0, (uint32_t)b_.program.ops.size(), 1);
-    if (fault_ != Fault::none) [[unlikely]] return std::unexpected(Error{fault_, "a value is not text", 0, 0});
-    if (out_.fault != Fault::none) [[unlikely]] return std::unexpected(out_.error());
-    return out_.closed();
+    return Table::with_type(e, [this]<class V>(const V &v) -> mustache::Kind {
+      if constexpr (variant_like<V>) return std::visit([this](const auto &x) { return kind_of(Table::entry(x)); }, variant_base(v));
+      else if constexpr (std::same_as<V, bool>) return v ? mustache::Kind::truthy : mustache::Kind::falsy;
+      else if constexpr (number_like<V> || text_like<V>) return mustache::Kind::text;
+      else if constexpr (falsy_like<V>) return mustache::Kind::falsy;
+      else if constexpr (is_optional_v<V>) return v ? kind_of(Table::entry(*v)) : mustache::Kind::falsy;
+      else if constexpr (map_like<V>) return v.empty() ? mustache::Kind::falsy : mustache::Kind::map;
+      else if constexpr (list_like<V>) return mustache::Kind::list;
+      else return mustache::Kind::map;
+    });
+  }
+
+  std::string_view text_of(const Entry e, const containers::NumberText text) const
+  {
+    return Table::with_type(e, [this, text]<class V>(const V &v) -> std::string_view {
+      if constexpr (variant_like<V>) return std::visit([this, text](const auto &x) { return text_of(Table::entry(x), text); }, variant_base(v));
+      else if constexpr (text_like<V>) return std::string_view(v);
+      else if constexpr (number_like<V>) {
+        const std::to_chars_result r = std::to_chars(text.data(), std::to_address(text.end()), v);
+        return {text.data(), r.ptr};
+      }
+      else if constexpr (is_optional_v<V>) return v ? text_of(Table::entry(*v), text) : std::string_view();
+      else return {};
+    });
+  }
+
+  size_t size_of(const Entry e) const
+  {
+    return Table::with_type(e, [this]<class V>(const V &v) -> size_t {
+      if constexpr (variant_like<V>) return std::visit([this](const auto &x) { return size_of(Table::entry(x)); }, variant_base(v));
+      else if constexpr (is_optional_v<V>) return v ? size_of(Table::entry(*v)) : 0;
+      else if constexpr (list_like<V>) return (size_t)std::ranges::size(v);
+      else return 0;
+    });
+  }
+
+  Entry element(const Entry e, const size_t i) const
+  {
+    return Table::with_type(e, [this, i, e]<class V>(const V &v) -> Entry {
+      if constexpr (variant_like<V>) return std::visit([this, i](const auto &x) { return element(Table::entry(x), i); }, variant_base(v));
+      else if constexpr (is_optional_v<V>) return element(Table::entry(*v), i);
+      else if constexpr (list_like<V>) return Table::entry(*std::ranges::next(std::ranges::begin(v), (std::ptrdiff_t)i));
+      else return e;
+    });
+  }
+
+  std::optional<Entry> find(const Entry e, const std::string &key) const
+  {
+    return Table::with_type(e, [this, &key]<class V>(const V &v) -> std::optional<Entry> {
+      if constexpr (variant_like<V>) return std::visit([this, &key](const auto &x) { return find(Table::entry(x), key); }, variant_base(v));
+      else if constexpr (is_optional_v<V>) {
+        if (!v) return std::nullopt;
+        return find(Table::entry(*v), key);
+      }
+      else if constexpr (map_like<V>) {
+        const auto it = v.find(key);
+        if (it == v.end()) return std::nullopt;
+        return Table::entry(it->second);
+      }
+      else if constexpr (struct_like<V>) {
+        const std::optional<Step> s = Table::template member_named<V>(key);
+        if (!s) return std::nullopt;
+        return Entry{Table::member_at(v, s->member), s->type};
+      }
+      else return std::nullopt;
+    });
+  }
+
+  template <class Stack>
+  std::optional<std::optional<Entry>> bound(const Template &p, const uint32_t pc, const Stack &stack, const int) const
+  {
+    if (&p != &t_->program) return std::nullopt;
+    const Binding &bind = t_->bindings.at(pc);
+    if (!bind.fixed) return std::nullopt;
+    const void *at = stack.at(bind.level).p;
+    for (uint32_t i = 0; i < bind.count; i++) at = Table::followed(t_->steps.at(bind.first + i), at);
+    return std::optional<Entry>(Entry{at, bind.type});
   }
 
 private:
-  const TypedTemplate<T> &b_;
-  size_t           initial_capacity_;
-  Answer           out_;
-  std::array<const void *, kMaxDepth> stack_{};
-  Fault            fault_ = Fault::none;
-
-  const void *value_of(const Binding &bind) const
-  {
-    const void *p = stack_.at(bind.level);
-    for (uint32_t i = 0; i < bind.count; i++) {
-      const Step s = b_.steps.at(bind.first + i);
-      p = Table::followed(s.type, p, s.member);
-    }
-    return p;
-  }
-
-  template <class V>
-  void interpolate(const Op &op, const V &v)
-  {
-    if constexpr (is_optional_v<V>) {
-      if (v) interpolate(op, *v);
-    }
-    else if constexpr (number_like<V>) {
-      std::array<char, 32> digits{};
-      const std::to_chars_result r = std::to_chars(digits.data(), std::to_address(digits.end()), v);
-      emit(op, std::string_view(digits.data(), r.ptr));
-    }
-    else if constexpr (text_like<V>) {
-      emit(op, std::string_view(v));
-    }
-    else {
-      fault_ = Fault::not_text;
-    }
-  }
-
-  void emit(const Op &op, const std::string_view s)
-  {
-    if (s.empty()) return;
-    if (op.tag == Tag::var) out_.escaped_in(b_.program.context, s);
-    else out_.raw(s);
-  }
-
-  template <class V>
-  static bool is_empty(const V &v)
-  {
-    if constexpr (std::same_as<V, bool>) return !v;
-    else if constexpr (is_optional_v<V>) return !v;
-    else if constexpr (list_like<V>) return std::ranges::empty(v);
-    else if constexpr (text_like<V>) return std::string_view(v).empty();
-    else return false;
-  }
-
-  bool run(const uint32_t from, const uint32_t stop, const uint32_t depth)
-  {
-    const Template &p = b_.program;
-    uint32_t pc = from;
-    while (pc < stop) {
-      if (fault_ != Fault::none || out_.fault != Fault::none) [[unlikely]] return false;
-      const Op &op = p.ops.at(pc);
-      switch (op.tag) {
-        case Tag::text:
-          out_.raw(std::string_view(p.texts).substr(op.a, op.b));
-          pc++;
-          break;
-        case Tag::var:
-        case Tag::raw: {
-          const Binding &bind = b_.bindings.at(pc);
-          Table::with_type(bind.type, value_of(bind), [&](const auto &v) { interpolate(op, v); });
-          pc++;
-          break;
-        }
-        case Tag::section: {
-          const Binding &bind = b_.bindings.at(pc);
-          Table::with_type(bind.type, value_of(bind), [&](const auto &v) { section(op, pc, depth, v); });
-          pc = op.c;
-          break;
-        }
-        case Tag::inverted: {
-          const Binding &bind = b_.bindings.at(pc);
-          bool empty = false;
-          Table::with_type(bind.type, value_of(bind), [&](const auto &v) { empty = is_empty(v); });
-          if (empty) run(pc + 1, op.c, depth);
-          pc = op.c;
-          break;
-        }
-        default:
-          pc++;
-          break;
-      }
-    }
-    return true;
-  }
-
-  template <class V>
-  void section(const Op &op, const uint32_t pc, const uint32_t depth, const V &v)
-  {
-    if constexpr (list_like<V>) {
-      if (depth >= kMaxDepth) [[unlikely]] {
-        fault_ = Fault::too_deep;
-        return;
-      }
-      for (const auto &e : v) {
-        stack_.at(depth) = std::addressof(e);
-        if (!run(pc + 1, op.c, depth + 1)) [[unlikely]] return;
-      }
-    }
-    else if constexpr (struct_like<V>) {
-      if (depth >= kMaxDepth) [[unlikely]] {
-        fault_ = Fault::too_deep;
-        return;
-      }
-      stack_.at(depth) = std::addressof(v);
-      run(pc + 1, op.c, depth + 1);
-    }
-    else if constexpr (is_optional_v<V>) {
-      if (!v) return;
-      if constexpr (struct_like<typename V::value_type>) {
-        if (depth >= kMaxDepth) [[unlikely]] {
-          fault_ = Fault::too_deep;
-          return;
-        }
-        stack_.at(depth) = std::addressof(*v);
-        run(pc + 1, op.c, depth + 1);
-      }
-      else {
-        run(pc + 1, op.c, depth);
-      }
-    }
-    else {
-      if (!is_empty(v)) run(pc + 1, op.c, depth);
-    }
-  }
+  const TypedTemplate<T> *t_;
 };
 
 }
 
 template <class T>
 std::expected<std::string, Error>
-render(const TypedTemplate<T> &b, const T &data, const size_t initial_capacity = kInitialCapacity)
+render(const TypedTemplate<T> &t, const T &data, const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
 {
-  return detail::typed::TypedWalk<T>(b, initial_capacity).run(data);
+  using Table = typename TypedTemplate<T>::Table;
+  return Walk<detail::typed::Access<T>>(detail::typed::Access<T>(t), &partials, kMaxRenderScore, initial_capacity)
+      .run(t.program, Table::entry(data));
 }
 
 }

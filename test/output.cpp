@@ -24,7 +24,7 @@ rendered(const std::string_view source, const Map &data, const size_t initial_ca
   const std::expected<mustache::Template, mustache::Error> t = mustache::compile(source);
   if (!t) return {mustache::Fault::parse, {}};
   std::expected<std::string, mustache::Error> r =
-      mustache::Walk(nullptr, mustache::kMaxRenderScore, initial_capacity, max_capacity)
+      mustache::Walk<>(mustache::detail::containers::Access{}, nullptr, mustache::kMaxRenderScore, initial_capacity, max_capacity)
           .run(*t, mustache::detail::containers::value_of(data));
   if (!r) return {r.error().fault, {}};
   return {mustache::Fault::none, std::move(*r)};

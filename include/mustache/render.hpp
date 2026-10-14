@@ -210,14 +210,14 @@ inline constexpr int kMaxDepth = 32;
 inline constexpr int kMaxPartialDepth = 64;
 inline constexpr size_t kMaxRenderScore = size_t{1} << 24;
 
-template <int kDepthMax = kMaxDepth, int kPartialDepthMax = kMaxPartialDepth>
+template <class Data = detail::containers::Access, int kDepthMax = kMaxDepth, int kPartialDepthMax = kMaxPartialDepth>
 class Walk {
 public:
-  using Value = detail::containers::Value;
+  using Value = typename Data::Value;
 
-  Walk(const Partials *const partials, const size_t score_max = kMaxRenderScore,
+  Walk(const Data data, const Partials *const partials, const size_t score_max = kMaxRenderScore,
        const size_t initial_capacity = kInitialCapacity, const size_t max_capacity = kMaxCapacity)
-      : partials_(partials), score_max_(score_max), initial_capacity_(initial_capacity)
+      : data_(data), partials_(partials), score_max_(score_max), initial_capacity_(initial_capacity)
   {
     out_.max_capacity = max_capacity;
   }
@@ -256,6 +256,7 @@ private:
     const Args         *outer;
   };
 
+  Data data_;
   const Partials *partials_;
   Answer out_;
   std::array<Value, kDepthMax> stack_{};
@@ -324,16 +325,17 @@ private:
     raw(all);
   }
 
-  std::optional<Value> lookup(const Template &p, const Op &op)
+  std::optional<Value> lookup(const Template &p, const Op &op, const uint32_t pc)
   {
+    if (const std::optional<std::optional<Value>> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
     if (op.b == 0) return stack_.at(depth_ - 1);
     const std::string &first = p.keys.at(op.a);
     std::optional<Value> base;
     for (int i = depth_ - 1; i >= 0; i--) {
-      base = stack_.at(i).table->find(stack_.at(i).data, first);
+      base = data_.find(stack_.at(i), first);
       if (base) break;
     }
-    for (uint32_t j = 1; j < op.b && base; j++) base = base->table->find(base->data, p.keys.at(op.a + j));
+    for (uint32_t j = 1; j < op.b && base; j++) base = data_.find(*base, p.keys.at(op.a + j));
     return base;
   }
 
@@ -407,16 +409,16 @@ private:
           break;
         case Tag::var:
         case Tag::raw: {
+          const std::optional<Value> v = lookup(p, op, pc);
           pc++;
-          const std::optional<Value> v = lookup(p, op);
           if (!v) break;
-          const Kind k = v->table->kind_of(v->data);
+          const Kind k = data_.kind_of(*v);
           if (k == Kind::falsy) break;
           if (k != Kind::text) [[unlikely]] {
             fault_ = Fault::not_text;
             return false;
           }
-          const std::string_view s = v->table->text_of(v->data, detail::containers::NumberText(number_));
+          const std::string_view s = data_.text_of(*v, detail::containers::NumberText(number_));
           if (s.empty()) break;
           indent_if_pending(ind);
           if (op.tag == Tag::var) escaped_in(context_, s);
@@ -424,12 +426,12 @@ private:
           break;
         }
         case Tag::section: {
-          const std::optional<Value> v = lookup(p, op);
-          const Kind k = v ? v->table->kind_of(v->data) : Kind::falsy;
+          const std::optional<Value> v = lookup(p, op, pc);
+          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
           if (k == Kind::list) {
-            const size_t n = v->table->size_of(v->data);
+            const size_t n = data_.size_of(*v);
             for (size_t i = 0; i < n; i++) {
-              if (!push_run(p, v->table->element(v->data, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+              if (!push_run(p, data_.element(*v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
             }
           }
           else if (k != Kind::falsy) {
@@ -439,9 +441,9 @@ private:
           break;
         }
         case Tag::inverted: {
-          const std::optional<Value> v = lookup(p, op);
-          const Kind k = v ? v->table->kind_of(v->data) : Kind::falsy;
-          const bool empty = k == Kind::falsy || (k == Kind::list && v->table->size_of(v->data) == 0);
+          const std::optional<Value> v = lookup(p, op, pc);
+          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
+          const bool empty = k == Kind::falsy || (k == Kind::list && data_.size_of(*v) == 0);
           if (empty && !push_run(p, stack_.at(depth_ - 1), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
           pc = op.c;
           break;

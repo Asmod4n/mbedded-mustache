@@ -121,9 +121,33 @@ every_case()
   return all;
 }
 
+#if defined(__cpp_impl_reflection) || __has_include(<boost/pfr/core_name.hpp>)
+// The same case through a template compiled for the type of its data.
+// The data are a Node, a variant, so every key is found at render time,
+// and the typed path has to agree with the run-time path on every case.
+bool
+renders_as_expected_typed(const Case &c)
+{
+  mustache::Partials partials;
+  for (const auto &[name, source] : c.partials) {
+    std::expected<mustache::Template, mustache::Error> p = mustache::compile(source);
+    if (!p) return false;
+    partials.emplace(name, std::move(*p));
+  }
+  const std::expected<mustache::TypedTemplate<Node>, mustache::Error> t = mustache::compile<Node>(c.source);
+  if (!t) return false;
+  const std::expected<std::string, mustache::Error> r = mustache::render(*t, c.data, partials);
+  return r && *r == c.expected;
+}
+#endif
+
 class Spec : public testing::TestWithParam<Case> {};
 
 TEST_P(Spec, RendersThroughTheWalk) { EXPECT_TRUE(renders_as_expected(GetParam())) << GetParam().name; }
+
+#if defined(__cpp_impl_reflection) || __has_include(<boost/pfr/core_name.hpp>)
+TEST_P(Spec, RendersThroughATypedTemplate) { EXPECT_TRUE(renders_as_expected_typed(GetParam())) << GetParam().name; }
+#endif
 
 std::string
 name_of(const testing::TestParamInfo<Case> &info)

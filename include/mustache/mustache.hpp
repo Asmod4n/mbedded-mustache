@@ -30,7 +30,7 @@ template <class T>
 std::expected<std::string, Error>
 render(const Template &t, const T &data, const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
 {
-  return Walk(&partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
+  return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
 }
 
 }

@@ -202,4 +202,20 @@ value_of(const T &v)
   return Value{std::addressof(v), &TableOf<T>::kTable};
 }
 
+struct Access {
+  using Value = containers::Value;
+
+  static Kind kind_of(const Value v) { return v.table->kind_of(v.data); }
+  static std::string_view text_of(const Value v, const NumberText text) { return v.table->text_of(v.data, text); }
+  static size_t size_of(const Value v) { return v.table->size_of(v.data); }
+  static Value element(const Value v, const size_t i) { return v.table->element(v.data, i); }
+  static std::optional<Value> find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
+
+  template <class Program, class Stack>
+  static std::optional<std::optional<Value>> bound(const Program &, uint32_t, const Stack &, int)
+  {
+    return std::nullopt;
+  }
+};
+
 }
