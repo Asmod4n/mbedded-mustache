@@ -20,9 +20,10 @@ never runs code of the data it renders.
 4. [Sections, lists, partials](#sections-lists-partials)
 5. [Escaping by media type](#escaping-by-media-type)
 6. [Render a C++ struct with reflection](#render-a-c-struct-with-reflection)
-7. [Errors](#errors)
-8. [What the library does not do](#what-the-library-does-not-do)
-9. [Tests and benchmarks](#tests-and-benchmarks)
+7. [Compile a template for one struct type](#compile-a-template-for-one-struct-type)
+8. [Errors](#errors)
+9. [What the library does not do](#what-the-library-does-not-do)
+10. [Tests and benchmarks](#tests-and-benchmarks)
 
 ## Install
 
@@ -118,6 +119,12 @@ interface. There is no type of this library to fill in.
 | `std::variant<…>`, or a type derived from one | the active alternative |
 | a map with string keys, e.g. `std::map`, `std::unordered_map` | a map; `{{a.b}}` looks keys up with `find` |
 | a random-access range, e.g. `std::vector` | a list |
+
+The map is yours to choose, and the render finds a key with the `find`
+of that map. A `std::unordered_map` compares a key once after its hash;
+a `std::map` compares it with several keys of its tree. On the stocks
+page of `bench/`, with g++ 16 at `-O2`, the same data rendered in
+8.9 µs from `std::unordered_map` and in 9.8 µs from `std::map`.
 
 A value that holds itself needs a named type. Derive it from the
 variant:
@@ -255,6 +262,52 @@ Output:
 - This render is the fast one: the text of the template is copied with
   lengths known at compile time, and a list element is written in one
   piece.
+
+## Compile a template for one struct type
+
+A template that arrives at run time can be compiled for the type of the
+data it will read. Every key is then resolved to a member once, and the
+render reads the member without a search:
+
+```cpp
+#include <mustache/mustache.hpp>
+
+#include <cstdio>
+#include <string>
+#include <vector>
+
+struct Item {
+  std::string name;
+  double      price;
+};
+
+struct Page {
+  std::string       title;
+  std::vector<Item> items;
+};
+
+int main()
+{
+  const auto t = mustache::compile<Page>("<h1>{{title}}</h1>\n{{#items}}<li>{{name}}: {{price}} EUR</li>\n{{/items}}");
+  if (!t) return 1;
+  const Page page{"Cart", {{"Tea", 4.5}, {"Mug", 12}}};
+  const auto answer = mustache::render(*t, page);
+  if (answer) std::printf("%s", answer->c_str());
+}
+```
+
+- `compile<T>` gives a `mustache::TypedTemplate<T>`, and `render` takes
+  it with a `const T &`.
+- A key that names no member is an error of `compile<T>`, with the op
+  where the key stands.
+- A key in a map, in a variant or in a partial is found at render time,
+  as in the run-time render.
+- The members come from reflection where the compiler has it, and from
+  Boost.PFR 1.84 or later where it does not. With Boost.PFR, a struct
+  must be an aggregate: no constructor of its own, no base, no private
+  member.
+- On the stocks page, with clang 22 at `-O2`, a typed template rendered
+  in 4.3 µs, the run-time render with `std::unordered_map` in 6.9 µs.
 
 ## Errors
 
