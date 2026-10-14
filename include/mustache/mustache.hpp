@@ -34,3 +34,7 @@ render(const Template &t, const T &data, const Partials &partials = {}, const si
 }
 
 }
+
+#if defined(__cpp_impl_reflection)
+#include "typed.hpp"
+#endif
