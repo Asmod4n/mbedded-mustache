@@ -157,7 +157,25 @@ template <class T>
 concept number_like = std::is_arithmetic_v<T> && !std::is_same_v<T, bool> && !std::is_same_v<T, char>;
 
 template <class T>
-concept list_like = std::ranges::range<T> && !text_like<T>;
+concept map_like = requires(const T &m) {
+  typename T::key_type;
+  typename T::mapped_type;
+  { m.end() } -> std::same_as<typename T::const_iterator>;
+  { m.empty() } -> std::convertible_to<bool>;
+} && std::is_convertible_v<const typename T::key_type &, std::string_view>;
+
+template <class T>
+concept list_like = std::ranges::range<T> && !text_like<T> && !map_like<T>;
+
+struct missing {};
+
+template <class M>
+constexpr auto
+found_in(const M &m, const std::string_view key)
+{
+  if constexpr (requires { m.find(key); }) return m.find(key);
+  else return m.find(typename M::key_type(key));
+}
 
 template <class T>
 struct is_optional : std::false_type {};
@@ -277,54 +295,77 @@ struct Renderer {
   }
 
   template <class... Ctx>
-  static consteval int innermost(std::string_view name)
+  static consteval bool resolvable(std::string_view name)
   {
     constexpr std::array<std::meta::info, sizeof...(Ctx)> types = {^^std::remove_cvref_t<Ctx>...};
-    for (int i = (int)types.size() - 1; i >= 0; i--) {
-      if (detail::member_named(types.at(i), name) != std::meta::info{}) return i;
+    constexpr std::array<bool, sizeof...(Ctx)> maps = {detail::map_like<std::remove_cvref_t<Ctx>>...};
+    for (size_t i = 0; i < types.size(); i++) {
+      if (maps.at(i) || detail::member_named(types.at(i), name) != std::meta::info{}) return true;
     }
-    return -1;
+    return false;
   }
 
-  template <uint32_t first, uint32_t count, uint32_t j, class T>
-  static constexpr const auto &follow(const T &v)
+  template <uint32_t first, uint32_t count, uint32_t j, bool FromMap, class T, class F>
+  static constexpr void follow(const T &v, const F &with)
   {
     if constexpr (j == count) {
-      return v;
+      with(v, std::bool_constant<FromMap>{});
+    }
+    else if constexpr (detail::map_like<T>) {
+      const auto it = detail::found_in(v, key(first + j));
+      if (it == v.end()) with(detail::missing{}, std::true_type{});
+      else follow<first, count, j + 1, true>(it->second, with);
     }
     else if constexpr (detail::is_cxx_keyword(key(first + j))) {
       detail::names_a_cxx_keyword<fixed_of<key(first + j).size()>(key(first + j))>();
-      return v;
     }
     else if constexpr (detail::member_named(^^T, key(first + j)) == std::meta::info{}) {
       detail::names_no_member<fixed_of<key(first + j).size()>(key(first + j))>();
-      return v;
     }
     else {
       constexpr std::meta::info m = detail::member_named(^^T, key(first + j));
-      return follow<first, count, j + 1>(v.[:m:]);
+      follow<first, count, j + 1, FromMap>(v.[:m:], with);
     }
   }
 
-  template <uint32_t first, uint32_t count, class... Ctx>
-  static constexpr const auto &lookup(const Ctx &...ctx)
+  template <uint32_t first, uint32_t count, int i, class F, class... Ctx>
+  static constexpr void search(const F &with, const Ctx &...ctx)
+  {
+    if constexpr (i < 0) {
+      with(detail::missing{}, std::true_type{});
+    }
+    else {
+      const auto &c = std::get<i>(std::tie(ctx...));
+      using C = std::remove_cvref_t<decltype(c)>;
+      if constexpr (detail::map_like<C>) {
+        const auto it = detail::found_in(c, key(first));
+        if (it != c.end()) follow<first, count, 1, true>(it->second, with);
+        else search<first, count, i - 1>(with, ctx...);
+      }
+      else if constexpr (detail::member_named(^^C, key(first)) != std::meta::info{}) {
+        constexpr std::meta::info m = detail::member_named(^^C, key(first));
+        follow<first, count, 1, false>(c.[:m:], with);
+      }
+      else {
+        search<first, count, i - 1>(with, ctx...);
+      }
+    }
+  }
+
+  template <uint32_t first, uint32_t count, class F, class... Ctx>
+  static constexpr void lookup(const F &with, const Ctx &...ctx)
   {
     if constexpr (count == 0) {
-      return std::get<sizeof...(Ctx) - 1>(std::tie(ctx...));
+      with(std::get<sizeof...(Ctx) - 1>(std::tie(ctx...)), std::false_type{});
     }
     else if constexpr (detail::is_cxx_keyword(key(first))) {
       detail::names_a_cxx_keyword<fixed_of<key(first).size()>(key(first))>();
-      return std::get<sizeof...(Ctx) - 1>(std::tie(ctx...));
     }
-    else if constexpr (innermost<Ctx...>(key(first)) < 0) {
+    else if constexpr (!resolvable<Ctx...>(key(first))) {
       detail::names_no_member<fixed_of<key(first).size()>(key(first))>();
-      return std::get<sizeof...(Ctx) - 1>(std::tie(ctx...));
     }
     else {
-      constexpr int i = innermost<Ctx...>(key(first));
-      const auto &base = std::get<i>(std::tie(ctx...));
-      constexpr std::meta::info m = detail::member_named(^^std::remove_cvref_t<decltype(base)>, key(first));
-      return follow<first, count, 1>(base.[:m:]);
+      search<first, count, (int)sizeof...(Ctx) - 1>(with, ctx...);
     }
   }
 
@@ -421,6 +462,99 @@ struct Renderer {
     }
   }
 
+  template <class W>
+  static constexpr void found_no_text(W &out)
+  {
+    if constexpr (requires { out.fault; }) {
+      if (out.fault == Fault::none) out.fault = Fault::not_text;
+    }
+    else if constexpr (requires { out.dirty; }) {
+      out.dirty = true;
+    }
+    else {
+      throw "a value is not text";
+    }
+  }
+
+  template <Op op, bool FromMap, class W, class V>
+  static constexpr void interpolate(W &out, bool &pending, const V &v)
+  {
+    if constexpr (std::is_same_v<V, detail::missing>) {
+    }
+    else if constexpr (FromMap && !detail::text_like<V> && !detail::number_like<V> && !detail::is_optional<V>::value) {
+      found_no_text(out);
+    }
+    else if constexpr (detail::is_optional<V>::value) {
+      if constexpr (!detail::text_like<typename V::value_type>) detail::is_not_text<V>();
+      else if (v) value<op.tag, (Context)op.d>(out, pending, std::string_view(*v));
+    }
+    else if constexpr (detail::number_like<V>) {
+      std::array<char, 32> digits{};
+      const std::to_chars_result r = std::to_chars(digits.data(), std::to_address(digits.end()), v);
+      value<op.tag, (Context)op.d>(out, pending, std::string_view(digits.data(), r.ptr));
+    }
+    else if constexpr (!detail::text_like<V>) {
+      detail::is_not_text<V>();
+    }
+    else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> && (Context)op.d == Context::html_text &&
+                       requires { out.escaped_string(v); }) {
+      if (!v.empty()) {
+        indent_if_pending(out, pending);
+        out.escaped_string(v);
+      }
+    }
+    else {
+      value<op.tag, (Context)op.d>(out, pending, std::string_view(v));
+    }
+  }
+
+  template <class V>
+  static constexpr bool is_empty(const V &v)
+  {
+    if constexpr (std::is_same_v<V, detail::missing>) return true;
+    else if constexpr (std::is_same_v<V, bool>) return !v;
+    else if constexpr (detail::is_optional<V>::value) return !v;
+    else if constexpr (detail::map_like<V> || detail::list_like<V>) return std::ranges::empty(v);
+    else return false;
+  }
+
+  template <uint32_t pc, Op op, class W, class V, class... Ctx>
+  static constexpr void section(W &out, bool &pending, const V &v, const Ctx &...ctx)
+  {
+    if constexpr (std::is_same_v<V, detail::missing>) {
+    }
+    else if constexpr (std::is_same_v<V, bool>) {
+      if (v) run<pc + 1, op.c>(out, pending, ctx...);
+    }
+    else if constexpr (detail::is_optional<V>::value) {
+      if (v) run<pc + 1, op.c>(out, pending, ctx..., *v);
+    }
+    else if constexpr (detail::map_like<V>) {
+      if (!v.empty()) run<pc + 1, op.c>(out, pending, ctx..., v);
+    }
+    else if constexpr (detail::list_like<V>) {
+      constexpr size_t bound = batch_bound(pc + 1, op.c);
+      if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
+        for (const auto &e : v) {
+          if (!out.reserved(bound)) [[unlikely]] return;
+          char *const start = out.rest().data();
+          Batch b{start};
+          run<pc + 1, op.c>(b, pending, ctx..., e);
+          if (!b.dirty) [[likely]]
+            out.size += (size_t)std::distance(start, b.w);
+          else
+            run<pc + 1, op.c>(out, pending, ctx..., e);
+        }
+      }
+      else {
+        for (const auto &e : v) run<pc + 1, op.c>(out, pending, ctx..., e);
+      }
+    }
+    else {
+      run<pc + 1, op.c>(out, pending, ctx..., v);
+    }
+  }
+
   template <uint32_t pc, uint32_t stop, class W, class... Ctx>
   static constexpr void run(W &out, bool &pending, const Ctx &...ctx)
   {
@@ -434,73 +568,16 @@ struct Renderer {
         run<pc + 1, stop>(out, pending, ctx...);
       }
       else if constexpr (op.tag == Tag::var || op.tag == Tag::raw) {
-        const auto &v = lookup<op.a, op.b>(ctx...);
-        using V = std::remove_cvref_t<decltype(v)>;
-        if constexpr (detail::is_optional<V>::value) {
-          if constexpr (!detail::text_like<typename V::value_type>) detail::is_not_text<V>();
-          else if (v) value<op.tag, (Context)op.d>(out, pending, std::string_view(*v));
-        }
-        else if constexpr (detail::number_like<V>) {
-          std::array<char, 32> digits{};
-          const std::to_chars_result r = std::to_chars(digits.data(), std::to_address(digits.end()), v);
-          value<op.tag, (Context)op.d>(out, pending, std::string_view(digits.data(), r.ptr));
-        }
-        else if constexpr (!detail::text_like<V>) {
-          detail::is_not_text<V>();
-        }
-        else if constexpr (op.tag == Tag::var && std::is_same_v<V, std::string> &&
-                           (Context)op.d == Context::html_text &&
-                           requires { out.escaped_string(v); }) {
-          if (!v.empty()) {
-            indent_if_pending(out, pending);
-            out.escaped_string(v);
-          }
-        }
-        else {
-          value<op.tag, (Context)op.d>(out, pending, std::string_view(v));
-        }
+        lookup<op.a, op.b>([&](const auto &v, auto from_map) { interpolate<op, from_map()>(out, pending, v); }, ctx...);
         run<pc + 1, stop>(out, pending, ctx...);
       }
       else if constexpr (op.tag == Tag::section) {
-        const auto &v = lookup<op.a, op.b>(ctx...);
-        using V = std::remove_cvref_t<decltype(v)>;
-        if constexpr (std::is_same_v<V, bool>) {
-          if (v) run<pc + 1, op.c>(out, pending, ctx...);
-        }
-        else if constexpr (detail::is_optional<V>::value) {
-          if (v) run<pc + 1, op.c>(out, pending, ctx..., *v);
-        }
-        else if constexpr (detail::list_like<V>) {
-          constexpr size_t bound = batch_bound(pc + 1, op.c);
-          if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
-            for (const auto &e : v) {
-              if (!out.reserved(bound)) [[unlikely]] return;
-              char *const start = out.rest().data();
-              Batch b{start};
-              run<pc + 1, op.c>(b, pending, ctx..., e);
-              if (!b.dirty) [[likely]]
-                out.size += (size_t)std::distance(start, b.w);
-              else
-                run<pc + 1, op.c>(out, pending, ctx..., e);
-            }
-          }
-          else {
-            for (const auto &e : v) run<pc + 1, op.c>(out, pending, ctx..., e);
-          }
-        }
-        else {
-          run<pc + 1, op.c>(out, pending, ctx..., v);
-        }
+        lookup<op.a, op.b>([&](const auto &v, auto) { section<pc, op>(out, pending, v, ctx...); }, ctx...);
         run<op.c, stop>(out, pending, ctx...);
       }
       else if constexpr (op.tag == Tag::inverted) {
-        const auto &v = lookup<op.a, op.b>(ctx...);
-        using V = std::remove_cvref_t<decltype(v)>;
-        bool empty;
-        if constexpr (std::is_same_v<V, bool>) empty = !v;
-        else if constexpr (detail::is_optional<V>::value) empty = !v;
-        else if constexpr (detail::list_like<V>) empty = std::ranges::empty(v);
-        else empty = false;
+        bool empty = false;
+        lookup<op.a, op.b>([&](const auto &v, auto) { empty = is_empty(v); }, ctx...);
         if (empty) run<pc + 1, op.c>(out, pending, ctx...);
         run<op.c, stop>(out, pending, ctx...);
       }

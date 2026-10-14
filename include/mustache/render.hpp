@@ -58,7 +58,11 @@ struct Answer {
 
   size_t capacity() const { return bytes.size() - kEscapeSlack; }
 
-  Error error() const { return Error{fault, "render output", asked, allowed}; }
+  Error error() const
+  {
+    if (fault == Fault::not_text) return Error{fault, "a value is not text", 0, 0};
+    return Error{fault, "render output", asked, allowed};
+  }
 
   bool resized(const size_t capacity)
   {

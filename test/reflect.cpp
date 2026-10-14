@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <flat_map>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -155,6 +157,56 @@ TEST(ReflectAccess, ReadsPublicMembersOnly)
   const std::expected<std::string, mustache::Error> r = mustache::render<"{{name}}">(Account{});
   ASSERT_TRUE(r);
   EXPECT_EQ(*r, "ada");
+}
+
+struct Labels {
+  std::string                                           title = "outer";
+  std::map<std::string, std::string>                    names;
+  std::map<std::string, std::map<std::string, std::string>> nested;
+  std::vector<std::string>                              tags;
+};
+
+// Mustache spec, sections.yml, name resolution steps 3 and 4: a hash is
+// a context whose keys are names, and only a list is iterated. A
+// std::map is a range in C++, but in a template it is a hash. A key the
+// map lacks resolves in the next context outward, as in the run-time
+// render.
+TEST(ReflectMap, IsAContextAndNotAList)
+{
+  const Labels l{"outer", {{"title", "inner"}, {"lang", "de"}}, {{"a", {{"b", "deep"}}}}, {"x", "y"}};
+  const auto r = [&l]<mustache::fixed_string Src>() {
+    const std::expected<std::string, mustache::Error> got = mustache::render<Src>(l);
+    return got ? *got : std::string("<fault>");
+  };
+  EXPECT_EQ(r.template operator()<"{{#names}}{{title}}/{{lang}}{{/names}}">(), "inner/de");
+  EXPECT_EQ(r.template operator()<"{{#nested}}{{title}}{{/nested}}">(), "outer");
+  EXPECT_EQ(r.template operator()<"{{#nested}}{{a}}{{/nested}}">(), "<fault>");
+  EXPECT_EQ(r.template operator()<"{{names.lang}} {{nested.a.b}} {{names.none}}.">(), "de deep .");
+  EXPECT_EQ(r.template operator()<"{{#tags}}[{{.}}]{{/tags}}">(), "[x][y]");
+  EXPECT_EQ(r.template operator()<"{{^names}}empty{{/names}}">(), "");
+
+  const Labels empty{};
+  const std::expected<std::string, mustache::Error> e = mustache::render<"{{#names}}x{{/names}}{{^names}}empty{{/names}}">(empty);
+  ASSERT_TRUE(e);
+  EXPECT_EQ(*e, "empty");
+}
+
+struct Fixed {
+  std::flat_map<std::string_view, std::string_view> names;
+};
+
+constexpr Fixed
+fixed()
+{
+  return Fixed{{{"title", "Hello"}, {"lang", "en"}}};
+}
+
+// A map that is known at compile time is read at compile time: the
+// page holds the values, and no lookup is left for the run time.
+TEST(ReflectMap, KnownAtCompileTimeIsFilledIn)
+{
+  constexpr auto page = mustache::static_page_of<"{{#names}}{{title}}/{{lang}}{{/names}}", fixed>;
+  EXPECT_EQ(std::string_view(page.data()), "Hello/en");
 }
 
 }
