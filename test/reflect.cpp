@@ -2,7 +2,12 @@
 
 #include <gtest/gtest.h>
 
+#include "node.hpp"
+
+#include <cstdint>
 #include <flat_map>
+#include <optional>
+#include <variant>
 #include <map>
 #include <string>
 #include <string_view>
@@ -207,6 +212,51 @@ TEST(ReflectMap, KnownAtCompileTimeIsFilledIn)
 {
   constexpr auto page = mustache::static_page_of<"{{#names}}{{title}}/{{lang}}{{/names}}", fixed>;
   EXPECT_EQ(std::string_view(page.data()), "Hello/en");
+}
+
+struct Cell {
+  std::variant<std::string, int64_t, std::monostate> value;
+  std::optional<int>                                 count;
+  std::optional<std::string>                         note;
+};
+
+// A variant renders the value it holds, as the run-time render does: text
+// as text, a number by std::to_chars, std::monostate as nothing. An
+// optional renders by the rule of its value type, numbers included.
+TEST(ReflectValue, VariantAndOptionalRenderTheirValue)
+{
+  const auto r = [](const Cell &c) {
+    const std::expected<std::string, mustache::Error> got =
+        mustache::render<"[{{value}}|{{count}}|{{note}}]{{#value}}+{{/value}}{{^count}}-{{/count}}">(c);
+    return got ? *got : std::string("<fault>");
+  };
+  EXPECT_EQ(r(Cell{std::string("a<b"), 3, "n"}), "[a&lt;b|3|n]+");
+  EXPECT_EQ(r(Cell{int64_t{-42}, std::nullopt, std::nullopt}), "[-42||]+-");
+  EXPECT_EQ(r(Cell{std::monostate{}, 0, std::nullopt}), "[|0|]");
+}
+
+// A document of standard types, a variant of maps, lists and scalars,
+// renders the same bytes through the reflection render and through the
+// run-time render.
+TEST(ReflectValue, ADocumentRendersAsAtRunTime)
+{
+  NodeMap item1{{"name", Node{std::string("one")}}, {"n", Node{int64_t{1}}}};
+  NodeMap item2{{"name", Node{std::string("<two>")}}};
+  const Node doc{NodeMap{{"title", Node{std::string("T")}},
+                         {"items", Node{NodeList{Node{item1}, Node{item2}}}},
+                         {"flag", Node{true}},
+                         {"none", Node{nullptr}}}};
+  constexpr std::string_view source =
+      "{{title}}:{{#items}}<{{name}}{{#n}}={{n}}{{/n}}>{{/items}}{{#flag}}!{{/flag}}{{^none}}~{{/none}}{{missing}}";
+  const std::expected<std::string, mustache::Error> reflected =
+      mustache::render<"{{title}}:{{#items}}<{{name}}{{#n}}={{n}}{{/n}}>{{/items}}{{#flag}}!{{/flag}}{{^none}}~{{/none}}{{missing}}">(doc);
+  const std::expected<mustache::Template, mustache::Error> t = mustache::compile(source);
+  ASSERT_TRUE(t);
+  const std::expected<std::string, mustache::Error> walked = mustache::render(*t, doc);
+  ASSERT_TRUE(reflected);
+  ASSERT_TRUE(walked);
+  EXPECT_EQ(*reflected, *walked);
+  EXPECT_EQ(*reflected, "T:<one=1><&lt;two&gt;>!~");
 }
 
 }

@@ -11,6 +11,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <concepts>
 #include <variant>
 #include <type_traits>
 
@@ -164,10 +165,30 @@ concept map_like = requires(const T &m) {
   { m.empty() } -> std::convertible_to<bool>;
 } && std::is_convertible_v<const typename T::key_type &, std::string_view>;
 
+template <class... A>
+const std::variant<A...> &variant_base(const std::variant<A...> &v)
+{
+  return v;
+}
+
 template <class T>
-concept list_like = std::ranges::range<T> && !text_like<T> && !map_like<T>;
+concept variant_like = requires(const T &v) { variant_base(v); };
+
+template <class T>
+concept falsy_like = std::same_as<T, std::nullptr_t> || std::same_as<T, std::monostate>;
+
+template <class T>
+concept list_like = std::ranges::range<T> && !text_like<T> && !map_like<T> && !variant_like<T>;
 
 struct missing {};
+
+template <class T, class F>
+constexpr void
+with_held(const T &v, const F &f)
+{
+  if constexpr (variant_like<T>) std::visit(f, variant_base(v));
+  else f(v);
+}
 
 template <class M>
 constexpr auto
@@ -298,7 +319,8 @@ struct Renderer {
   static consteval bool resolvable(std::string_view name)
   {
     constexpr std::array<std::meta::info, sizeof...(Ctx)> types = {^^std::remove_cvref_t<Ctx>...};
-    constexpr std::array<bool, sizeof...(Ctx)> maps = {detail::map_like<std::remove_cvref_t<Ctx>>...};
+    constexpr std::array<bool, sizeof...(Ctx)> maps = {
+        (detail::map_like<std::remove_cvref_t<Ctx>> || detail::variant_like<std::remove_cvref_t<Ctx>>)...};
     for (size_t i = 0; i < types.size(); i++) {
       if (maps.at(i) || detail::member_named(types.at(i), name) != std::meta::info{}) return true;
     }
@@ -310,6 +332,18 @@ struct Renderer {
   {
     if constexpr (j == count) {
       with(v, std::bool_constant<FromMap>{});
+    }
+    else if constexpr (detail::variant_like<T>) {
+      std::visit(
+          [&with](const auto &x) {
+            using X = std::remove_cvref_t<decltype(x)>;
+            if constexpr (detail::map_like<X> || detail::variant_like<X> ||
+                          (std::meta::is_class_type(^^X) && detail::member_named(^^X, key(first + j)) != std::meta::info{}))
+              follow<first, count, j, true>(x, with);
+            else
+              with(detail::missing{}, std::true_type{});
+          },
+          detail::variant_base(v));
     }
     else if constexpr (detail::map_like<T>) {
       const auto it = detail::found_in(v, key(first + j));
@@ -337,7 +371,26 @@ struct Renderer {
     else {
       const auto &c = std::get<i>(std::tie(ctx...));
       using C = std::remove_cvref_t<decltype(c)>;
-      if constexpr (detail::map_like<C>) {
+      if constexpr (detail::variant_like<C>) {
+        std::visit(
+            [&](const auto &x) {
+              using X = std::remove_cvref_t<decltype(x)>;
+              if constexpr (detail::map_like<X>) {
+                const auto it = detail::found_in(x, key(first));
+                if (it != x.end()) follow<first, count, 1, true>(it->second, with);
+                else search<first, count, i - 1>(with, ctx...);
+              }
+              else if constexpr (std::meta::is_class_type(^^X) && detail::member_named(^^X, key(first)) != std::meta::info{}) {
+                constexpr std::meta::info m = detail::member_named(^^X, key(first));
+                follow<first, count, 1, true>(x.[:m:], with);
+              }
+              else {
+                search<first, count, i - 1>(with, ctx...);
+              }
+            },
+            detail::variant_base(c));
+      }
+      else if constexpr (detail::map_like<C>) {
         const auto it = detail::found_in(c, key(first));
         if (it != c.end()) follow<first, count, 1, true>(it->second, with);
         else search<first, count, i - 1>(with, ctx...);
@@ -481,12 +534,16 @@ struct Renderer {
   {
     if constexpr (std::is_same_v<V, detail::missing>) {
     }
-    else if constexpr (FromMap && !detail::text_like<V> && !detail::number_like<V> && !detail::is_optional<V>::value) {
-      found_no_text(out);
+    else if constexpr (detail::variant_like<V>) {
+      std::visit([&](const auto &x) { interpolate<op, true>(out, pending, x); }, detail::variant_base(v));
     }
     else if constexpr (detail::is_optional<V>::value) {
-      if constexpr (!detail::text_like<typename V::value_type>) detail::is_not_text<V>();
-      else if (v) value<op.tag, (Context)op.d>(out, pending, std::string_view(*v));
+      if (v) interpolate<op, FromMap>(out, pending, *v);
+    }
+    else if constexpr (detail::falsy_like<V>) {
+    }
+    else if constexpr (FromMap && !detail::text_like<V> && !detail::number_like<V>) {
+      found_no_text(out);
     }
     else if constexpr (detail::number_like<V>) {
       std::array<char, 32> digits{};
@@ -511,7 +568,8 @@ struct Renderer {
   template <class V>
   static constexpr bool is_empty(const V &v)
   {
-    if constexpr (std::is_same_v<V, detail::missing>) return true;
+    if constexpr (std::is_same_v<V, detail::missing> || detail::falsy_like<V>) return true;
+    else if constexpr (detail::variant_like<V>) return std::visit([](const auto &x) { return is_empty(x); }, detail::variant_base(v));
     else if constexpr (std::is_same_v<V, bool>) return !v;
     else if constexpr (detail::is_optional<V>::value) return !v;
     else if constexpr (detail::map_like<V> || detail::list_like<V>) return std::ranges::empty(v);
@@ -521,13 +579,16 @@ struct Renderer {
   template <uint32_t pc, Op op, class W, class V, class... Ctx>
   static constexpr void section(W &out, bool &pending, const V &v, const Ctx &...ctx)
   {
-    if constexpr (std::is_same_v<V, detail::missing>) {
+    if constexpr (std::is_same_v<V, detail::missing> || detail::falsy_like<V>) {
+    }
+    else if constexpr (detail::variant_like<V>) {
+      std::visit([&](const auto &x) { section<pc, op>(out, pending, x, ctx...); }, detail::variant_base(v));
     }
     else if constexpr (std::is_same_v<V, bool>) {
       if (v) run<pc + 1, op.c>(out, pending, ctx...);
     }
     else if constexpr (detail::is_optional<V>::value) {
-      if (v) run<pc + 1, op.c>(out, pending, ctx..., *v);
+      if (v) section<pc, op>(out, pending, *v, ctx...);
     }
     else if constexpr (detail::map_like<V>) {
       if (!v.empty()) run<pc + 1, op.c>(out, pending, ctx..., v);
@@ -539,15 +600,15 @@ struct Renderer {
           if (!out.reserved(bound)) [[unlikely]] return;
           char *const start = out.rest().data();
           Batch b{start};
-          run<pc + 1, op.c>(b, pending, ctx..., e);
+          detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(b, pending, ctx..., x); });
           if (!b.dirty) [[likely]]
             out.size += (size_t)std::distance(start, b.w);
           else
-            run<pc + 1, op.c>(out, pending, ctx..., e);
+            detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(out, pending, ctx..., x); });
         }
       }
       else {
-        for (const auto &e : v) run<pc + 1, op.c>(out, pending, ctx..., e);
+        for (const auto &e : v) detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(out, pending, ctx..., x); });
       }
     }
     else {
