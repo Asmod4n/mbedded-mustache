@@ -1,7 +1,6 @@
 # mustache
 
-Mustache templates for C++. The library offers a C++ API and nothing
-else: a caller speaks C++.
+Mustache templates for C++.
 
 The library compiles a template once and renders it many times. It
 reads your data as standard C++ types, and it escapes HTML by default. It passes 163 cases of the Mustache specification. It
