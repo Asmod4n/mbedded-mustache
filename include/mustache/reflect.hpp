@@ -10,6 +10,7 @@
 #include <tuple>
 #include <ranges>
 #include <string>
+#include <stdexcept>
 #include <string_view>
 #include <concepts>
 #include <variant>
@@ -525,7 +526,7 @@ struct Renderer {
       out.dirty = true;
     }
     else {
-      throw "a value is not text";
+      throw std::logic_error("a value is not text");
     }
   }
 
