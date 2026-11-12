@@ -15,6 +15,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace mustache {
 
@@ -302,7 +303,7 @@ escape_into(char *const out, const std::string_view s)
       w += kVectorBytes;
       continue;
     }
-    if (__builtin_popcount(mask) > kMarksPerVectorMax) [[unlikely]] {
+    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
       w = escape_bytes(w, s.substr(at, kVectorBytes));
       continue;
     }
@@ -314,7 +315,7 @@ escape_into(char *const out, const std::string_view s)
     }
     size_t done = 0;
     while (mask != 0) {
-      const size_t i = (size_t)__builtin_ctz(mask);
+      const size_t i = static_cast<size_t>(std::countr_zero(mask));
       w += i - done;
       w = entity_into(w, kEntities.word.at(from[i]));
       done = i + 1;
@@ -396,7 +397,7 @@ escape_into(char *const out, const std::string_view s)
       w += kVectorBytes;
       continue;
     }
-    if (__builtin_popcountll(mask) > kMarksPerVectorMax) [[unlikely]] {
+    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
       w = escape_bytes(w, s.substr(at, kVectorBytes));
       continue;
     }
@@ -408,7 +409,7 @@ escape_into(char *const out, const std::string_view s)
     }
     size_t done = 0;
     while (mask != 0) {
-      const size_t i = (size_t)__builtin_ctzll(mask) / kBitsPerLane;
+      const size_t i = static_cast<size_t>(std::countr_zero(mask)) / kBitsPerLane;
       w += i - done;
       w = entity_into(w, kEntities.word.at(from[i]));
       done = i + 1;
