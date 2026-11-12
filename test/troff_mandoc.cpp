@@ -43,15 +43,15 @@ Shown
 shown_by_mandoc(const std::string &body)
 {
   const std::string dir = MUSTACHE_TROFF_DIR;
+  const std::string page = dir + "/" + ::testing::UnitTest::GetInstance()->current_test_info()->name();
   {
-    std::ofstream out(dir + "/page.7", std::ios::binary);
+    std::ofstream out(page + ".7", std::ios::binary);
     out << ".TH T 7 2026-11-12\n.SH NAME\nt \\- t\n.SH D\n" << body;
   }
-  const std::string command = std::string(MUSTACHE_MANDOC) + " -T utf8 -W all " + dir + "/page.7 > " + dir +
-                              "/page.txt 2> " + dir + "/page.err";
+  const std::string command = std::string(MUSTACHE_MANDOC) + " -T utf8 -W all " + page + ".7 > " + page + ".txt 2> " + page + ".err";
   EXPECT_EQ(std::system(command.c_str()), 0);
   std::string text;
-  const std::string raw = file_text(dir + "/page.txt");
+  const std::string raw = file_text(page + ".txt");
   for (size_t i = 0; i < raw.size(); i++) {
     if (i + 1 < raw.size() && raw[i + 1] == '\b') {
       i += 1;
@@ -60,7 +60,7 @@ shown_by_mandoc(const std::string &body)
     text.push_back(raw[i]);
   }
   Shown shown;
-  shown.diagnostics = file_text(dir + "/page.err");
+  shown.diagnostics = file_text(page + ".err");
   std::stringstream s(text);
   std::string line;
   bool in_section = false;
