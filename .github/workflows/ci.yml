@@ -64,7 +64,7 @@ jobs:
             std: 23
             flags: -O2 -Wall -Wextra -Werror
     steps:
-      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel mandoc
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -73,6 +73,7 @@ jobs:
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           -DCMAKE_C_COMPILER=${{ matrix.cc }}
           -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+          -DMUSTACHE_REQUIRE_MANDOC=ON
           "-DCMAKE_CXX_FLAGS=${{ matrix.flags }}"
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure

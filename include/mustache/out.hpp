@@ -55,6 +55,7 @@ escaped_into_in(const Context c, char *const w, const std::string_view s)
     case Context::json_string:    return json_string_escaped_into(w, s);
     case Context::js_string:      return js_string_escaped_into(w, s);
     case Context::css_string:     return css_string_escaped_into(w, s);
+    case Context::troff_text:     return troff_text_escaped_into(w, s);
     default:                      return escaped_into(w, s);
   }
 }

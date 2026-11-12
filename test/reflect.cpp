@@ -133,6 +133,7 @@ TEST(ReflectMediaType, EscapesByTheNegotiatedType)
   EXPECT_EQ(rendered_as<"{\"a\":\"{{x}}\"}">("application/json; charset=utf-8", "\"\n"), "{\"a\":\"\\\"\\n\"}");
   EXPECT_EQ(rendered_as<"var a = '{{x}}';">("text/javascript", "'"), "var a = '\\x27';");
   EXPECT_EQ(rendered_as<"a { content: '{{x}}' }">("text/css", "'"), "a { content: '\\27 ' }");
+  EXPECT_EQ(rendered_as<".B {{x}}\n{{y}}\n">("text/troff", ".a"), ".B \\&.a\n\\&.a\n");
 }
 
 // A type with no escaper renders nothing and gives a fault.

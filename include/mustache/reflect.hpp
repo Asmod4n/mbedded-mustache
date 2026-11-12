@@ -683,6 +683,7 @@ inline constexpr fixed_string kXml = "application/xml";
 inline constexpr fixed_string kJson = "application/json";
 inline constexpr fixed_string kJs = "text/javascript";
 inline constexpr fixed_string kCss = "text/css";
+inline constexpr fixed_string kTroff = "text/troff";
 
 template <fixed_string Src, fixed_string Media, class Partials, class T>
 std::expected<std::string, Error>
@@ -717,6 +718,7 @@ render(const T &data, const std::string_view media_type, const size_t initial_ca
     case Grammar::json: return detail::rendered_as<Src, detail::kJson, List>(data, initial_capacity);
     case Grammar::js:   return detail::rendered_as<Src, detail::kJs, List>(data, initial_capacity);
     case Grammar::css:  return detail::rendered_as<Src, detail::kCss, List>(data, initial_capacity);
+    case Grammar::troff: return detail::rendered_as<Src, detail::kTroff, List>(data, initial_capacity);
     default:            return std::unexpected(Error{Fault::parse, {}, 0, 0});
   }
 }

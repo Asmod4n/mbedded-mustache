@@ -23,6 +23,7 @@ enum class Context : uint32_t {
   json_string,
   js_string,
   css_string,
+  troff_text,
 };
 
 struct Op {

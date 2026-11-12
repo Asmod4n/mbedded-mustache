@@ -165,6 +165,77 @@ css_string_escaped_into(char *w, const std::string_view s)
   }
   return w;
 }
+
+constexpr bool
+is_sentence_mark(const char c)
+{
+  return c == '.' || c == '!' || c == '?';
+}
+
+constexpr bool
+is_closing_delimiter(const char c)
+{
+  return c == ')' || c == ']' || c == '\'' || c == '"';
+}
+
+inline constexpr unsigned char kFirstGraphic = 0x20;
+
+inline constexpr unsigned char kDelete = 0x7f;
+
+constexpr bool
+is_troff_control_character(const char c)
+{
+  const unsigned char u = (unsigned char)c;
+  return (u < kFirstGraphic && c != '\n') || u == kDelete;
+}
+
+constexpr bool
+has_troff_control_character(const std::string_view s)
+{
+  return std::ranges::any_of(s, is_troff_control_character);
+}
+
+constexpr char *
+troff_line_escaped_into(char *w, const std::string_view line)
+{
+  for (size_t j = 0; j < line.size(); j++) {
+    const char c = line.at(j);
+    const bool first = j == 0;
+    const bool last = j + 1 == line.size();
+    if (c == ' ') {
+      if (first) w = bytes_into(w, "\\&");
+      w = bytes_into(w, last ? "\\ " : " ");
+    }
+    else if (c == '.' && first) w = bytes_into(w, "\\&.");
+    else if (c == '\\') w = bytes_into(w, "\\e");
+    else if (c == '"') w = bytes_into(w, "\\(dq");
+    else if (c == '\'') w = bytes_into(w, "\\(aq");
+    else if (c == '`') w = bytes_into(w, "\\(ga");
+    else if (c == '~') w = bytes_into(w, "\\(ti");
+    else if (c == '^') w = bytes_into(w, "\\(ha");
+    else *w++ = c;
+  }
+  size_t core = line.size();
+  while (core > 0 && is_closing_delimiter(line.at(core - 1))) core--;
+  const bool ends_in_space = !line.empty() && line.back() == ' ';
+  const bool ends_a_sentence = core > 0 && is_sentence_mark(line.at(core - 1));
+  if (ends_in_space || ends_a_sentence) w = bytes_into(w, "\\&");
+  return w;
+}
+
+constexpr char *
+troff_text_escaped_into(char *w, const std::string_view s)
+{
+  size_t from = 0;
+  for (;;) {
+    const size_t nl = s.find('\n', from);
+    const std::string_view line = s.substr(from, nl == std::string_view::npos ? std::string_view::npos : nl - from);
+    w = troff_line_escaped_into(w, line);
+    if (nl == std::string_view::npos) return w;
+    *w++ = '\n';
+    from = nl + 1;
+  }
+}
 inline constexpr size_t kShortStringRead = 16;
 
 #if defined(_GLIBCXX_RELEASE)

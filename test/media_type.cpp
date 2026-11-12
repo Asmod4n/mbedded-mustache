@@ -48,6 +48,8 @@ TEST(MediaType, NamesAGrammar)
   EXPECT_EQ(mustache::grammar_of("text/javascript"), Grammar::js);
   EXPECT_EQ(mustache::grammar_of("application/ecmascript"), Grammar::js);
   EXPECT_EQ(mustache::grammar_of("text/css"), Grammar::css);
+  EXPECT_EQ(mustache::grammar_of("text/troff"), Grammar::troff);
+  EXPECT_EQ(mustache::grammar_of("TEXT/TROFF; charset=us-ascii"), Grammar::troff);
 }
 
 // A type with no escaper of its own names no grammar and compiles
@@ -57,7 +59,7 @@ TEST(MediaType, NamesAGrammar)
 TEST(MediaType, NamesNoGrammar)
 {
   for (const std::string_view t : {"image/svg+xml", "text/plain", "*/*", "text/*", "text", "text/", "/html",
-                                   "text/jscript", "application/x-javascript", "te xt/html"}) {
+                                   "text/jscript", "application/x-javascript", "te xt/html", "text/roff", "application/x-troff"}) {
     SCOPED_TRACE(t);
     EXPECT_FALSE(mustache::grammar_of(t).has_value());
     EXPECT_FALSE(rendered("{{x}}", t, "v").compiled);

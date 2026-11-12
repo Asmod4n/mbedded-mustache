@@ -24,6 +24,24 @@ add_executable(escape escape.cpp)
 target_link_libraries(escape PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(escape)
 
+add_executable(troff troff.cpp)
+target_link_libraries(troff PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(troff)
+
+option(MUSTACHE_REQUIRE_MANDOC "Fail the configure step when mandoc is missing" OFF)
+find_program(MUSTACHE_MANDOC_PROGRAM mandoc)
+if(MUSTACHE_REQUIRE_MANDOC AND NOT MUSTACHE_MANDOC_PROGRAM)
+  message(FATAL_ERROR "mandoc is required by MUSTACHE_REQUIRE_MANDOC")
+endif()
+if(MUSTACHE_MANDOC_PROGRAM)
+  add_executable(troff_mandoc troff_mandoc.cpp)
+  target_link_libraries(troff_mandoc PRIVATE mustache::mustache GTest::gtest_main)
+  target_compile_definitions(troff_mandoc PRIVATE
+    MUSTACHE_MANDOC="${MUSTACHE_MANDOC_PROGRAM}"
+    MUSTACHE_TROFF_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+  gtest_discover_tests(troff_mandoc)
+endif()
+
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("#ifndef __cpp_impl_reflection\n#error no reflection\n#endif\nint main() { return 0; }" MUSTACHE_HAS_REFLECTION)
 if(MUSTACHE_HAS_REFLECTION)

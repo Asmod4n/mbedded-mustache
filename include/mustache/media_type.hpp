@@ -14,7 +14,7 @@
 
 namespace mustache {
 
-enum class Grammar : uint8_t { html, xml, json, js, css };
+enum class Grammar : uint8_t { html, xml, json, js, css, troff };
 
 namespace detail {
 
@@ -102,6 +102,7 @@ grammar_of(const std::string_view media_type)
   if (ends_with_ignoring_case(st, "+json")) return Grammar::json;
   if ((application || text) && equals_ignoring_case(st, "xml")) return Grammar::xml;
   if (text && equals_ignoring_case(st, "css")) return Grammar::css;
+  if (text && equals_ignoring_case(st, "troff")) return Grammar::troff;
   if ((text || application) && (equals_ignoring_case(st, "javascript") || equals_ignoring_case(st, "ecmascript")))
     return Grammar::js;
   if (equals_ignoring_case(t, "image") && equals_ignoring_case(st, "svg+xml")) return std::nullopt;
@@ -118,6 +119,7 @@ context_of(const Grammar g)
     case Grammar::json: return Context::json_string;
     case Grammar::js:   return Context::js_string;
     case Grammar::css:  return Context::css_string;
+    case Grammar::troff: return Context::troff_text;
   }
   return Context::html_text;
 }
