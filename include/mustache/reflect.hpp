@@ -599,11 +599,10 @@ struct Renderer {
       if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
         for (const auto &e : v) {
           if (!out.reserved(bound)) [[unlikely]] return;
-          char *const start = out.rest().data();
-          Batch b{start};
+          Batch b{out.rest()};
           detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(b, pending, ctx..., x); });
           if (!b.dirty) [[likely]]
-            out.size += (size_t)std::distance(start, b.w);
+            out.size += b.size;
           else
             detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(out, pending, ctx..., x); });
         }

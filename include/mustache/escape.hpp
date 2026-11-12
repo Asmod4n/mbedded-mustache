@@ -11,6 +11,8 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -42,7 +44,9 @@ inline constexpr Entities kEntities = entities_of();
 
 inline constexpr size_t kEntityMax = 6;
 
-inline constexpr size_t kEscapeSlack = 32;
+inline constexpr size_t kCopiedStringMax = 32;
+
+inline constexpr size_t kEscapeSlack = kCopiedStringMax;
 
 constexpr size_t
 entity_length(const uint64_t word)
@@ -255,15 +259,21 @@ struct Copied {
 };
 
 inline Copied
-copied_string_scalar(char *const out, const std::string &s)
+copied_string_scalar(const std::span<char> out, const std::string &s)
 {
-  if (s.size() > 32) [[unlikely]] return {nullptr, 0};
+  if (s.size() > kCopiedStringMax || s.size() > out.size()) [[unlikely]] return {nullptr, 0};
   const bool marked = std::ranges::any_of(s, is_marked);
-  std::ranges::copy(s, out);
-  return {out + s.size(), marked ? uint64_t{1} : uint64_t{0}};
+  const auto copied = std::ranges::copy(s, out.begin());
+  return {std::to_address(copied.out), marked ? uint64_t{1} : uint64_t{0}};
 }
 
 #if defined(__AVX2__)
+
+inline constexpr size_t kVectorBytes = sizeof(__m256i);
+
+inline constexpr size_t kMarksPerVectorMax = kVectorBytes / 4;
+
+static_assert(kEscapeSlack >= kVectorBytes, "a vector store at the end of the output stays in the slack");
 
 inline uint32_t
 marks_of(const __m256i b)
@@ -279,27 +289,27 @@ marks_of(const __m256i b)
 inline char *
 escape_into(char *const out, const std::string_view s)
 {
-  if (s.size() < 32) return escape_bytes(out, s);
+  if (s.size() < kVectorBytes) return escape_bytes(out, s);
   char *w = out;
   const auto *src = reinterpret_cast<const unsigned char *>(s.data());
-  alignas(32) unsigned char block[64];
+  alignas(kVectorBytes) unsigned char block[2 * kVectorBytes];
   size_t at = 0;
-  for (; at + 32 <= s.size(); at += 32) {
+  for (; at + kVectorBytes <= s.size(); at += kVectorBytes) {
     const __m256i b = _mm256_loadu_si256((const __m256i *)(src + at));
     uint32_t mask = marks_of(b);
     _mm256_storeu_si256((__m256i *)w, b);
     if (mask == 0) {
-      w += 32;
+      w += kVectorBytes;
       continue;
     }
-    if (__builtin_popcount(mask) > 8) [[unlikely]] {
-      w = escape_bytes(w, s.substr(at, 32));
+    if (__builtin_popcount(mask) > kMarksPerVectorMax) [[unlikely]] {
+      w = escape_bytes(w, s.substr(at, kVectorBytes));
       continue;
     }
     const unsigned char *from = src + at;
-    if (at + 64 > s.size()) {
+    if (at + 2 * kVectorBytes > s.size()) {
       _mm256_store_si256((__m256i *)block, b);
-      _mm256_store_si256((__m256i *)(block + 32), _mm256_setzero_si256());
+      _mm256_store_si256((__m256i *)(block + kVectorBytes), _mm256_setzero_si256());
       from = block;
     }
     size_t done = 0;
@@ -311,7 +321,7 @@ escape_into(char *const out, const std::string_view s)
       _mm256_storeu_si256((__m256i *)w, _mm256_loadu_si256((const __m256i *)(from + done)));
       mask &= mask - 1;
     }
-    w += 32 - done;
+    w += kVectorBytes - done;
   }
   return escape_bytes(w, s.substr(at));
 }
@@ -327,27 +337,38 @@ marks16_of(const __m128i b)
 }
 
 [[gnu::always_inline]] inline Copied
-copied_string(char *const out, const std::string &s)
+copied_string(const std::span<char> out, const std::string &s)
 {
+  if (out.size() < kCopiedStringMax) [[unlikely]] return copied_string_scalar(out, s);
   const size_t n = s.size();
 #if defined(_GLIBCXX_RELEASE)
   if (reads_past_size_safely(s)) {
     const __m128i b = _mm_loadu_si128((const __m128i *)s.data());
-    _mm_storeu_si128((__m128i *)out, b);
+    _mm_storeu_si128((__m128i *)out.data(), b);
     return {out + n, marks16_of(b) & ((1u << n) - 1)};
   }
 #endif
-  if (n >= 16 && n <= 32) {
+  if (n >= kShortStringRead && n <= kCopiedStringMax) {
     const __m128i a = _mm_loadu_si128((const __m128i *)s.data());
-    const __m128i b = _mm_loadu_si128((const __m128i *)s.substr(n - 16).data());
-    _mm_storeu_si128((__m128i *)out, a);
-    _mm_storeu_si128((__m128i *)(out + n - 16), b);
+    const __m128i b = _mm_loadu_si128((const __m128i *)s.substr(n - kShortStringRead).data());
+    _mm_storeu_si128((__m128i *)out.data(), a);
+    _mm_storeu_si128((__m128i *)out.subspan(n - kShortStringRead).data(), b);
     return {out + n, marks16_of(a) | marks16_of(b)};
   }
   return copied_string_scalar(out, s);
 }
 
 #elif defined(__ARM_NEON)
+
+inline constexpr size_t kVectorBytes = sizeof(uint8x16_t);
+
+inline constexpr size_t kBitsPerLane = 4;
+
+inline constexpr uint64_t kLaneMarkBits = 0x8888888888888888ull;
+
+inline constexpr size_t kMarksPerVectorMax = kVectorBytes / 4;
+
+static_assert(kEscapeSlack >= 2 * kVectorBytes, "a vector store at the end of the output stays in the slack");
 
 inline uint64_t
 marks_of(const uint8x16_t b)
@@ -362,61 +383,62 @@ marks_of(const uint8x16_t b)
 inline char *
 escape_into(char *const out, const std::string_view s)
 {
-  if (s.size() < 16) return escape_bytes(out, s);
+  if (s.size() < kVectorBytes) return escape_bytes(out, s);
   char *w = out;
   const auto *src = reinterpret_cast<const unsigned char *>(s.data());
-  alignas(16) unsigned char block[32];
+  alignas(kVectorBytes) unsigned char block[2 * kVectorBytes];
   size_t at = 0;
-  for (; at + 16 <= s.size(); at += 16) {
+  for (; at + kVectorBytes <= s.size(); at += kVectorBytes) {
     const uint8x16_t b = vld1q_u8(src + at);
-    uint64_t mask = marks_of(b) & 0x8888888888888888ull;
+    uint64_t mask = marks_of(b) & kLaneMarkBits;
     vst1q_u8((uint8_t *)w, b);
     if (mask == 0) {
-      w += 16;
+      w += kVectorBytes;
       continue;
     }
-    if (__builtin_popcountll(mask) > 4) [[unlikely]] {
-      w = escape_bytes(w, s.substr(at, 16));
+    if (__builtin_popcountll(mask) > kMarksPerVectorMax) [[unlikely]] {
+      w = escape_bytes(w, s.substr(at, kVectorBytes));
       continue;
     }
     const unsigned char *from = src + at;
-    if (at + 32 > s.size()) {
+    if (at + 2 * kVectorBytes > s.size()) {
       vst1q_u8(block, b);
-      vst1q_u8(block + 16, vdupq_n_u8(0));
+      vst1q_u8(block + kVectorBytes, vdupq_n_u8(0));
       from = block;
     }
     size_t done = 0;
     while (mask != 0) {
-      const size_t i = (size_t)__builtin_ctzll(mask) / 4;
+      const size_t i = (size_t)__builtin_ctzll(mask) / kBitsPerLane;
       w += i - done;
       w = entity_into(w, kEntities.word.at(from[i]));
       done = i + 1;
       vst1q_u8((uint8_t *)w, vld1q_u8(from + done));
       mask &= mask - 1;
     }
-    w += 16 - done;
+    w += kVectorBytes - done;
   }
   return escape_bytes(w, s.substr(at));
 }
 
 [[gnu::always_inline]] inline Copied
-copied_string(char *const out, const std::string &s)
+copied_string(const std::span<char> out, const std::string &s)
 {
+  if (out.size() < kCopiedStringMax) [[unlikely]] return copied_string_scalar(out, s);
   const size_t n = s.size();
 #if defined(_GLIBCXX_RELEASE)
   if (reads_past_size_safely(s)) {
     const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
-    vst1q_u8(reinterpret_cast<uint8_t *>(out), b);
-    const uint64_t lanes = n == 16 ? ~uint64_t{0} : (uint64_t{1} << (4 * n)) - 1;
-    return {out + n, marks_of(b) & 0x8888888888888888ull & lanes};
+    vst1q_u8(reinterpret_cast<uint8_t *>(out.data()), b);
+    const uint64_t lanes = n == kVectorBytes ? ~uint64_t{0} : (uint64_t{1} << (kBitsPerLane * n)) - 1;
+    return {out + n, marks_of(b) & kLaneMarkBits & lanes};
   }
 #endif
-  if (n >= 16 && n <= 32) {
+  if (n >= kShortStringRead && n <= kCopiedStringMax) {
     const uint8x16_t a = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
-    const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.substr(n - 16).data()));
-    vst1q_u8(reinterpret_cast<uint8_t *>(out), a);
-    vst1q_u8(reinterpret_cast<uint8_t *>(out + n - 16), b);
-    return {out + n, (marks_of(a) | marks_of(b)) & 0x8888888888888888ull};
+    const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.substr(n - kShortStringRead).data()));
+    vst1q_u8(reinterpret_cast<uint8_t *>(out.data()), a);
+    vst1q_u8(reinterpret_cast<uint8_t *>(out.subspan(n - kShortStringRead).data()), b);
+    return {out + n, (marks_of(a) | marks_of(b)) & kLaneMarkBits};
   }
   return copied_string_scalar(out, s);
 }
@@ -430,7 +452,7 @@ escape_into(char *const out, const std::string_view s)
 }
 
 inline Copied
-copied_string(char *const out, const std::string &s)
+copied_string(const std::span<char> out, const std::string &s)
 {
   return copied_string_scalar(out, s);
 }
@@ -438,11 +460,11 @@ copied_string(char *const out, const std::string &s)
 #endif
 
 [[gnu::always_inline]] inline char *
-escape_string_into(char *const out, const std::string &s)
+escape_string_into(const std::span<char> out, const std::string &s)
 {
   const Copied c = copied_string(out, s);
   if (c.w != nullptr && c.marks == 0) [[likely]] return c.w;
-  return escape_into(out, s);
+  return escape_into(out.data(), s);
 }
 
 }

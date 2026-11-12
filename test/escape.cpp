@@ -66,7 +66,7 @@ TEST(EscapeString, MatchesTheRule)
     for (const std::string &s : held_three_ways(value)) {
       SCOPED_TRACE(s);
       std::array<char, 512> out{};
-      char *const end = mustache::escape_string_into(out.data(), s);
+      char *const end = mustache::escape_string_into(out, s);
       EXPECT_EQ(std::string_view(out.data(), (size_t)(end - out.data())), escaped_by_rule(s));
     }
   }
@@ -80,9 +80,9 @@ TEST(CopiedString, MatchesTheScalarForm)
       SCOPED_TRACE(s);
       std::array<char, 64> wide{};
       std::array<char, 64> scalar{};
-      const mustache::Copied w = mustache::copied_string(wide.data(), s);
-      const mustache::Copied c = mustache::copied_string_scalar(scalar.data(), s);
-      EXPECT_EQ(c.w != nullptr, s.size() <= 32);
+      const mustache::Copied w = mustache::copied_string(wide, s);
+      const mustache::Copied c = mustache::copied_string_scalar(scalar, s);
+      EXPECT_EQ(c.w != nullptr, s.size() <= mustache::kCopiedStringMax);
       if (w.w == nullptr || c.w == nullptr) continue;
       EXPECT_EQ(w.marks != 0, c.marks != 0);
       EXPECT_EQ(w.w - wide.data(), c.w - scalar.data());
