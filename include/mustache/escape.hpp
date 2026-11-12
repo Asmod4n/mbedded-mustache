@@ -345,7 +345,7 @@ copied_string(const std::span<char> out, const std::string &s)
   if (reads_past_size_safely(s)) {
     const __m128i b = _mm_loadu_si128((const __m128i *)s.data());
     _mm_storeu_si128((__m128i *)out.data(), b);
-    return {out + n, marks16_of(b) & ((1u << n) - 1)};
+    return {out.data() + n, marks16_of(b) & ((1u << n) - 1)};
   }
 #endif
   if (n >= kShortStringRead && n <= kCopiedStringMax) {
@@ -353,7 +353,7 @@ copied_string(const std::span<char> out, const std::string &s)
     const __m128i b = _mm_loadu_si128((const __m128i *)s.substr(n - kShortStringRead).data());
     _mm_storeu_si128((__m128i *)out.data(), a);
     _mm_storeu_si128((__m128i *)out.subspan(n - kShortStringRead).data(), b);
-    return {out + n, marks16_of(a) | marks16_of(b)};
+    return {out.data() + n, marks16_of(a) | marks16_of(b)};
   }
   return copied_string_scalar(out, s);
 }
@@ -430,7 +430,7 @@ copied_string(const std::span<char> out, const std::string &s)
     const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.data()));
     vst1q_u8(reinterpret_cast<uint8_t *>(out.data()), b);
     const uint64_t lanes = n == kVectorBytes ? ~uint64_t{0} : (uint64_t{1} << (kBitsPerLane * n)) - 1;
-    return {out + n, marks_of(b) & kLaneMarkBits & lanes};
+    return {out.data() + n, marks_of(b) & kLaneMarkBits & lanes};
   }
 #endif
   if (n >= kShortStringRead && n <= kCopiedStringMax) {
@@ -438,7 +438,7 @@ copied_string(const std::span<char> out, const std::string &s)
     const uint8x16_t b = vld1q_u8(reinterpret_cast<const uint8_t *>(s.substr(n - kShortStringRead).data()));
     vst1q_u8(reinterpret_cast<uint8_t *>(out.data()), a);
     vst1q_u8(reinterpret_cast<uint8_t *>(out.subspan(n - kShortStringRead).data()), b);
-    return {out + n, (marks_of(a) | marks_of(b)) & kLaneMarkBits};
+    return {out.data() + n, (marks_of(a) | marks_of(b)) & kLaneMarkBits};
   }
   return copied_string_scalar(out, s);
 }
