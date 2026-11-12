@@ -26,7 +26,7 @@
 
 namespace mustache {
 
-enum class Fault : uint8_t { none, over_limit, not_text, too_deep, over_work, parse, no_memory, control_character };
+enum class Fault : uint8_t { none, over_limit, not_text, too_deep, over_work, parse, no_memory, illegal_control_character };
 
 struct Error {
   Fault            fault;
@@ -61,7 +61,7 @@ struct Answer {
   Error error() const
   {
     if (fault == Fault::not_text) return Error{fault, "a value is not text", 0, 0};
-    if (fault == Fault::control_character) return Error{fault, "a value has a control character", 0, 0};
+    if (fault == Fault::illegal_control_character) return Error{fault, "a value has an illegal control character", 0, 0};
     return Error{fault, "render output", asked, allowed};
   }
 
@@ -137,7 +137,7 @@ struct Answer {
       return;
     }
     if (c == Context::troff_text && has_troff_control_character(s)) [[unlikely]] {
-      fault = Fault::control_character;
+      fault = Fault::illegal_control_character;
       return;
     }
     const size_t needed = escaped_size_max_in(c, s.size());

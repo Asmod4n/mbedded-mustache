@@ -213,7 +213,7 @@ SVG carries script that XML escaping does not guard.
 For `text/troff` a value is text of one text line or of several. A byte
 from 0x80 on passes unchanged; the caller decides what UTF-8 is. A
 value with a byte under 0x20 other than the newline, or with 0x7F,
-stops the render with `control_character`. A tag in the argument line
+stops the render with `illegal_control_character`. A tag in the argument line
 of a macro gets the same escaping, and a space in its value splits the
 argument.
 
@@ -335,7 +335,7 @@ int main()
 | `over_work` | the render does more work than its limit |
 | `over_limit` | the answer is larger than its limit |
 | `no_memory` | an allocation failed |
-| `control_character` | a value for `text/troff` holds a byte under 0x20 other than the newline, or 0x7F |
+| `illegal_control_character` | a value for `text/troff` holds a byte under 0x20 other than the newline, or 0x7F |
 
 The work limit counts each run of a template body. It stops a small
 template with partials that call each other before it takes the

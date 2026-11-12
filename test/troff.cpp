@@ -86,8 +86,8 @@ TEST(Troff, StopsAtAControlCharacter)
 {
   const std::expected<std::string, mustache::Error> r = rendered("a{{x}}b{{y}}", "v", "\t");
   ASSERT_FALSE(r);
-  EXPECT_EQ(r.error().fault, mustache::Fault::control_character);
-  EXPECT_EQ(std::string(r.error().what), "a value has a control character");
+  EXPECT_EQ(r.error().fault, mustache::Fault::illegal_control_character);
+  EXPECT_EQ(std::string(r.error().what), "a value has an illegal control character");
 }
 
 // Each byte stands at the start, in the middle and at the end of a value.
@@ -119,7 +119,7 @@ TEST(Troff, EveryByteAtEachPosition)
       for (const std::string &v : {at_start, in_middle, at_end}) {
         const std::expected<std::string, mustache::Error> r = rendered("{{x}}", v);
         ASSERT_FALSE(r);
-        EXPECT_EQ(r.error().fault, mustache::Fault::control_character);
+        EXPECT_EQ(r.error().fault, mustache::Fault::illegal_control_character);
       }
       continue;
     }
