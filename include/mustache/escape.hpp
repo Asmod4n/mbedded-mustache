@@ -45,9 +45,13 @@ inline constexpr Entities kEntities = entities_of();
 
 inline constexpr size_t kEntityMax = 6;
 
+inline constexpr size_t kEntityWordBytes = sizeof(uint64_t);
+
 inline constexpr size_t kCopiedStringMax = 32;
 
 inline constexpr size_t kEscapeSlack = kCopiedStringMax;
+
+inline constexpr size_t kBytesPastTheWrittenCount = kEscapeSlack;
 
 constexpr size_t
 entity_length(const uint64_t word)
@@ -64,7 +68,7 @@ is_marked(const char c)
 constexpr char *
 entity_into(char *const w, const uint64_t word)
 {
-  const std::array<char, 8> bytes = std::bit_cast<std::array<char, 8>>(word);
+  const std::array<char, kEntityWordBytes> bytes = std::bit_cast<std::array<char, kEntityWordBytes>>(word);
   std::copy_n(bytes.begin(), bytes.size(), w);
   return w + entity_length(word);
 }
@@ -445,6 +449,8 @@ copied_string(const std::span<char> out, const std::string &s)
 }
 
 #else
+
+inline constexpr size_t kVectorBytes = kEntityWordBytes;
 
 constexpr char *
 escape_into(char *const out, const std::string_view s)
