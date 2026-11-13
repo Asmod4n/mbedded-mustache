@@ -24,6 +24,10 @@ add_executable(escape escape.cpp)
 target_link_libraries(escape PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(escape)
 
+add_executable(room room.cpp)
+target_link_libraries(room PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(room)
+
 add_executable(troff troff.cpp)
 target_link_libraries(troff PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(troff)

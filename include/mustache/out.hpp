@@ -60,6 +60,30 @@ escaped_into_in(const Context c, char *const w, const std::string_view s)
   }
 }
 
+constexpr bool
+room_holds_the_escaped_value(const Context c, const std::string_view s, const size_t room)
+{
+  if (s.empty()) return true;
+  if (room < kBytesPastTheWrittenCount) [[unlikely]] return false;
+  const size_t usable = room - kBytesPastTheWrittenCount;
+  if (s.size() <= usable / escaped_size_max_in(c, 1)) [[likely]] return true;
+  if (c != Context::html_text) [[unlikely]] return false;
+  return escaped_size_of(s) <= usable;
+}
+
+constexpr size_t
+room_needed_for_the_escaped_value(const Context c, const std::string_view s)
+{
+  if (c == Context::html_text) return escaped_size_of(s);
+  return escaped_size_max_in(c, s.size());
+}
+
+constexpr bool
+room_holds_the_copied_value(const std::string_view s, const size_t room)
+{
+  return s.size() <= room;
+}
+
 struct Out {
   char *w;
   char *end;
