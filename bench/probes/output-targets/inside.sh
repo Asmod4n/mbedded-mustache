@@ -44,14 +44,12 @@ echo "processor_flags_digest=sha256:$(grep -m1 '^flags' /proc/cpuinfo | sha256su
 echo "user=nobody"
 echo "priority=nobody cannot lower nice; default priority, not pinned"
 echo "threads=1"
-echo "google_benchmark=one process per binary, 30 repetitions, --benchmark_min_time=0.05s, order fresh reused twin"
+echo "google_benchmark=one process per binary; 30 repetitions; --benchmark_min_time=0.05s; order fresh reused twin"
 echo "compare=tools/compare.py of google/benchmark $(cat /opt/gb-commit.txt)"
 } > context.txt
 for arm in fresh reused twin; do
-  set --
-  while IFS= read -r line; do set -- "$@" "--benchmark_context=$line"; done < context.txt
   runuser -u nobody -- bin/$arm --benchmark_repetitions=30 --benchmark_min_time=0.05s \
-    --benchmark_out=/w/out/json/$arm.json --benchmark_out_format=json --benchmark_context=binary=$arm "$@" \
+    --benchmark_out=/w/out/json/$arm.json --benchmark_out_format=json \
     > json/$arm.console 2> json/$arm.err < /dev/null || echo "run $arm failed" >> failed.txt
 done
 stamp timed-end
@@ -60,13 +58,14 @@ for arm in twin reused; do
     echo "compare $arm failed" >> failed.txt
 done
 stamp compare-end
-jq -n --arg commit "$PROBE_COMMIT" --rawfile steps steps.txt --rawfile check check.log \
+jq -n --arg commit "$PROBE_COMMIT" --rawfile steps steps.txt --rawfile check check.log --rawfile context context.txt \
   --slurpfile fresh json/fresh.json --slurpfile twin json/twin.json --slurpfile reused json/reused.json \
   --slurpfile ctwin compare/twin.json --slurpfile creused compare/reused.json '{
   name: "output-targets",
   what: "the stocks page, rendered at run time from std::unordered_map data: render_to into a kept std::string (reused) against render into a new std::string (fresh); twin is fresh built again, the A/A arm",
   method: "one container: one build (g++-16, the flags in context.flags), three binaries built in parallel, a byte check, each binary run once as nobody with 30 repetitions of at least 0.05 s in the order fresh, reused, twin, then tools/compare.py of Google Benchmark (Mann-Whitney U) against fresh",
   commit: $commit,
+  context: ($context | split("\n") | map(select(length > 0) | capture("^(?<k>[^=]+)=(?<v>.*)$") | {(.k): .v}) | add),
   steps_utc: ($steps | split("\n") | map(select(length > 0))),
   byte_check: ($check | split("\n") | map(select(length > 0))),
   google_benchmark: {fresh: $fresh[0], twin: $twin[0], reused: $reused[0]},
