@@ -1,0 +1,661 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 326 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 326 tests from Mustache/Spec
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/0_comments__Inline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/0_comments__Inline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/1_comments__Multiline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/1_comments__Multiline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/2_comments__Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/2_comments__Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/3_comments__Indented_Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/3_comments__Indented_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/4_comments__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughTheWalk/4_comments__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/5_comments__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughTheWalk/5_comments__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/6_comments__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/6_comments__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/7_comments__Multiline_Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/7_comments__Multiline_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/8_comments__Indented_Multiline_Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/8_comments__Indented_Multiline_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/9_comments__Indented_Inline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/9_comments__Indented_Inline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/10_comments__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/10_comments__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/11_comments__Variable_Name_Collision
+[       OK ] Mustache/Spec.RendersThroughTheWalk/11_comments__Variable_Name_Collision (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/12_delimiters__Pair_Behavior
+[       OK ] Mustache/Spec.RendersThroughTheWalk/12_delimiters__Pair_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/13_delimiters__Special_Characters
+[       OK ] Mustache/Spec.RendersThroughTheWalk/13_delimiters__Special_Characters (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/14_delimiters__Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/14_delimiters__Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/15_delimiters__Inverted_Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/15_delimiters__Inverted_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/16_delimiters__Partial_Inheritence
+[       OK ] Mustache/Spec.RendersThroughTheWalk/16_delimiters__Partial_Inheritence (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/17_delimiters__Post_Partial_Behavior
+[       OK ] Mustache/Spec.RendersThroughTheWalk/17_delimiters__Post_Partial_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/18_delimiters__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/18_delimiters__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/19_delimiters__Outlying_Whitespace__Inline_
+[       OK ] Mustache/Spec.RendersThroughTheWalk/19_delimiters__Outlying_Whitespace__Inline_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/20_delimiters__Standalone_Tag
+[       OK ] Mustache/Spec.RendersThroughTheWalk/20_delimiters__Standalone_Tag (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/21_delimiters__Indented_Standalone_Tag
+[       OK ] Mustache/Spec.RendersThroughTheWalk/21_delimiters__Indented_Standalone_Tag (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/22_delimiters__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughTheWalk/22_delimiters__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/23_delimiters__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughTheWalk/23_delimiters__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/24_delimiters__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/24_delimiters__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/25_delimiters__Pair_with_Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/25_delimiters__Pair_with_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/26_interpolation__No_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/26_interpolation__No_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/27_interpolation__Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/27_interpolation__Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/28_interpolation__No_Re_interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/28_interpolation__No_Re_interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/29_interpolation__HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughTheWalk/29_interpolation__HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/30_interpolation__Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughTheWalk/30_interpolation__Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/31_interpolation__Ampersand
+[       OK ] Mustache/Spec.RendersThroughTheWalk/31_interpolation__Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/32_interpolation__Basic_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/32_interpolation__Basic_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/33_interpolation__Triple_Mustache_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/33_interpolation__Triple_Mustache_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/34_interpolation__Ampersand_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/34_interpolation__Ampersand_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/35_interpolation__Basic_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/35_interpolation__Basic_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/36_interpolation__Triple_Mustache_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/36_interpolation__Triple_Mustache_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/37_interpolation__Ampersand_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/37_interpolation__Ampersand_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/38_interpolation__Basic_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/38_interpolation__Basic_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/39_interpolation__Triple_Mustache_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/39_interpolation__Triple_Mustache_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/40_interpolation__Ampersand_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/40_interpolation__Ampersand_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/41_interpolation__Basic_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/41_interpolation__Basic_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/42_interpolation__Triple_Mustache_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/42_interpolation__Triple_Mustache_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/43_interpolation__Ampersand_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/43_interpolation__Ampersand_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/44_interpolation__Dotted_Names___Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/44_interpolation__Dotted_Names___Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/45_interpolation__Dotted_Names___Triple_Mustache_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/45_interpolation__Dotted_Names___Triple_Mustache_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/46_interpolation__Dotted_Names___Ampersand_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/46_interpolation__Dotted_Names___Ampersand_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/47_interpolation__Dotted_Names___Arbitrary_Depth
+[       OK ] Mustache/Spec.RendersThroughTheWalk/47_interpolation__Dotted_Names___Arbitrary_Depth (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/48_interpolation__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughTheWalk/48_interpolation__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/49_interpolation__Dotted_Names___Broken_Chain_Resolution
+[       OK ] Mustache/Spec.RendersThroughTheWalk/49_interpolation__Dotted_Names___Broken_Chain_Resolution (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/50_interpolation__Dotted_Names___Initial_Resolution
+[       OK ] Mustache/Spec.RendersThroughTheWalk/50_interpolation__Dotted_Names___Initial_Resolution (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/51_interpolation__Dotted_Names___Context_Precedence
+[       OK ] Mustache/Spec.RendersThroughTheWalk/51_interpolation__Dotted_Names___Context_Precedence (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/52_interpolation__Dotted_Names_are_never_single_keys
+[       OK ] Mustache/Spec.RendersThroughTheWalk/52_interpolation__Dotted_Names_are_never_single_keys (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/53_interpolation__Dotted_Names___No_Masking
+[       OK ] Mustache/Spec.RendersThroughTheWalk/53_interpolation__Dotted_Names___No_Masking (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/54_interpolation__Implicit_Iterators___Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/54_interpolation__Implicit_Iterators___Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/55_interpolation__Implicit_Iterators___HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughTheWalk/55_interpolation__Implicit_Iterators___HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/56_interpolation__Implicit_Iterators___Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughTheWalk/56_interpolation__Implicit_Iterators___Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/57_interpolation__Implicit_Iterators___Ampersand
+[       OK ] Mustache/Spec.RendersThroughTheWalk/57_interpolation__Implicit_Iterators___Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/58_interpolation__Implicit_Iterators___Basic_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/58_interpolation__Implicit_Iterators___Basic_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/59_interpolation__Interpolation___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/59_interpolation__Interpolation___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/60_interpolation__Triple_Mustache___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/60_interpolation__Triple_Mustache___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/61_interpolation__Ampersand___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/61_interpolation__Ampersand___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/62_interpolation__Interpolation___Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/62_interpolation__Interpolation___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/63_interpolation__Triple_Mustache___Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/63_interpolation__Triple_Mustache___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/64_interpolation__Ampersand___Standalone
+[       OK ] Mustache/Spec.RendersThroughTheWalk/64_interpolation__Ampersand___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/65_interpolation__Interpolation_With_Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/65_interpolation__Interpolation_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/66_interpolation__Triple_Mustache_With_Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/66_interpolation__Triple_Mustache_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/67_interpolation__Ampersand_With_Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/67_interpolation__Ampersand_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/68_inverted__Falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/68_inverted__Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/69_inverted__Truthy
+[       OK ] Mustache/Spec.RendersThroughTheWalk/69_inverted__Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/70_inverted__Null_is_falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/70_inverted__Null_is_falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/71_inverted__Context
+[       OK ] Mustache/Spec.RendersThroughTheWalk/71_inverted__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/72_inverted__List
+[       OK ] Mustache/Spec.RendersThroughTheWalk/72_inverted__List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/73_inverted__Empty_List
+[       OK ] Mustache/Spec.RendersThroughTheWalk/73_inverted__Empty_List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/74_inverted__Doubled
+[       OK ] Mustache/Spec.RendersThroughTheWalk/74_inverted__Doubled (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/75_inverted__Nested__Falsey_
+[       OK ] Mustache/Spec.RendersThroughTheWalk/75_inverted__Nested__Falsey_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/76_inverted__Nested__Truthy_
+[       OK ] Mustache/Spec.RendersThroughTheWalk/76_inverted__Nested__Truthy_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/77_inverted__Context_Misses
+[       OK ] Mustache/Spec.RendersThroughTheWalk/77_inverted__Context_Misses (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/78_inverted__Dotted_Names___Truthy
+[       OK ] Mustache/Spec.RendersThroughTheWalk/78_inverted__Dotted_Names___Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/79_inverted__Dotted_Names___Falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/79_inverted__Dotted_Names___Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/80_inverted__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughTheWalk/80_inverted__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/81_inverted__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/81_inverted__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/82_inverted__Internal_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/82_inverted__Internal_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/83_inverted__Indented_Inline_Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/83_inverted__Indented_Inline_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/84_inverted__Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughTheWalk/84_inverted__Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/85_inverted__Standalone_Indented_Lines
+[       OK ] Mustache/Spec.RendersThroughTheWalk/85_inverted__Standalone_Indented_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/86_inverted__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughTheWalk/86_inverted__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/87_inverted__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughTheWalk/87_inverted__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/88_inverted__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/88_inverted__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/89_inverted__Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/89_inverted__Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/90_partials__Basic_Behavior
+[       OK ] Mustache/Spec.RendersThroughTheWalk/90_partials__Basic_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/91_partials__Failed_Lookup
+[       OK ] Mustache/Spec.RendersThroughTheWalk/91_partials__Failed_Lookup (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/92_partials__Context
+[       OK ] Mustache/Spec.RendersThroughTheWalk/92_partials__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/93_partials__Recursion
+[       OK ] Mustache/Spec.RendersThroughTheWalk/93_partials__Recursion (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/94_partials__Nested
+[       OK ] Mustache/Spec.RendersThroughTheWalk/94_partials__Nested (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/95_partials__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/95_partials__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/96_partials__Inline_Indentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/96_partials__Inline_Indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/97_partials__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughTheWalk/97_partials__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/98_partials__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughTheWalk/98_partials__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/99_partials__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/99_partials__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/100_partials__Standalone_Indentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/100_partials__Standalone_Indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/101_partials__Padding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/101_partials__Padding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/102_sections__Truthy
+[       OK ] Mustache/Spec.RendersThroughTheWalk/102_sections__Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/103_sections__Falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/103_sections__Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/104_sections__Null_is_falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/104_sections__Null_is_falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/105_sections__Context
+[       OK ] Mustache/Spec.RendersThroughTheWalk/105_sections__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/106_sections__Parent_contexts
+[       OK ] Mustache/Spec.RendersThroughTheWalk/106_sections__Parent_contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/107_sections__Variable_test
+[       OK ] Mustache/Spec.RendersThroughTheWalk/107_sections__Variable_test (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/108_sections__List_Contexts
+[       OK ] Mustache/Spec.RendersThroughTheWalk/108_sections__List_Contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/109_sections__Deeply_Nested_Contexts
+[       OK ] Mustache/Spec.RendersThroughTheWalk/109_sections__Deeply_Nested_Contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/110_sections__List
+[       OK ] Mustache/Spec.RendersThroughTheWalk/110_sections__List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/111_sections__Empty_List
+[       OK ] Mustache/Spec.RendersThroughTheWalk/111_sections__Empty_List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/112_sections__Doubled
+[       OK ] Mustache/Spec.RendersThroughTheWalk/112_sections__Doubled (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/113_sections__Nested__Truthy_
+[       OK ] Mustache/Spec.RendersThroughTheWalk/113_sections__Nested__Truthy_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/114_sections__Nested__Falsey_
+[       OK ] Mustache/Spec.RendersThroughTheWalk/114_sections__Nested__Falsey_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/115_sections__Context_Misses
+[       OK ] Mustache/Spec.RendersThroughTheWalk/115_sections__Context_Misses (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/116_sections__Implicit_Iterator___String
+[       OK ] Mustache/Spec.RendersThroughTheWalk/116_sections__Implicit_Iterator___String (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/117_sections__Implicit_Iterator___Integer
+[       OK ] Mustache/Spec.RendersThroughTheWalk/117_sections__Implicit_Iterator___Integer (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/118_sections__Implicit_Iterator___Decimal
+[       OK ] Mustache/Spec.RendersThroughTheWalk/118_sections__Implicit_Iterator___Decimal (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/119_sections__Implicit_Iterator___Array
+[       OK ] Mustache/Spec.RendersThroughTheWalk/119_sections__Implicit_Iterator___Array (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/120_sections__Implicit_Iterator___HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughTheWalk/120_sections__Implicit_Iterator___HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/121_sections__Implicit_Iterator___Triple_mustache
+[       OK ] Mustache/Spec.RendersThroughTheWalk/121_sections__Implicit_Iterator___Triple_mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/122_sections__Implicit_Iterator___Ampersand
+[       OK ] Mustache/Spec.RendersThroughTheWalk/122_sections__Implicit_Iterator___Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/123_sections__Implicit_Iterator___Root_level
+[       OK ] Mustache/Spec.RendersThroughTheWalk/123_sections__Implicit_Iterator___Root_level (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/124_sections__Dotted_Names___Truthy
+[       OK ] Mustache/Spec.RendersThroughTheWalk/124_sections__Dotted_Names___Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/125_sections__Dotted_Names___Falsey
+[       OK ] Mustache/Spec.RendersThroughTheWalk/125_sections__Dotted_Names___Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/126_sections__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughTheWalk/126_sections__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/127_sections__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/127_sections__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/128_sections__Internal_Whitespace
+[       OK ] Mustache/Spec.RendersThroughTheWalk/128_sections__Internal_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/129_sections__Indented_Inline_Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/129_sections__Indented_Inline_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/130_sections__Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughTheWalk/130_sections__Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/131_sections__Indented_Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughTheWalk/131_sections__Indented_Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/132_sections__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughTheWalk/132_sections__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/133_sections__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughTheWalk/133_sections__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/134_sections__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughTheWalk/134_sections__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/135_sections__Padding
+[       OK ] Mustache/Spec.RendersThroughTheWalk/135_sections__Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/136__inheritance__Default
+[       OK ] Mustache/Spec.RendersThroughTheWalk/136__inheritance__Default (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/137__inheritance__Variable
+[       OK ] Mustache/Spec.RendersThroughTheWalk/137__inheritance__Variable (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/138__inheritance__Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughTheWalk/138__inheritance__Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/139__inheritance__Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/139__inheritance__Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/140__inheritance__Negative_Sections
+[       OK ] Mustache/Spec.RendersThroughTheWalk/140__inheritance__Negative_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/141__inheritance__Mustache_Injection
+[       OK ] Mustache/Spec.RendersThroughTheWalk/141__inheritance__Mustache_Injection (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/142__inheritance__Inherit
+[       OK ] Mustache/Spec.RendersThroughTheWalk/142__inheritance__Inherit (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/143__inheritance__Overridden_content
+[       OK ] Mustache/Spec.RendersThroughTheWalk/143__inheritance__Overridden_content (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/144__inheritance__Data_does_not_override_block
+[       OK ] Mustache/Spec.RendersThroughTheWalk/144__inheritance__Data_does_not_override_block (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/145__inheritance__Data_does_not_override_block_default
+[       OK ] Mustache/Spec.RendersThroughTheWalk/145__inheritance__Data_does_not_override_block_default (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/146__inheritance__Overridden_parent
+[       OK ] Mustache/Spec.RendersThroughTheWalk/146__inheritance__Overridden_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/147__inheritance__Two_overridden_parents
+[       OK ] Mustache/Spec.RendersThroughTheWalk/147__inheritance__Two_overridden_parents (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/148__inheritance__Override_parent_with_newlines
+[       OK ] Mustache/Spec.RendersThroughTheWalk/148__inheritance__Override_parent_with_newlines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/149__inheritance__Inherit_indentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/149__inheritance__Inherit_indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/150__inheritance__Only_one_override
+[       OK ] Mustache/Spec.RendersThroughTheWalk/150__inheritance__Only_one_override (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/151__inheritance__Parent_template
+[       OK ] Mustache/Spec.RendersThroughTheWalk/151__inheritance__Parent_template (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/152__inheritance__Recursion
+[       OK ] Mustache/Spec.RendersThroughTheWalk/152__inheritance__Recursion (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/153__inheritance__Multi_level_inheritance
+[       OK ] Mustache/Spec.RendersThroughTheWalk/153__inheritance__Multi_level_inheritance (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/154__inheritance__Multi_level_inheritance__no_sub_child
+[       OK ] Mustache/Spec.RendersThroughTheWalk/154__inheritance__Multi_level_inheritance__no_sub_child (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/155__inheritance__Text_inside_parent
+[       OK ] Mustache/Spec.RendersThroughTheWalk/155__inheritance__Text_inside_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/156__inheritance__Text_inside_parent
+[       OK ] Mustache/Spec.RendersThroughTheWalk/156__inheritance__Text_inside_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/157__inheritance__Block_scope
+[       OK ] Mustache/Spec.RendersThroughTheWalk/157__inheritance__Block_scope (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/158__inheritance__Standalone_parent
+[       OK ] Mustache/Spec.RendersThroughTheWalk/158__inheritance__Standalone_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/159__inheritance__Standalone_block
+[       OK ] Mustache/Spec.RendersThroughTheWalk/159__inheritance__Standalone_block (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/160__inheritance__Block_reindentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/160__inheritance__Block_reindentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/161__inheritance__Intrinsic_indentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/161__inheritance__Intrinsic_indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughTheWalk/162__inheritance__Nested_block_reindentation
+[       OK ] Mustache/Spec.RendersThroughTheWalk/162__inheritance__Nested_block_reindentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/0_comments__Inline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/0_comments__Inline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/1_comments__Multiline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/1_comments__Multiline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/2_comments__Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/2_comments__Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/3_comments__Indented_Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/3_comments__Indented_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/4_comments__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/4_comments__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/5_comments__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/5_comments__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/6_comments__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/6_comments__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/7_comments__Multiline_Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/7_comments__Multiline_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/8_comments__Indented_Multiline_Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/8_comments__Indented_Multiline_Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/9_comments__Indented_Inline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/9_comments__Indented_Inline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/10_comments__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/10_comments__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/11_comments__Variable_Name_Collision
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/11_comments__Variable_Name_Collision (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/12_delimiters__Pair_Behavior
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/12_delimiters__Pair_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/13_delimiters__Special_Characters
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/13_delimiters__Special_Characters (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/14_delimiters__Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/14_delimiters__Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/15_delimiters__Inverted_Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/15_delimiters__Inverted_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/16_delimiters__Partial_Inheritence
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/16_delimiters__Partial_Inheritence (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/17_delimiters__Post_Partial_Behavior
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/17_delimiters__Post_Partial_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/18_delimiters__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/18_delimiters__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/19_delimiters__Outlying_Whitespace__Inline_
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/19_delimiters__Outlying_Whitespace__Inline_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/20_delimiters__Standalone_Tag
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/20_delimiters__Standalone_Tag (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/21_delimiters__Indented_Standalone_Tag
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/21_delimiters__Indented_Standalone_Tag (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/22_delimiters__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/22_delimiters__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/23_delimiters__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/23_delimiters__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/24_delimiters__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/24_delimiters__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/25_delimiters__Pair_with_Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/25_delimiters__Pair_with_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/26_interpolation__No_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/26_interpolation__No_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/27_interpolation__Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/27_interpolation__Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/28_interpolation__No_Re_interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/28_interpolation__No_Re_interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/29_interpolation__HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/29_interpolation__HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/30_interpolation__Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/30_interpolation__Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/31_interpolation__Ampersand
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/31_interpolation__Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/32_interpolation__Basic_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/32_interpolation__Basic_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/33_interpolation__Triple_Mustache_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/33_interpolation__Triple_Mustache_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/34_interpolation__Ampersand_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/34_interpolation__Ampersand_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/35_interpolation__Basic_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/35_interpolation__Basic_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/36_interpolation__Triple_Mustache_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/36_interpolation__Triple_Mustache_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/37_interpolation__Ampersand_Decimal_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/37_interpolation__Ampersand_Decimal_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/38_interpolation__Basic_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/38_interpolation__Basic_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/39_interpolation__Triple_Mustache_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/39_interpolation__Triple_Mustache_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/40_interpolation__Ampersand_Null_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/40_interpolation__Ampersand_Null_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/41_interpolation__Basic_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/41_interpolation__Basic_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/42_interpolation__Triple_Mustache_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/42_interpolation__Triple_Mustache_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/43_interpolation__Ampersand_Context_Miss_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/43_interpolation__Ampersand_Context_Miss_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/44_interpolation__Dotted_Names___Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/44_interpolation__Dotted_Names___Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/45_interpolation__Dotted_Names___Triple_Mustache_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/45_interpolation__Dotted_Names___Triple_Mustache_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/46_interpolation__Dotted_Names___Ampersand_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/46_interpolation__Dotted_Names___Ampersand_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/47_interpolation__Dotted_Names___Arbitrary_Depth
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/47_interpolation__Dotted_Names___Arbitrary_Depth (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/48_interpolation__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/48_interpolation__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/49_interpolation__Dotted_Names___Broken_Chain_Resolution
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/49_interpolation__Dotted_Names___Broken_Chain_Resolution (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/50_interpolation__Dotted_Names___Initial_Resolution
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/50_interpolation__Dotted_Names___Initial_Resolution (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/51_interpolation__Dotted_Names___Context_Precedence
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/51_interpolation__Dotted_Names___Context_Precedence (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/52_interpolation__Dotted_Names_are_never_single_keys
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/52_interpolation__Dotted_Names_are_never_single_keys (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/53_interpolation__Dotted_Names___No_Masking
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/53_interpolation__Dotted_Names___No_Masking (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/54_interpolation__Implicit_Iterators___Basic_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/54_interpolation__Implicit_Iterators___Basic_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/55_interpolation__Implicit_Iterators___HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/55_interpolation__Implicit_Iterators___HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/56_interpolation__Implicit_Iterators___Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/56_interpolation__Implicit_Iterators___Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/57_interpolation__Implicit_Iterators___Ampersand
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/57_interpolation__Implicit_Iterators___Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/58_interpolation__Implicit_Iterators___Basic_Integer_Interpolation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/58_interpolation__Implicit_Iterators___Basic_Integer_Interpolation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/59_interpolation__Interpolation___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/59_interpolation__Interpolation___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/60_interpolation__Triple_Mustache___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/60_interpolation__Triple_Mustache___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/61_interpolation__Ampersand___Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/61_interpolation__Ampersand___Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/62_interpolation__Interpolation___Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/62_interpolation__Interpolation___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/63_interpolation__Triple_Mustache___Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/63_interpolation__Triple_Mustache___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/64_interpolation__Ampersand___Standalone
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/64_interpolation__Ampersand___Standalone (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/65_interpolation__Interpolation_With_Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/65_interpolation__Interpolation_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/66_interpolation__Triple_Mustache_With_Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/66_interpolation__Triple_Mustache_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/67_interpolation__Ampersand_With_Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/67_interpolation__Ampersand_With_Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/68_inverted__Falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/68_inverted__Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/69_inverted__Truthy
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/69_inverted__Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/70_inverted__Null_is_falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/70_inverted__Null_is_falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/71_inverted__Context
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/71_inverted__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/72_inverted__List
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/72_inverted__List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/73_inverted__Empty_List
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/73_inverted__Empty_List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/74_inverted__Doubled
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/74_inverted__Doubled (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/75_inverted__Nested__Falsey_
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/75_inverted__Nested__Falsey_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/76_inverted__Nested__Truthy_
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/76_inverted__Nested__Truthy_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/77_inverted__Context_Misses
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/77_inverted__Context_Misses (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/78_inverted__Dotted_Names___Truthy
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/78_inverted__Dotted_Names___Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/79_inverted__Dotted_Names___Falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/79_inverted__Dotted_Names___Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/80_inverted__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/80_inverted__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/81_inverted__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/81_inverted__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/82_inverted__Internal_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/82_inverted__Internal_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/83_inverted__Indented_Inline_Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/83_inverted__Indented_Inline_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/84_inverted__Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/84_inverted__Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/85_inverted__Standalone_Indented_Lines
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/85_inverted__Standalone_Indented_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/86_inverted__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/86_inverted__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/87_inverted__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/87_inverted__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/88_inverted__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/88_inverted__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/89_inverted__Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/89_inverted__Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/90_partials__Basic_Behavior
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/90_partials__Basic_Behavior (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/91_partials__Failed_Lookup
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/91_partials__Failed_Lookup (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/92_partials__Context
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/92_partials__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/93_partials__Recursion
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/93_partials__Recursion (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/94_partials__Nested
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/94_partials__Nested (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/95_partials__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/95_partials__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/96_partials__Inline_Indentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/96_partials__Inline_Indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/97_partials__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/97_partials__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/98_partials__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/98_partials__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/99_partials__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/99_partials__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/100_partials__Standalone_Indentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/100_partials__Standalone_Indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/101_partials__Padding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/101_partials__Padding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/102_sections__Truthy
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/102_sections__Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/103_sections__Falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/103_sections__Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/104_sections__Null_is_falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/104_sections__Null_is_falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/105_sections__Context
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/105_sections__Context (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/106_sections__Parent_contexts
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/106_sections__Parent_contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/107_sections__Variable_test
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/107_sections__Variable_test (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/108_sections__List_Contexts
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/108_sections__List_Contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/109_sections__Deeply_Nested_Contexts
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/109_sections__Deeply_Nested_Contexts (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/110_sections__List
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/110_sections__List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/111_sections__Empty_List
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/111_sections__Empty_List (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/112_sections__Doubled
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/112_sections__Doubled (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/113_sections__Nested__Truthy_
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/113_sections__Nested__Truthy_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/114_sections__Nested__Falsey_
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/114_sections__Nested__Falsey_ (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/115_sections__Context_Misses
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/115_sections__Context_Misses (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/116_sections__Implicit_Iterator___String
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/116_sections__Implicit_Iterator___String (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/117_sections__Implicit_Iterator___Integer
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/117_sections__Implicit_Iterator___Integer (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/118_sections__Implicit_Iterator___Decimal
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/118_sections__Implicit_Iterator___Decimal (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/119_sections__Implicit_Iterator___Array
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/119_sections__Implicit_Iterator___Array (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/120_sections__Implicit_Iterator___HTML_Escaping
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/120_sections__Implicit_Iterator___HTML_Escaping (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/121_sections__Implicit_Iterator___Triple_mustache
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/121_sections__Implicit_Iterator___Triple_mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/122_sections__Implicit_Iterator___Ampersand
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/122_sections__Implicit_Iterator___Ampersand (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/123_sections__Implicit_Iterator___Root_level
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/123_sections__Implicit_Iterator___Root_level (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/124_sections__Dotted_Names___Truthy
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/124_sections__Dotted_Names___Truthy (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/125_sections__Dotted_Names___Falsey
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/125_sections__Dotted_Names___Falsey (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/126_sections__Dotted_Names___Broken_Chains
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/126_sections__Dotted_Names___Broken_Chains (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/127_sections__Surrounding_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/127_sections__Surrounding_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/128_sections__Internal_Whitespace
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/128_sections__Internal_Whitespace (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/129_sections__Indented_Inline_Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/129_sections__Indented_Inline_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/130_sections__Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/130_sections__Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/131_sections__Indented_Standalone_Lines
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/131_sections__Indented_Standalone_Lines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/132_sections__Standalone_Line_Endings
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/132_sections__Standalone_Line_Endings (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/133_sections__Standalone_Without_Previous_Line
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/133_sections__Standalone_Without_Previous_Line (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/134_sections__Standalone_Without_Newline
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/134_sections__Standalone_Without_Newline (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/135_sections__Padding
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/135_sections__Padding (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/136__inheritance__Default
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/136__inheritance__Default (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/137__inheritance__Variable
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/137__inheritance__Variable (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/138__inheritance__Triple_Mustache
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/138__inheritance__Triple_Mustache (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/139__inheritance__Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/139__inheritance__Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/140__inheritance__Negative_Sections
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/140__inheritance__Negative_Sections (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/141__inheritance__Mustache_Injection
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/141__inheritance__Mustache_Injection (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/142__inheritance__Inherit
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/142__inheritance__Inherit (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/143__inheritance__Overridden_content
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/143__inheritance__Overridden_content (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/144__inheritance__Data_does_not_override_block
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/144__inheritance__Data_does_not_override_block (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/145__inheritance__Data_does_not_override_block_default
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/145__inheritance__Data_does_not_override_block_default (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/146__inheritance__Overridden_parent
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/146__inheritance__Overridden_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/147__inheritance__Two_overridden_parents
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/147__inheritance__Two_overridden_parents (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/148__inheritance__Override_parent_with_newlines
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/148__inheritance__Override_parent_with_newlines (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/149__inheritance__Inherit_indentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/149__inheritance__Inherit_indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/150__inheritance__Only_one_override
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/150__inheritance__Only_one_override (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/151__inheritance__Parent_template
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/151__inheritance__Parent_template (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/152__inheritance__Recursion
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/152__inheritance__Recursion (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/153__inheritance__Multi_level_inheritance
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/153__inheritance__Multi_level_inheritance (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/154__inheritance__Multi_level_inheritance__no_sub_child
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/154__inheritance__Multi_level_inheritance__no_sub_child (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/155__inheritance__Text_inside_parent
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/155__inheritance__Text_inside_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/156__inheritance__Text_inside_parent
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/156__inheritance__Text_inside_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/157__inheritance__Block_scope
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/157__inheritance__Block_scope (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/158__inheritance__Standalone_parent
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/158__inheritance__Standalone_parent (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/159__inheritance__Standalone_block
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/159__inheritance__Standalone_block (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/160__inheritance__Block_reindentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/160__inheritance__Block_reindentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/161__inheritance__Intrinsic_indentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/161__inheritance__Intrinsic_indentation (0 ms)
+[ RUN      ] Mustache/Spec.RendersThroughATypedTemplate/162__inheritance__Nested_block_reindentation
+[       OK ] Mustache/Spec.RendersThroughATypedTemplate/162__inheritance__Nested_block_reindentation (0 ms)
+[----------] 326 tests from Mustache/Spec (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 326 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 326 tests.

@@ -1,0 +1,27 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 9 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 9 tests from Room
+[ RUN      ] Room.EmptyValue
+[       OK ] Room.EmptyValue (0 ms)
+[ RUN      ] Room.EveryByteAloneAndAtEveryPositionOfAVector
+[       OK ] Room.EveryByteAloneAndAtEveryPositionOfAVector (29 ms)
+[ RUN      ] Room.EveryPieceAtEveryPositionOfEveryLength
+[       OK ] Room.EveryPieceAtEveryPositionOfEveryLength (395 ms)
+[ RUN      ] Room.EveryCountOfMarksInABlock
+[       OK ] Room.EveryCountOfMarksInABlock (5 ms)
+[ RUN      ] Room.CopiedStringAtEveryLength
+[       OK ] Room.CopiedStringAtEveryLength (0 ms)
+[ RUN      ] Room.CopiedStringIgnoresTheBytesBehindTheSize
+[       OK ] Room.CopiedStringIgnoresTheBytesBehindTheSize (0 ms)
+[ RUN      ] Room.TheFiveWritersRunInAConstantEvaluation
+[       OK ] Room.TheFiveWritersRunInAConstantEvaluation (0 ms)
+[ RUN      ] Room.TheHtmlEscapeRunsInAConstantEvaluation
+[       OK ] Room.TheHtmlEscapeRunsInAConstantEvaluation (0 ms)
+[ RUN      ] Room.RandomStrings
+[       OK ] Room.RandomStrings (1388 ms)
+[----------] 9 tests from Room (1818 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 1 test suite ran. (1819 ms total)
+[  PASSED  ] 9 tests.

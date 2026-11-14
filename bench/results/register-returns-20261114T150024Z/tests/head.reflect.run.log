@@ -1,0 +1,50 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 13 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 5 tests from ReflectBatch
+[ RUN      ] ReflectBatch.ValuesOfZeroToFortyBytes
+[       OK ] ReflectBatch.ValuesOfZeroToFortyBytes (0 ms)
+[ RUN      ] ReflectBatch.OneDirtyRowAmongCleanRows
+[       OK ] ReflectBatch.OneDirtyRowAmongCleanRows (0 ms)
+[ RUN      ] ReflectBatch.ValuesHeldOnTheHeap
+[       OK ] ReflectBatch.ValuesHeldOnTheHeap (0 ms)
+[ RUN      ] ReflectBatch.DirtyRowThatGrowsTheBuffer
+[       OK ] ReflectBatch.DirtyRowThatGrowsTheBuffer (0 ms)
+[ RUN      ] ReflectBatch.RawValueOverThirtyTwoBytes
+[       OK ] ReflectBatch.RawValueOverThirtyTwoBytes (0 ms)
+[----------] 5 tests from ReflectBatch (0 ms total)
+
+[----------] 2 tests from ReflectMediaType
+[ RUN      ] ReflectMediaType.EscapesByTheNegotiatedType
+[       OK ] ReflectMediaType.EscapesByTheNegotiatedType (0 ms)
+[ RUN      ] ReflectMediaType.RefusesATypeWithoutEscaper
+[       OK ] ReflectMediaType.RefusesATypeWithoutEscaper (0 ms)
+[----------] 2 tests from ReflectMediaType (0 ms total)
+
+[----------] 1 test from ReflectAccess
+[ RUN      ] ReflectAccess.ReadsPublicMembersOnly
+[       OK ] ReflectAccess.ReadsPublicMembersOnly (0 ms)
+[----------] 1 test from ReflectAccess (0 ms total)
+
+[----------] 2 tests from ReflectMap
+[ RUN      ] ReflectMap.IsAContextAndNotAList
+[       OK ] ReflectMap.IsAContextAndNotAList (0 ms)
+[ RUN      ] ReflectMap.KnownAtCompileTimeIsFilledIn
+[       OK ] ReflectMap.KnownAtCompileTimeIsFilledIn (0 ms)
+[----------] 2 tests from ReflectMap (0 ms total)
+
+[----------] 1 test from ReflectPage
+[ RUN      ] ReflectPage.StaticPageHoldsTheEscapedValue
+[       OK ] ReflectPage.StaticPageHoldsTheEscapedValue (0 ms)
+[----------] 1 test from ReflectPage (0 ms total)
+
+[----------] 2 tests from ReflectValue
+[ RUN      ] ReflectValue.VariantAndOptionalRenderTheirValue
+[       OK ] ReflectValue.VariantAndOptionalRenderTheirValue (0 ms)
+[ RUN      ] ReflectValue.ADocumentRendersAsAtRunTime
+[       OK ] ReflectValue.ADocumentRendersAsAtRunTime (0 ms)
+[----------] 2 tests from ReflectValue (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 6 test suites ran. (0 ms total)
+[  PASSED  ] 13 tests.

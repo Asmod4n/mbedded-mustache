@@ -1,0 +1,19 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from Limits
+[ RUN      ] Limits.RefusesASourceOverTheLimit
+[       OK ] Limits.RefusesASourceOverTheLimit (0 ms)
+[ RUN      ] Limits.RefusesADelimiterOverTheLimit
+[       OK ] Limits.RefusesADelimiterOverTheLimit (0 ms)
+[ RUN      ] Limits.StopsPartialsDeeperThanTheLimit
+[       OK ] Limits.StopsPartialsDeeperThanTheLimit (0 ms)
+[ RUN      ] Limits.StopsARenderOverTheWorkLimit
+[       OK ] Limits.StopsARenderOverTheWorkLimit (364 ms)
+[ RUN      ] Limits.NamesTheOffsetOfAParseError
+[       OK ] Limits.NamesTheOffsetOfAParseError (0 ms)
+[----------] 5 tests from Limits (364 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (364 ms total)
+[  PASSED  ] 5 tests.
