@@ -1,0 +1,33 @@
+----------------------------------------------------------------------
+Benchmark                            Time             CPU   Iterations
+----------------------------------------------------------------------
+stocks_flat_map                   8891 ns         8891 ns         7856
+stocks_flat_map                   8828 ns         8828 ns         7856
+stocks_flat_map                   8871 ns         8871 ns         7856
+stocks_flat_map                   8953 ns         8949 ns         7856
+stocks_flat_map                   8927 ns         8926 ns         7856
+stocks_flat_map                   8962 ns         8960 ns         7856
+stocks_flat_map_mean              8906 ns         8904 ns            6
+stocks_flat_map_median            8909 ns         8909 ns            6
+stocks_flat_map_stddev            51.8 ns         50.2 ns            6
+stocks_flat_map_cv                0.58 %          0.56 %             6
+stocks_unordered_map              9249 ns         9245 ns         5742
+stocks_unordered_map              7283 ns         7283 ns         5742
+stocks_unordered_map              7247 ns         7247 ns         5742
+stocks_unordered_map              7248 ns         7248 ns         5742
+stocks_unordered_map              7241 ns         7241 ns         5742
+stocks_unordered_map              7350 ns         7351 ns         5742
+stocks_unordered_map_mean         7603 ns         7602 ns            6
+stocks_unordered_map_median       7265 ns         7265 ns            6
+stocks_unordered_map_stddev        807 ns          806 ns            6
+stocks_unordered_map_cv          10.62 %         10.60 %             6
+stocks_ordered_map               19263 ns        19255 ns         3295
+stocks_ordered_map               13292 ns        13292 ns         3295
+stocks_ordered_map               13189 ns        13189 ns         3295
+stocks_ordered_map               13253 ns        13253 ns         3295
+stocks_ordered_map               13294 ns        13292 ns         3295
+stocks_ordered_map               13618 ns        13619 ns         3295
+stocks_ordered_map_mean          14318 ns        14317 ns            6
+stocks_ordered_map_median        13293 ns        13292 ns            6
+stocks_ordered_map_stddev         2427 ns         2424 ns            6
+stocks_ordered_map_cv            16.95 %         16.93 %             6
