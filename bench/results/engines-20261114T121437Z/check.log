@@ -1,0 +1,18 @@
+check maud rustc workload 2: raw=different decoded=different tags=same   raw first difference: offset 15 line 1: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<title>Stock Prices</tit' actual '<!DOCTYPE html><html><head><title>Stock Prices</title><'   decoded first difference: offset 15 line 1: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<title>Stock Prices</tit' actual '<!DOCTYPE html><html><head><title>Stock Prices</title><' 
+escapes maud rustc: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=not in the output 
+check sailfish rustc workload 2: raw=different decoded=different tags=same   raw first difference: offset 7736 line 340: expected 'le>\n\n</body>\n</html>\n' actual 'le>\n\n</body>\n</html>'   decoded first difference: offset 7516 line 340: expected 'le>\n\n</body>\n</html>\n' actual 'le>\n\n</body>\n</html>' 
+escapes sailfish rustc: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check ramhorns rustc workload 2: raw=different decoded=different tags=same   raw first difference: offset 7736 line 340: expected 'le>\n\n</body>\n</html>\n' actual 'le>\n\n</body>\n</html>'   decoded first difference: offset 7516 line 340: expected 'le>\n\n</body>\n</html>\n' actual 'le>\n\n</body>\n</html>' 
+escapes ramhorns rustc: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check inja g++-16 workload 2: raw=same decoded=same tags=same 
+escapes inja g++-16: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check kainjow g++-16 workload 2: raw=same decoded=same tags=same 
+escapes kainjow g++-16: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check mbedded-twin g++-16 workload 2: raw=same decoded=same tags=same 
+escapes mbedded-twin g++-16: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check mbedded g++-16 workload 2: raw=same decoded=same tags=same 
+escapes mbedded g++-16: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=&quot; 
+check mstch g++-16 workload 2: raw=different decoded=same tags=same   raw first difference: offset 1154 line 62: expected '  \t\t\t\t<a href="http://www.adobe.com">Adobe Systems</a>\n     ' actual '  \t\t\t\t<a href="http:&#x2F;&#x2F;www.adobe.com">Adobe Systems' 
+escapes mstch g++-16: &=not in the output '=not in the output <=not in the output >=not in the output /=&#x2F; "=&quot; 
+check markup rustc workload 2: raw=different decoded=different tags=same   raw first difference: offset 15 line 1: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<title>Stock Prices</tit' actual '<!DOCTYPE html><html><head><title>Stock Prices</title><'   decoded first difference: offset 15 line 1: expected '<!DOCTYPE html>\n<html>\n<head>\n\t<title>Stock Prices</tit' actual '<!DOCTYPE html><html><head><title>Stock Prices</title><' 
+escapes markup rustc: &=not in the output '=not in the output <=not in the output >=not in the output /=/ "=not in the output 
