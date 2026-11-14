@@ -530,7 +530,7 @@ struct Appender {
 
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. A std::string keeps
 /// its capacity and takes the render without a copy; another string type takes one copy.
 template <class Traits, class Allocator, class T>
@@ -541,7 +541,7 @@ render_to(std::basic_string<char, Traits, Allocator> &out, const TypedTemplate<T
   return detail::appended_to(out, detail::typed::Appender<T>{t, data, partials, initial_capacity});
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. The render is
 /// made in a temporary std::string and copied once.
 template <detail::byte_element Element, class Allocator, class T>
@@ -553,7 +553,7 @@ render_to(std::vector<Element, Allocator> &out, const TypedTemplate<T> &t, const
 }
 
 
-/// Provisional name and comment. Writes the rendered bytes to `out` with one call of out.write,
+/// Writes the rendered bytes to `out` with one call of out.write,
 /// the way std::print(std::ostream&) writes. On a render error nothing is written and the
 /// error is returned. A failed write is not an error value: it stays in the state of the
 /// stream, and the exceptions mask of the stream decides whether it throws. A stream with a

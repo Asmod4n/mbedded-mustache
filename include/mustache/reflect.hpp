@@ -789,7 +789,7 @@ render(const T &data, const size_t initial_capacity = kInitialCapacity)
   });
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. A std::string keeps
 /// its capacity and takes the render without a copy; another string type takes one copy.
 template <fixed_string Src, class... Partials, class Traits, class Allocator, class T>
@@ -801,7 +801,7 @@ render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const 
       out, detail::MediaTypeAppender<Src, static_partial_list<Partials...>, T>{data, media_type, initial_capacity});
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. The render is
 /// made in a temporary std::string and copied once.
 template <fixed_string Src, class... Partials, detail::byte_element Element, class Allocator, class T>
@@ -813,7 +813,7 @@ render_to(std::vector<Element, Allocator> &out, const T &data, const std::string
       out, detail::MediaTypeAppender<Src, static_partial_list<Partials...>, T>{data, media_type, initial_capacity});
 }
 
-/// Provisional name and comment. Writes the rendered bytes to `out` with one call of out.write,
+/// Writes the rendered bytes to `out` with one call of out.write,
 /// the way std::print(std::ostream&) writes. On a render error nothing is written and the
 /// error is returned. A failed write is not an error value: it stays in the state of the
 /// stream, and the exceptions mask of the stream decides whether it throws. A stream with a
@@ -826,7 +826,7 @@ render_to(std::ostream &out, const T &data, const std::string_view media_type, c
       out, detail::MediaTypeAppender<Src, static_partial_list<Partials...>, T>{data, media_type, initial_capacity});
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. A std::string keeps
 /// its capacity and takes the render without a copy; another string type takes one copy.
 template <fixed_string Src, class... Partials, class Traits, class Allocator, class T>
@@ -836,7 +836,7 @@ render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const 
   return detail::appended_to(out, detail::DefaultMediaAppender<Src, static_partial_list<Partials...>, T>{data, initial_capacity});
 }
 
-/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. The render is
 /// made in a temporary std::string and copied once.
 template <fixed_string Src, class... Partials, detail::byte_element Element, class Allocator, class T>
@@ -846,7 +846,7 @@ render_to(std::vector<Element, Allocator> &out, const T &data, const size_t init
   return detail::appended_to(out, detail::DefaultMediaAppender<Src, static_partial_list<Partials...>, T>{data, initial_capacity});
 }
 
-/// Provisional name and comment. Writes the rendered bytes to `out` with one call of out.write,
+/// Writes the rendered bytes to `out` with one call of out.write,
 /// the way std::print(std::ostream&) writes. On a render error nothing is written and the
 /// error is returned. A failed write is not an error value: it stays in the state of the
 /// stream, and the exceptions mask of the stream decides whether it throws. A stream with a
