@@ -1,0 +1,35 @@
+{
+ "name": "run-length",
+ "what": "render time of bench/render.cpp workload 1 with g++-16 -O2, one binary built twice (a and b), for four values of --benchmark_min_time",
+ "purpose_in_the_task_list": "Length of a run: the same binary built twice, 0.05 to 1.0 s",
+ "method": "not the method of mbedded-cbor/bench/README.md: 3 rounds for each min_time, a before b in every round, each process 5 repetitions; only the medians were printed; no gate, no steal",
+ "arms": {"a": "the binary built first", "b": "the same source built again; a and b have the same bytes in the scratch directory"},
+ "builds": "g++-16 -std=c++26 -freflection -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -falign-jumps=64 -DNDEBUG -DWORKLOAD=1",
+ "headers": "include/ and bench/render.cpp of the same bytes as 7b9bd9e",
+ "probe": {"commit": "112c65fd950edc0831f878cb08d6e297c47ef3f5", "files": ["bench/probes/run-length/runlen.sh"]},
+ "time_in_file_name": "last write of the raw file (end of the run)",
+ "context": {"processor": "Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cpus (read by the compare runs of 2026-11-12 and by plan-review-4 run1 of 2026-11-13)", "virtual_machine": "KVM, full virtualization (read by the compare run of 2026-11-12T19:49Z)", "container": "podman", "threads": "1 (each bench process is single-threaded)", "pinned": "no (the scripts use no taskset and no cpu set)", "image": "localhost/mbedded-cbor-docs sha256:dae8337e9939c6499c7898effabed4b224dd22ada32029cf327943d59909624e, Debian sid (read by the compare run of 2026-11-12T19:49Z in the same container)", "kernel": "6.18.44-fc-v378 (read by the compare runs of 2026-11-12T19:08Z and 19:49Z in the same container)", "cxx_library": "libstdc++.so.6.0.36 (read by the compare run of 2026-11-12T19:49Z)", "c_library": "glibc 2.43-7 (read by the compare run of 2026-11-12T19:49Z)", "cpu_flags_digest": "sha256:39a8dd34f3afdd38 (first 16 hex digits; read by the compare run of 2026-11-12T19:49Z)", "user": "not recorded (the binaries in the scratch directory are owned by nobody)", "priority": "nice not recorded", "compiler_read_off_the_binaries": ["GCC: (Debian 16.2.0-4) 16.2.0"]},
+ "not_recorded": ["each repetition: only the median of 5 repetitions was printed", "gate (vmstat and the busy share before the run)", "steal of each round", "scheduler settings", "an A/A binary built twice, unless the arms name one", "resolved instruction set"],
+ "recorded_by": "bench/record.py from the raw files in the scratch directory of the session, on 2026-11-14; the raw files are not kept",
+ "facts_read_off_the_raw_files": [{"raw": "mbres/runlen.txt"}],
+ "measurements": [
+  {"name": "render", "unit": "ns per render (google benchmark median of real time, as printed)", "raw": "mbres/runlen.txt", "reader": "key_value_lines", "values_are": "one median of 5 repetitions for each round; t is --benchmark_min_time in s", "cells": [
+   {"key": {"benchmark": "reflection_median", "bin": "a", "t": "0.05"}, "rounds": {"1": [63.2], "2": [65.2], "3": [64.6]}, "n": 3, "median": 64.6, "min": 63.2, "max": 65.2, "spread": 0.0316},
+   {"key": {"benchmark": "reflection_median", "bin": "a", "t": "0.1"}, "rounds": {"1": [62.1], "2": [62.9], "3": [63.0]}, "n": 3, "median": 62.9, "min": 62.1, "max": 63.0, "spread": 0.0145},
+   {"key": {"benchmark": "reflection_median", "bin": "a", "t": "0.3"}, "rounds": {"1": [69.7], "2": [61.2], "3": [64.5]}, "n": 3, "median": 64.5, "min": 61.2, "max": 69.7, "spread": 0.1389},
+   {"key": {"benchmark": "reflection_median", "bin": "a", "t": "1.0"}, "rounds": {"1": [70.1], "2": [64.8], "3": [63.4]}, "n": 3, "median": 64.8, "min": 63.4, "max": 70.1, "spread": 0.1057},
+   {"key": {"benchmark": "reflection_median", "bin": "b", "t": "0.05"}, "rounds": {"1": [62.4], "2": [61.8], "3": [66.3]}, "n": 3, "median": 62.4, "min": 61.8, "max": 66.3, "spread": 0.0728},
+   {"key": {"benchmark": "reflection_median", "bin": "b", "t": "0.1"}, "rounds": {"1": [62.5], "2": [107.0], "3": [64.2]}, "n": 3, "median": 64.2, "min": 62.5, "max": 107.0, "spread": 0.712},
+   {"key": {"benchmark": "reflection_median", "bin": "b", "t": "0.3"}, "rounds": {"1": [62.1], "2": [94.3], "3": [66.2]}, "n": 3, "median": 66.2, "min": 62.1, "max": 94.3, "spread": 0.5185},
+   {"key": {"benchmark": "reflection_median", "bin": "b", "t": "1.0"}, "rounds": {"1": [65.3], "2": [65.4], "3": [66.4]}, "n": 3, "median": 65.4, "min": 65.3, "max": 66.4, "spread": 0.0168},
+   {"key": {"benchmark": "run_time_median", "bin": "a", "t": "0.05"}, "rounds": {"1": [193.0], "2": [194.0], "3": [213.0]}, "n": 3, "median": 194.0, "min": 193.0, "max": 213.0, "spread": 0.1036},
+   {"key": {"benchmark": "run_time_median", "bin": "a", "t": "0.1"}, "rounds": {"1": [199.0], "2": [188.0], "3": [191.0]}, "n": 3, "median": 191.0, "min": 188.0, "max": 199.0, "spread": 0.0585},
+   {"key": {"benchmark": "run_time_median", "bin": "a", "t": "0.3"}, "rounds": {"1": [240.0], "2": [188.0], "3": [191.0]}, "n": 3, "median": 191.0, "min": 188.0, "max": 240.0, "spread": 0.2766},
+   {"key": {"benchmark": "run_time_median", "bin": "a", "t": "1.0"}, "rounds": {"1": [191.0], "2": [234.0], "3": [213.0]}, "n": 3, "median": 213.0, "min": 191.0, "max": 234.0, "spread": 0.2251},
+   {"key": {"benchmark": "run_time_median", "bin": "b", "t": "0.05"}, "rounds": {"1": [215.0], "2": [191.0], "3": [188.0]}, "n": 3, "median": 191.0, "min": 188.0, "max": 215.0, "spread": 0.1436},
+   {"key": {"benchmark": "run_time_median", "bin": "b", "t": "0.1"}, "rounds": {"1": [192.0], "2": [190.0], "3": [219.0]}, "n": 3, "median": 192.0, "min": 190.0, "max": 219.0, "spread": 0.1526},
+   {"key": {"benchmark": "run_time_median", "bin": "b", "t": "0.3"}, "rounds": {"1": [188.0], "2": [221.0], "3": [206.0]}, "n": 3, "median": 206.0, "min": 188.0, "max": 221.0, "spread": 0.1755},
+   {"key": {"benchmark": "run_time_median", "bin": "b", "t": "1.0"}, "rounds": {"1": [202.0], "2": [194.0], "3": [195.0]}, "n": 3, "median": 195.0, "min": 194.0, "max": 202.0, "spread": 0.0412}
+  ]}
+ ]
+}

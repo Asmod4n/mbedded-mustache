@@ -1,0 +1,76 @@
+diff -ru base/include/mustache/out.hpp c3/include/mustache/out.hpp
+--- base/include/mustache/out.hpp	2026-11-12 20:12:06.000000000 +0000
++++ c3/include/mustache/out.hpp	2026-11-13 09:05:34.379579027 +0000
+@@ -60,6 +60,24 @@
+   }
+ }
+ 
++inline constexpr size_t kTail = kEscapeSlack;
++
++constexpr bool
++fits(const Context c, const std::string_view s, const size_t room)
++{
++  if (s.empty()) return true;
++  if (escaped_size_max_in(c, s.size()) + kTail <= room) [[likely]] return true;
++  if (c == Context::html_text) return escaped_size_of(s) + kTail <= room;
++  return false;
++}
++
++constexpr size_t
++needed(const Context c, const std::string_view s)
++{
++  if (c == Context::html_text) return escaped_size_of(s) + kTail;
++  return escaped_size_max_in(c, s.size()) + kTail;
++}
++
+ struct Out {
+   char *w;
+   char *end;
+@@ -78,7 +96,7 @@
+ 
+   constexpr void escaped_in(const Context c, const std::string_view s)
+   {
+-    if (escaped_size_max_in(c, s.size()) > room()) [[unlikely]] {
++    if (!fits(c, s, room())) [[unlikely]] {
+       full = true;
+       return;
+     }
+@@ -87,7 +105,7 @@
+ 
+   constexpr void escaped(const std::string_view s)
+   {
+-    if (!escaped_fits(s, room())) [[unlikely]] {
++    if (!fits(Context::html_text, s, room())) [[unlikely]] {
+       full = true;
+       return;
+     }
+diff -ru base/include/mustache/render.hpp c3/include/mustache/render.hpp
+--- base/include/mustache/render.hpp	2026-11-12 20:12:06.000000000 +0000
++++ c3/include/mustache/render.hpp	2026-11-13 09:05:34.379830701 +0000
+@@ -125,7 +125,7 @@
+ 
+   [[gnu::always_inline]] void escaped_string(const std::string &s)
+   {
+-    if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
++    if (!fits(Context::html_text, s, rest().size()) && !grown(size + needed(Context::html_text, s))) [[unlikely]] return;
+     const std::span<char> room = rest();
+     size += (size_t)std::distance(room.data(), escape_string_into(room, s));
+   }
+@@ -140,15 +140,14 @@
+       fault = Fault::illegal_control_character;
+       return;
+     }
+-    const size_t needed = escaped_size_max_in(c, s.size());
+-    if (size + needed > capacity() && !grown(size + needed)) [[unlikely]] return;
++    if (!fits(c, s, rest().size()) && !grown(size + needed(c, s))) [[unlikely]] return;
+     char *const w = rest().data();
+     size += (size_t)std::distance(w, escaped_into_in(c, w, s));
+   }
+ 
+   [[gnu::always_inline]] void escaped(const std::string_view s)
+   {
+-    if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
++    if (!fits(Context::html_text, s, rest().size()) && !grown(size + needed(Context::html_text, s))) [[unlikely]] return;
+     char *const w = rest().data();
+     size += (size_t)std::distance(w, escaped_into(w, s));
+   }
