@@ -1,0 +1,75 @@
+diff --git a/include/mustache/compile.hpp b/include/mustache/compile.hpp
+index a483d5b..3b58910 100644
+--- a/include/mustache/compile.hpp
++++ b/include/mustache/compile.hpp
+@@ -625,6 +625,10 @@ compile(const std::string_view src)
+     i++;
+   }
+   op_of.at(ts.size()) = (uint32_t)out.ops.size();
++  for (size_t q = 0; q + 1 < out.ops.size(); q++) {
++    const Tag next = out.ops.at(q + 1).tag;
++    if (out.ops.at(q).tag == Tag::text && (next == Tag::var || next == Tag::raw)) out.ops.at(q).c = 1;
++  }
+   for (Op &op : out.ops) {
+     if (op.tag == Tag::section || op.tag == Tag::inverted || op.tag == Tag::block || op.tag == Tag::parent) {
+       op.c = op_of.at(op.c);
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 71fa334..cd01a6a 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -383,6 +383,23 @@ private:
+     return base;
+   }
+ 
++  MUSTACHE_ALWAYS_INLINE bool interpolated(const Template &p, const Op &op, const uint32_t pc, Indent *const ind)
++  {
++    const Value v = lookup(p, op, pc);
++    if (Data::value_is_absent(v)) return true;
++    const auto [k, s] = data_.scalar_of(v, detail::containers::NumberText(number_));
++    if (k == Kind::falsy) return true;
++    if (k != Kind::text) [[unlikely]] {
++      fault_ = Fault::not_text;
++      return false;
++    }
++    if (s.empty()) return true;
++    indent_if_pending(ind);
++    if (op.tag == Tag::var) escaped_in(context_, s);
++    else raw(s);
++    return true;
++  }
++
+   bool push_run(const Template &p, const Value &v, const uint32_t pc, const uint32_t stop, const int pd,
+                 Indent *const ind, const Args *const args)
+   {
+@@ -452,24 +469,17 @@ private:
+         case Tag::text:
+           text(std::string_view(p.texts).substr(op.a, op.b), ind);
+           pc++;
++          if (op.c != 0 && pc < stop) {
++            if (fault_ != Fault::none) [[unlikely]] return false;
++            if (!interpolated(p, p.ops.at(pc), pc, ind)) [[unlikely]] return false;
++            pc++;
++          }
+           break;
+         case Tag::var:
+-        case Tag::raw: {
+-          const Value v = lookup(p, op, pc);
++        case Tag::raw:
++          if (!interpolated(p, op, pc, ind)) [[unlikely]] return false;
+           pc++;
+-          if (Data::value_is_absent(v)) break;
+-          const auto [k, s] = data_.scalar_of(v, detail::containers::NumberText(number_));
+-          if (k == Kind::falsy) break;
+-          if (k != Kind::text) [[unlikely]] {
+-            fault_ = Fault::not_text;
+-            return false;
+-          }
+-          if (s.empty()) break;
+-          indent_if_pending(ind);
+-          if (op.tag == Tag::var) escaped_in(context_, s);
+-          else raw(s);
+           break;
+-        }
+         case Tag::section: {
+           const Value v = lookup(p, op, pc);
+           const Kind k = Data::value_is_absent(v) ? Kind::falsy : data_.kind_of(v);

@@ -1,0 +1,35 @@
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 71fa334..f78c16d 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -349,7 +349,7 @@ private:
+     raw(all);
+   }
+ 
+-  Value first_part_found(const Template &p, const Op &op)
++  MUSTACHE_NEVER_INLINE Value first_part_found(const Template &p, const Op &op)
+   {
+     const std::string &first = p.keys.at(op.a);
+     Value base{};
+@@ -360,11 +360,9 @@ private:
+     return base;
+   }
+ 
+-  MUSTACHE_NEVER_INLINE Value first_part_without_id(const Template &p, const Op &op) { return first_part_found(p, op); }
+-
+   MUSTACHE_ALWAYS_INLINE Value first_part_of(const Template &p, const Op &op)
+   {
+-    if (op.e >= kFirstPartIdMax) [[unlikely]] return first_part_without_id(p, op);
++    if (op.e >= kFirstPartIdMax) [[unlikely]] return first_part_found(p, op);
+     FirstPart &kept = first_parts_.at(op.e);
+     if (kept.program != &p || kept.generation != generation_) {
+       kept.base = first_part_found(p, op);
+@@ -374,7 +372,7 @@ private:
+     return kept.base;
+   }
+ 
+-  Value lookup(const Template &p, const Op &op, const uint32_t pc)
++  MUSTACHE_ALWAYS_INLINE Value lookup(const Template &p, const Op &op, const uint32_t pc)
+   {
+     if (const std::optional<Value> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
+     if (op.b == 0) return stack_.at(depth_ - 1);
