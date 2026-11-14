@@ -11,8 +11,8 @@ if [ "$PILOT" = 1 ]; then
   criterion_extra="--warm-up-time 0.2 --measurement-time 0.5 --sample-size 10"
 else
   repetitions=30
-  gb_extra=""
-  criterion_extra=""
+  gb_extra="--benchmark_min_time=0.05s"
+  criterion_extra="--warm-up-time 0.1 --measurement-time 1.5"
 fi
 cat /proc/loadavg > loadavg-before.txt
 
@@ -76,6 +76,7 @@ echo "google_benchmark=repetitions $repetitions, random interleaving, $gb_extra"
 echo "loadavg_at_context=$(cat /proc/loadavg)"
 } > context-common.txt
 
+date -u +%Y-%m-%dT%H:%M:%SZ > timed-start.txt
 while read -r b; do
   case $b in
     rust:*)
@@ -100,4 +101,5 @@ while read -r b; do
       ;;
   esac
 done < order.txt
+date -u +%Y-%m-%dT%H:%M:%SZ > timed-end.txt
 cat /proc/loadavg > loadavg-after.txt
