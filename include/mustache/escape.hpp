@@ -11,10 +11,12 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 namespace mustache {
@@ -251,11 +253,29 @@ struct Copied {
   uint64_t marks;
 };
 
-inline std::span<const char>
+constexpr std::span<const char>
 owned_chars_of(const std::string &s)
 {
   return {s.data(), s.capacity() + 1};
 }
+
+template <class String, size_t Count>
+constexpr bool
+owned_chars_are_readable()
+{
+  const auto readable = [](const String &s) {
+    const std::span<const char> owned = owned_chars_of(s);
+    return std::ranges::count(owned, char{}) >= 1 && owned.first<Count>().size() == Count;
+  };
+  if (!readable(String{})) return false;
+  for (const size_t n : {size_t{1}, Count - 1, Count, Count + 1, kCopiedStringMax, kCopiedStringMax + 1})
+    if (!readable(String(n, char{}))) return false;
+  return true;
+}
+
+template <class String, size_t Count>
+inline constexpr bool kBufferHoldsCapacityAndTerminator =
+    requires { typename std::enable_if_t<owned_chars_are_readable<String, Count>()>; };
 
 inline Copied
 copied_string_scalar(const std::span<char> out, const std::string &s)
@@ -354,12 +374,16 @@ copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
   if (n <= sizeof(__m128i)) {
-    if (n == 0) return {0, 0};
-    const std::span<const char> owned = owned_chars_of(s);
-    if (owned.size() < sizeof(__m128i)) [[unlikely]] return copied_string_scalar(out, s);
-    const __m128i v = loaded(owned.first<sizeof(__m128i)>());
-    stored(out.first<sizeof(__m128i)>(), v);
-    return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
+    if constexpr (kBufferHoldsCapacityAndTerminator<std::string, sizeof(__m128i)>) {
+      if (n == 0) return {0, 0};
+      const std::span<const char> owned = owned_chars_of(s);
+      if (owned.size() < sizeof(__m128i)) [[unlikely]] return copied_string_scalar(out, s);
+      const __m128i v = loaded(owned.first<sizeof(__m128i)>());
+      stored(out.first<sizeof(__m128i)>(), v);
+      return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
+    } else {
+      return copied_string_scalar(out, s);
+    }
   }
   if (n > kCopiedStringMax) return copied_string_scalar(out, s);
   const std::span<const char> in(s);
@@ -452,12 +476,16 @@ copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
   if (n <= kVectorBytes) {
-    if (n == 0) return {0, 0};
-    const std::span<const char> owned = owned_chars_of(s);
-    if (owned.size() < kVectorBytes) [[unlikely]] return copied_string_scalar(out, s);
-    const uint8x16_t v = loaded(owned.first<kVectorBytes>());
-    stored(out.first<kVectorBytes>(), v);
-    return {n, marks_of(v) & kLaneMarkBits & (~uint64_t{0} >> (kBitsPerLane * (kVectorBytes - n)))};
+    if constexpr (kBufferHoldsCapacityAndTerminator<std::string, kVectorBytes>) {
+      if (n == 0) return {0, 0};
+      const std::span<const char> owned = owned_chars_of(s);
+      if (owned.size() < kVectorBytes) [[unlikely]] return copied_string_scalar(out, s);
+      const uint8x16_t v = loaded(owned.first<kVectorBytes>());
+      stored(out.first<kVectorBytes>(), v);
+      return {n, marks_of(v) & kLaneMarkBits & (~uint64_t{0} >> (kBitsPerLane * (kVectorBytes - n)))};
+    } else {
+      return copied_string_scalar(out, s);
+    }
   }
   if (n > kCopiedStringMax) return copied_string_scalar(out, s);
   const std::span<const char> in(s);
