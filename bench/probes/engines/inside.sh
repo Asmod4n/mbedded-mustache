@@ -14,7 +14,7 @@ git clone -q --depth 1 --branch v3.5.0 https://github.com/pantor/inja /w/src/inj
 git clone -q --depth 1 --branch 1.0.2 https://github.com/no1msd/mstch /w/src/mstch > /w/out/git-mstch.log 2>&1 || echo "clone mstch failed" >> /w/out/failed.txt
 
 # mstch: its src/*.cpp with the common flag line, one static library for each compiler.
-for cxx in g++-16 clang++-23; do
+for cxx in g++-16; do
   mkdir -p /w/obj/$cxx
   flags=$(flags_for $cxx)
   find /w/src/mstch/src -name '*.cpp' | xargs -P 4 -I{} sh -c \
@@ -23,10 +23,10 @@ for cxx in g++-16 clang++-23; do
 done
 
 jobs=""
-for cxx in g++-16 clang++-23; do for workload in 1 2 3; do for engine in mbedded inja mstch kainjow; do
+for cxx in g++-16; do for workload in 2; do for engine in mbedded inja mstch kainjow; do
   jobs="$jobs$engine $cxx $workload\n"
 done; done; done
-for workload in 1 2 3; do jobs="${jobs}mbedded-twin g++-16 $workload\n"; done
+jobs="${jobs}mbedded-twin g++-16 2\n"
 printf "$jobs" | xargs -P 4 -L 1 sh /w/build_one.sh
 
 # Rust: one workspace, built once as root; each bench executable is copied for nobody.
