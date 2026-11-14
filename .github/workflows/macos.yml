@@ -29,7 +29,15 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
+      - run: echo "WEEK=$(date -u +%G-%V)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ env.WEEK }}
+          restore-keys: brew-
       - run: brew install cmake ninja gcc
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
       - run: echo "CXX=$(ls "$(brew --prefix gcc)"/bin/g++-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
       - run: echo "CC=$(ls "$(brew --prefix gcc)"/bin/gcc-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4

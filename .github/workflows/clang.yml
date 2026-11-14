@@ -34,7 +34,13 @@ jobs:
     container: fedora:44
     timeout-minutes: 15
     steps:
-      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel mandoc
+      - run: echo "WEEK=$(date -u +%G-%V)" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: /var/cache/libdnf5
+          key: dnf-${{ github.workflow }}-${{ env.WEEK }}
+          restore-keys: dnf-${{ github.workflow }}-
+      - run: dnf -y --setopt=keepcache=True install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel mandoc
       - uses: actions/checkout@v4
       - run: >
           printf '#ifdef __cpp_impl_reflection\n#error "clang has reflection: clang.yml must watch reflect.hpp and test/reflect.cpp"\n#endif\n'
