@@ -1,5 +1,5 @@
 #!/bin/sh
-# Container side: builds one binary for each workload, compiler and level, measures the noise floor, runs the
+# Container side: builds one binary for each workload and compiler at -O2, measures the noise floor, runs the
 # binaries as nobody in 6 rounds with a rotating order, writes /w/out. Stderr goes to log files.
 set -u
 rounds=${ROUNDS:-6}
@@ -8,7 +8,7 @@ apt-get install -y -q libbenchmark-dev sysbench >> /w/out/apt.log 2>&1
 mkdir -p /w/bin
 chmod a+rwx /w/bin
 jobs=""
-for cxx in g++-16 clang++-23; do for level in -Os -O2; do for workload in 1 2 3; do
+for cxx in g++-16 clang++-23; do for level in -O2; do for workload in 1 2 3; do
   jobs="$jobs $cxx:$level:$workload"
 done; done; done
 echo $jobs | tr ' ' '\n' | xargs -P 4 -I{} sh -c '
