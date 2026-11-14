@@ -9,8 +9,6 @@ on:
       - "refs/mustache-spec/*.json"
       - ".github/workflows/macos.yml"
       - "!test/arm_none_eabi.cpp"
-      - "!include/mustache/reflect.hpp"
-      - "!test/reflect.cpp"
   pull_request:
     paths:
       - "include/**"
@@ -19,8 +17,6 @@ on:
       - "refs/mustache-spec/*.json"
       - ".github/workflows/macos.yml"
       - "!test/arm_none_eabi.cpp"
-      - "!include/mustache/reflect.hpp"
-      - "!test/reflect.cpp"
   workflow_dispatch:
 
 concurrency:
@@ -29,19 +25,22 @@ concurrency:
 
 jobs:
   test:
-    name: arm64 macOS Apple clang C++23
+    name: arm64 macOS Homebrew g++ C++26 reflection
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
-      - run: brew install cmake ninja googletest simdjson mandoc
+      - run: brew install cmake ninja gcc
+      - run: echo "CXX=$(ls "$(brew --prefix gcc)"/bin/g++-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - run: echo "CC=$(ls "$(brew --prefix gcc)"/bin/gcc-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
+      - run: git clone --depth 1 --branch v1.17.0 https://github.com/google/googletest.git "$RUNNER_TEMP/googletest"
       - run: uname -m | grep -x arm64
       - run: >
           cmake -S . -B build -G Ninja
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_C_COMPILER=clang
-          -DCMAKE_CXX_STANDARD=23
-          -DMUSTACHE_REQUIRE_SIMDJSON=ON
-          "-DCMAKE_CXX_FLAGS=-O2 -Wall -Wextra -Werror"
+          -DCMAKE_CXX_COMPILER="$CXX"
+          -DCMAKE_C_COMPILER="$CC"
+          -DCMAKE_CXX_STANDARD=26
+          -DMUSTACHE_GOOGLETEST_SOURCE_DIR="$RUNNER_TEMP/googletest"
+          "-DCMAKE_CXX_FLAGS=-freflection -O2 -Wall -Wextra -Werror"
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure
