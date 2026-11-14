@@ -1,7 +1,7 @@
 #!/bin/sh
 # Host side: exports the tree of HEAD and runs inside.sh in a container without network and without the seccomp filter,
 # so that setarch -R can turn off address space randomization for the arms that ask for it.
-# Usage: bench/probes/render-spread/run.sh WORK_DIR RAMHORNS_BINARY [IMAGE]
+# Usage: [EXECUTABLES="..."] [REPETITIONS=N] bench/probes/render-spread/run.sh WORK_DIR RAMHORNS_BINARY [IMAGE]
 set -eu
 work=$1
 ramhorns=$2
@@ -19,5 +19,5 @@ chmod a+w "$work/out"
 date -u +%Y%m%dT%H%M%SZ > "$work/out/stamp.txt"
 podman run --rm --network none --security-opt seccomp=unconfined \
   -e PROBE_COMMIT="$commit" -e DIRTY="$dirty" -e IMAGE_ID="$digest" \
-  -e PODMAN_VERSION="$(podman --version)" \
+  -e PODMAN_VERSION="$(podman --version)" -e EXECUTABLES -e REPETITIONS \
   -v "$work":/w "$image" sh /w/src/bench/probes/render-spread/inside.sh

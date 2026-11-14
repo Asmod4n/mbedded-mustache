@@ -38,9 +38,9 @@ echo "processor=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
 echo "processor_flags_digest=sha256:$(grep -m1 '^flags' /proc/cpuinfo | sha256sum | cut -c1-16)"
 echo "transparent_hugepage=$(cat /sys/kernel/mm/transparent_hugepage/enabled)"
 echo "ramhorns=binary of bench/results/ramhorns-spread-20261114T153040Z (A, probe 9aa4b55), Criterion --warm-up-time 0.1 --measurement-time 1.5"
-echo "google_benchmark_arguments=--benchmark_repetitions=6 --benchmark_min_time=0.05s"
+echo "google_benchmark_arguments=--benchmark_repetitions=${REPETITIONS:-6} --benchmark_min_time=0.05s"
 echo "threads=1, not pinned"
 } > /w/out/context.txt
 chmod -R a+rX /w/out
 chmod a+w /w/out/failed.txt
-runuser -u nobody -- sh $probe/run_as_nobody.sh
+runuser -u nobody -- env EXECUTABLES="${EXECUTABLES:-}" REPETITIONS="${REPETITIONS:-6}" sh $probe/run_as_nobody.sh
