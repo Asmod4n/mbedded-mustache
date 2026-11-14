@@ -9,14 +9,22 @@ Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 #include <string>
 
 int main() {
-  auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new messages.", "text/html");
-  std::map<std::string, std::string> data{{"name", "Ada <admin>"}, {"count", "3"}};
-  std::println("{}", *mustache::render(*tpl, data));
+  std::map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
+
+  auto html = mustache::compile("<p>Hello, {{name}}!</p>");                     // HTML by default
+  auto json = mustache::compile(R"({"greeting": "Hello, {{name}}!"})", "application/json");
+  auto raw  = mustache::compile("Hello, {{{name}}}!");                          // no escaping
+
+  std::println("{}", *mustache::render(*html, data));
+  std::println("{}", *mustache::render(*json, data));
+  std::println("{}", *mustache::render(*raw, data));
 }
 ```
 
 ```
-Hello, Ada &lt;admin&gt;! You have 3 new messages.
+<p>Hello, Ada &lt;&quot;admin&quot;&gt;!</p>
+{"greeting": "Hello, Ada <\"admin\">!"}
+Hello, Ada <"admin">!
 ```
 
 ## Features
