@@ -2,7 +2,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include "../test/node.hpp"
+#include "node.hpp"
 
 #include <cstdio>
 #include <cstdlib>

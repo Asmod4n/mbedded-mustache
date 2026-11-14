@@ -4,12 +4,12 @@ Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 
 ```cpp
 #include <mustache/mustache.hpp>
-#include <map>
+#include <unordered_map>
 #include <print>
 #include <string>
 
 int main() {
-  std::map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
+  std::unordered_map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
 
   // One partial, escaped by the media type of the template that includes it.
   mustache::Partials partials{{"greeting", *mustache::compile("Hello, {{name}}!")}};
@@ -47,11 +47,11 @@ Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark
 
 | template | run time, g++ 16 | run time, clang 23 | reflection, g++ 16 |
 |---|---|---|---|
-| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 136 ns | 144 ns | 45 ns |
-| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.4 µs | 1.43 µs |
-| news page (20 articles, 3 tags each) | 8.0 µs | 8.3 µs | 1.52 µs |
+| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 136 ns | 108 ns | 46 ns |
+| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 10.0 µs | 7.8 µs | 1.42 µs |
+| news page (20 articles, 3 tags each) | 7.6 µs | 5.6 µs | 1.56 µs |
 
-*Run time* compiles the template at run time and renders from `std::map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
+*Run time* compiles the template at run time and renders from `std::unordered_map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T133248Z/)).
 
 ## Installation
 
@@ -101,11 +101,20 @@ target_link_libraries(app PRIVATE mustache::mustache)
 
 A key that isn't in the data renders as nothing, as the specification says.
 
+**Pick `std::unordered_map` for speed.** The render looks up every tag in your map, so the map type matters more than anything else. On the stocks page, one render took:
+
+| map type | g++ 16 | clang 23 |
+|---|---|---|
+| `std::unordered_map` | 10.0 µs | 7.9 µs |
+| `std::flat_map` | 10.9 µs | 9.5 µs |
+
+([this run](bench/results/runtime-speed-20261114T130319Z/), `-O2 -march=x86-64-v4`, median of 30 repetitions)
+
 For data that contains itself, such as a JSON tree, derive a type from the variant:
 
 ```cpp
 struct Node : std::variant<std::nullptr_t, bool, double, std::string,
-                           std::vector<Node>, std::map<std::string, Node>> {
+                           std::vector<Node>, std::unordered_map<std::string, Node>> {
   using variant::variant;
 };
 ```
@@ -114,13 +123,13 @@ struct Node : std::variant<std::nullptr_t, bool, double, std::string,
 
 ```cpp
 #include <mustache/mustache.hpp>
-#include <map>
+#include <unordered_map>
 #include <print>
 #include <string>
 #include <variant>
 #include <vector>
 
-using Item  = std::map<std::string, std::variant<std::string, double>>;
+using Item  = std::unordered_map<std::string, std::variant<std::string, double>>;
 using Value = std::variant<std::string, bool, std::vector<Item>>;
 
 int main() {
@@ -133,7 +142,7 @@ int main() {
 
   mustache::Partials partials{{"item", *item}};
 
-  std::map<std::string, Value> data{
+  std::unordered_map<std::string, Value> data{
       {"title", std::string("Cart")},
       {"items", std::vector<Item>{{{"name", std::string("Tea")}, {"price", 4.5}},
                                   {{"name", std::string("Mug")}, {"price", 12.0}}}},
