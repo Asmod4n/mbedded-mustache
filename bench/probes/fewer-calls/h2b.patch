@@ -1,0 +1,328 @@
+H2b Call the find of the map directly, without function pointers, with a switch. Against include/ of 4e036ed.
+The same walk as H2a. A value is a pointer and a type index; each operation is a switch over the index with the code of each type inline.
+The switch rebuilds what std::visit does; it enters the tree only after the owner has seen the measurement of H2a against H2b.
+diff --git a/include/mustache/direct.hpp b/include/mustache/direct.hpp
+new file mode 100644
+index 0000000..2faeb8f
+--- /dev/null
++++ b/include/mustache/direct.hpp
+@@ -0,0 +1,292 @@
++// A walk over the closed set of types that a data type reaches, with no function pointer. A value is a pointer to one of
++// these types, and the code of each type stands in the operation that reads it.
++#pragma once
++
++#include <array>
++#include <charconv>
++#include <concepts>
++#include <cstddef>
++#include <cstdint>
++#include <limits>
++#include <memory>
++#include <optional>
++#include <ranges>
++#include <string>
++#include <string_view>
++#include <tuple>
++#include <type_traits>
++#include <utility>
++#include <variant>
++
++#include "containers.hpp"
++
++namespace mustache::detail::direct {
++
++using containers::falsy_like;
++using containers::is_optional_v;
++using containers::list_like;
++using containers::map_like;
++using containers::NumberText;
++using containers::number_like;
++using containers::Scalar;
++using containers::text_like;
++using containers::variant_base;
++using containers::variant_like;
++using mustache::Kind;
++
++struct unsupported {};
++
++template <class... Ts>
++struct types {};
++
++template <class A, class B>
++struct joined;
++template <class... A, class... B>
++struct joined<types<A...>, types<B...>> {
++  using type = types<A..., B...>;
++};
++
++template <class... A>
++types<A...> alternatives_of(const std::variant<A...> &);
++
++template <class T>
++auto
++children_of()
++{
++  if constexpr (variant_like<T>) return decltype(alternatives_of(std::declval<const T &>())){};
++  else if constexpr (is_optional_v<T>) return types<typename T::value_type>{};
++  else if constexpr (std::same_as<T, bool> || number_like<T> || text_like<T> || falsy_like<T>) return types<>{};
++  else if constexpr (map_like<T>) return types<typename T::mapped_type>{};
++  else if constexpr (list_like<T>) return types<std::remove_cvref_t<std::ranges::range_reference_t<const T>>>{};
++  else return types<unsupported>{};
++}
++
++template <class Seen, class Todo>
++struct closure;
++template <class... S>
++struct closure<types<S...>, types<>> {
++  using type = types<S...>;
++};
++template <class... S, class T, class... R>
++struct closure<types<S...>, types<T, R...>> {
++  using type = typename std::conditional_t<
++      (std::same_as<T, S> || ...), closure<types<S...>, types<R...>>,
++      closure<types<S..., T>, typename joined<types<R...>, decltype(children_of<T>())>::type>>::type;
++};
++
++template <class T, class List>
++struct holds;
++template <class T, class... Ts>
++struct holds<T, types<Ts...>> : std::bool_constant<(std::same_as<T, Ts> || ...)> {};
++
++template <class T>
++inline constexpr bool held_v = !variant_like<T> && !is_optional_v<T> && !std::same_as<T, unsupported>;
++
++template <class In, class Out = types<>>
++struct held_of;
++template <class Out>
++struct held_of<types<>, Out> {
++  using type = Out;
++};
++template <class T, class... R, class... O>
++struct held_of<types<T, R...>, types<O...>> {
++  using type = typename held_of<types<R...>, std::conditional_t<held_v<T>, types<O..., T>, types<O...>>>::type;
++};
++
++template <class T>
++using closure_of = typename closure<types<>, types<T>>::type;
++
++template <class T>
++inline constexpr bool walkable = !holds<unsupported, closure_of<T>>::value;
++
++template <class T, class... Ts>
++inline constexpr uint32_t index_in = []() {
++  constexpr std::array<bool, sizeof...(Ts)> same = {std::same_as<T, Ts>...};
++  return (uint32_t)std::distance(same.begin(), std::ranges::find(same, true));
++}();
++
++template <class T>
++Kind
++kind_held(const T &v)
++{
++  if constexpr (std::same_as<T, bool>) return v ? Kind::truthy : Kind::falsy;
++  else if constexpr (number_like<T> || text_like<T>) return Kind::text;
++  else if constexpr (falsy_like<T>) return Kind::falsy;
++  else if constexpr (map_like<T>) return v.empty() ? Kind::falsy : Kind::map;
++  else {
++    static_assert(list_like<T>, "a value is text, a number, a bool, an optional, a variant, a map or a list");
++    return Kind::list;
++  }
++}
++
++template <class T>
++Scalar
++scalar_held(const T &v, const NumberText text)
++{
++  if constexpr (std::same_as<T, bool>) {
++    return {v ? Kind::truthy : Kind::falsy, {}};
++  }
++  else if constexpr (number_like<T>) {
++    const std::to_chars_result r = std::to_chars(text.data(), std::to_address(text.end()), v);
++    return {Kind::text, {text.data(), r.ptr}};
++  }
++  else if constexpr (text_like<T>) {
++    return {Kind::text, std::string_view(v)};
++  }
++  else if constexpr (falsy_like<T>) {
++    return {Kind::falsy, {}};
++  }
++  else if constexpr (map_like<T>) {
++    return {v.empty() ? Kind::falsy : Kind::map, {}};
++  }
++  else {
++    static_assert(list_like<T>, "a value is text, a number, a bool, an optional, a variant, a map or a list");
++    return {Kind::list, {}};
++  }
++}
++
++template <class T>
++size_t
++size_held(const T &v)
++{
++  if constexpr (list_like<T>) return (size_t)std::ranges::size(v);
++  else return 0;
++}
++
++inline constexpr size_t kSwitchCasesMax = 16;
++
++template <class R, size_t N, class F>
++R
++switched(const size_t index, const F &f, const R &otherwise)
++{
++  static_assert(N <= kSwitchCasesMax, "the walk has a case for each of at most kSwitchCasesMax types");
++  switch (index) {
++#define MUSTACHE_CASE(I)                                                                                               \
++  case I:                                                                                                              \
++    if constexpr (I < N) return f(std::integral_constant<size_t, I>{});                                                \
++    else return otherwise;
++    MUSTACHE_CASE(0) MUSTACHE_CASE(1) MUSTACHE_CASE(2) MUSTACHE_CASE(3) MUSTACHE_CASE(4) MUSTACHE_CASE(5)
++    MUSTACHE_CASE(6) MUSTACHE_CASE(7) MUSTACHE_CASE(8) MUSTACHE_CASE(9) MUSTACHE_CASE(10) MUSTACHE_CASE(11)
++    MUSTACHE_CASE(12) MUSTACHE_CASE(13) MUSTACHE_CASE(14) MUSTACHE_CASE(15)
++#undef MUSTACHE_CASE
++    default: return otherwise;
++  }
++}
++
++template <class... Es>
++struct Policy {
++  struct Value {
++    const void *p = nullptr;
++    uint32_t    type = std::numeric_limits<uint32_t>::max();
++  };
++
++  template <class X>
++  static Value of(const X &x)
++  {
++    if constexpr (variant_like<X>) {
++      const auto &v = variant_base(x);
++      return switched<Value, std::variant_size_v<std::remove_cvref_t<decltype(v)>>>(
++          v.index(),
++          [&v](const auto i) -> Value {
++            if (const auto *const a = std::get_if<decltype(i)::value>(&v)) return of(*a);
++            return Value{};
++          },
++          Value{});
++    }
++    else if constexpr (is_optional_v<X>) {
++      return x ? of(*x) : Value{};
++    }
++    else {
++      return Value{std::addressof(x), index_in<X, Es...>};
++    }
++  }
++
++  template <class R, class F>
++  static R apply(const Value &v, const F &f, const R &absent)
++  {
++    return switched<R, sizeof...(Es)>(
++        v.type,
++        [&v, &f](const auto i) -> R {
++          using E = std::tuple_element_t<decltype(i)::value, std::tuple<Es...>>;
++          return f(*static_cast<const E *>(v.p));
++        },
++        absent);
++  }
++};
++
++template <class Policy>
++struct Access {
++  using Value = typename Policy::Value;
++
++  template <class X>
++  static Value of(const X &x)
++  {
++    return Policy::of(x);
++  }
++
++  static Kind kind_of(const Value v)
++  {
++    return Policy::template apply<Kind>(v, [](const auto &x) -> Kind { return kind_held(x); }, Kind::falsy);
++  }
++
++  static Scalar scalar_of(const Value v, const NumberText text)
++  {
++    return Policy::template apply<Scalar>(v, [text](const auto &x) -> Scalar { return scalar_held(x, text); },
++                                          Scalar{Kind::falsy, {}});
++  }
++
++  static size_t size_of(const Value v)
++  {
++    return Policy::template apply<size_t>(v, [](const auto &x) -> size_t { return size_held(x); }, size_t{0});
++  }
++
++  static Value element(const Value v, const size_t i)
++  {
++    return Policy::template apply<Value>(
++        v,
++        [v, i](const auto &x) -> Value {
++          if constexpr (list_like<std::remove_cvref_t<decltype(x)>>) {
++            return Policy::of(*std::ranges::next(std::ranges::begin(x), (std::ptrdiff_t)i));
++          }
++          else {
++            return v;
++          }
++        },
++        Value{});
++  }
++
++  static std::optional<Value> find(const Value v, const std::string &key)
++  {
++    return Policy::template apply<std::optional<Value>>(
++        v,
++        [&key](const auto &x) -> std::optional<Value> {
++          if constexpr (map_like<std::remove_cvref_t<decltype(x)>>) {
++            const auto it = x.find(key);
++            if (it == x.end()) return std::nullopt;
++            return Policy::of(it->second);
++          }
++          else {
++            return std::nullopt;
++          }
++        },
++        std::nullopt);
++  }
++
++  template <class Program, class Stack>
++  static std::optional<std::optional<Value>> bound(const Program &, uint32_t, const Stack &, int)
++  {
++    return std::nullopt;
++  }
++};
++
++template <class List>
++struct access_over;
++template <class... Es>
++struct access_over<types<Es...>> {
++  using type = Access<Policy<Es...>>;
++};
++
++template <class T>
++using AccessFor = typename access_over<typename held_of<closure_of<T>>::type>::type;
++
++}
+diff --git a/include/mustache/mustache.hpp b/include/mustache/mustache.hpp
+index c1c95e7..5d250aa 100644
+--- a/include/mustache/mustache.hpp
++++ b/include/mustache/mustache.hpp
+@@ -6,6 +6,7 @@
+ #include <string_view>
+ 
+ #include "containers.hpp"
++#include "direct.hpp"
+ #include "render.hpp"
+ 
+ #if defined(__cpp_impl_reflection)
+@@ -30,7 +31,13 @@ template <class T>
+ std::expected<std::string, Error>
+ render(const Template &t, const T &data, const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
+ {
+-  return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
++  if constexpr (detail::direct::walkable<T>) {
++    using Data = detail::direct::AccessFor<T>;
++    return Walk<Data>(Data{}, &partials, kMaxRenderScore, initial_capacity).run(t, Data::of(data));
++  }
++  else {
++    return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
++  }
+ }
+ 
+ }

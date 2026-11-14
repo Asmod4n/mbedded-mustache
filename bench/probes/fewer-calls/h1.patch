@@ -1,0 +1,130 @@
+H1 Find the map of a dotted name once per row. Against include/ of 4e036ed; apply with git apply -p1 in the directory that holds include/.
+The compile step gives each var, raw, section and inverted op the id of its first key part in op.e (equal strings in one template have equal ids; at most
+kFirstPartIdMax ids; a part with no id has kNoFirstPartId). Walk keeps the value that the first part resolves to, a miss included, for the key
+(template, id, generation). The generation goes up at every push and every pop of the stack, so a kept value is used only while the stack is unchanged.
+diff --git a/include/mustache/compile.hpp b/include/mustache/compile.hpp
+index 9bd1cae..a483d5b 100644
+--- a/include/mustache/compile.hpp
++++ b/include/mustache/compile.hpp
+@@ -37,6 +37,10 @@ struct Op {
+ 
+ inline constexpr size_t kSourceMax = std::numeric_limits<uint32_t>::max() / 2;
+ 
++inline constexpr uint32_t kFirstPartIdMax = 8;
++
++inline constexpr uint32_t kNoFirstPartId = std::numeric_limits<uint32_t>::max();
++
+ inline constexpr size_t kBlockNestingMax = 64;
+ 
+ inline constexpr size_t kDelimiterMax = 16;
+@@ -559,6 +563,7 @@ compile(const std::string_view src)
+   std::vector<uint32_t> op_of(ts.size() + 1, 0);
+   Compiled out;
+   std::vector<std::optional<size_t>> placed(s.indents.size());
++  std::vector<std::string> first_parts;
+   auto indent_at = [&](const Token &t) -> size_t {
+     if (!t.indented) return 0;
+     std::optional<size_t> &line = placed.at(t.indent.line);
+@@ -603,9 +608,19 @@ compile(const std::string_view src)
+         out.texts += t.key.at(0);
+         break;
+       }
+-      default:
+-        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, 0});
++      default: {
++        uint32_t first_part_id = kNoFirstPartId;
++        if (!t.key.empty()) {
++          const auto known = std::ranges::find(first_parts, t.key.front());
++          if (known != first_parts.end()) first_part_id = (uint32_t)(known - first_parts.begin());
++          else if (first_parts.size() < kFirstPartIdMax) {
++            first_part_id = (uint32_t)first_parts.size();
++            first_parts.push_back(t.key.front());
++          }
++        }
++        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, first_part_id});
+         for (const std::string &k : t.key) out.keys.push_back(k);
++      }
+     }
+     i++;
+   }
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index e9e19eb..e42cb3f 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -234,6 +234,7 @@ public:
+   {
+     stack_.at(0) = root;
+     depth_ = 1;
++    generation_++;
+     context_ = p.context;
+     if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
+     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
+@@ -264,11 +265,19 @@ private:
+     const Args         *outer;
+   };
+ 
++  struct FirstPart {
++    const Template      *program = nullptr;
++    uint64_t             generation = 0;
++    std::optional<Value> base;
++  };
++
+   Data data_;
+   const Partials *partials_;
+   Answer out_;
+   std::array<Value, kDepthMax> stack_{};
+   int   depth_ = 0;
++  uint64_t generation_ = 1;
++  std::array<FirstPart, kFirstPartIdMax> first_parts_{};
+   size_t score_ = 0;
+   size_t score_max_;
+   size_t initial_capacity_;
+@@ -333,16 +342,34 @@ private:
+     raw(all);
+   }
+ 
+-  std::optional<Value> lookup(const Template &p, const Op &op, const uint32_t pc)
++  std::optional<Value> first_part_found(const Template &p, const Op &op)
+   {
+-    if (const std::optional<std::optional<Value>> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
+-    if (op.b == 0) return stack_.at(depth_ - 1);
+     const std::string &first = p.keys.at(op.a);
+     std::optional<Value> base;
+     for (int i = depth_ - 1; i >= 0; i--) {
+       base = data_.find(stack_.at(i), first);
+       if (base) break;
+     }
++    return base;
++  }
++
++  std::optional<Value> first_part_of(const Template &p, const Op &op)
++  {
++    if (op.e >= kFirstPartIdMax) [[unlikely]] return first_part_found(p, op);
++    FirstPart &kept = first_parts_.at(op.e);
++    if (kept.program != &p || kept.generation != generation_) {
++      kept.base = first_part_found(p, op);
++      kept.program = &p;
++      kept.generation = generation_;
++    }
++    return kept.base;
++  }
++
++  std::optional<Value> lookup(const Template &p, const Op &op, const uint32_t pc)
++  {
++    if (const std::optional<std::optional<Value>> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
++    if (op.b == 0) return stack_.at(depth_ - 1);
++    std::optional<Value> base = first_part_of(p, op);
+     for (uint32_t j = 1; j < op.b && base; j++) base = data_.find(*base, p.keys.at(op.a + j));
+     return base;
+   }
+@@ -355,8 +382,10 @@ private:
+       return false;
+     }
+     stack_.at(depth_++) = v;
++    generation_++;
+     const bool ok = run(p, pc, stop, pd, ind, args);
+     depth_--;
++    generation_++;
+     return ok;
+   }
+ 
