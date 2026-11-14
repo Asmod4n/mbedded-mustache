@@ -1,0 +1,5 @@
+maud/w2                 time:   [1.3425 µs 1.3522 µs 1.3630 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+

@@ -1,0 +1,36 @@
+commit=88e2f220bc704d032c4ba2130f5c9815c9fc6b14
+dirty_files=0
+image=sha256:333ddac6440e908c9c0a6ba331ceb5929b368a8f96be274f967cad3bfe5406dc 3a18f18efd74d0b7f81fba1af946d34f39196d7519d8524762f3b32f38bf8e7e
+podman=podman version 4.9.3
+pilot=0
+instruction_set=__AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ 
+libstdcxx=libstdc++.so.6.0.36
+libc=ldd (Debian GLIBC 2.43-7) 2.43
+kernel=Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+sched_autogroup_enabled=1
+machine=Hypervisor vendor: KVM;Virtualization type: full;
+container=podman, cpus visible 4
+processor= Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest=sha256:0750228a0e310f80
+avx512_flags=avx512_bf16 avx512_bitalg avx512_fp16 avx512_vbmi2 avx512_vnni avx512_vpopcntdq avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512vl 
+user=nobody
+nice=0
+priority=nobody cannot lower nice; the run has the default priority and is not pinned
+threads=1
+sysbench_cpu_events_per_second_10_runs_of_1s_1_thread=2993.60 3040.89 3014.14 3028.35 3039.38 3010.01 2857.53 2995.59 3021.64 2982.43 
+loadavg_before=2.73 1.15 0.75 1/125 2022
+order_seed=3431302202
+order=mbedded-twin.2.g++-16 mbedded-typed.2.clang++-23 mbedded-typed.2.g++-16 mbedded.2.clang++-23 mbedded.2.g++-16 mstch.2.g++-16 rust:markup rust:maud rust:ramhorns rust:sailfish inja.2.g++-16 kainjow.2.g++-16 
+inja=3.5.0 7d1b4600b68595085a949743331c2e5673f511ea from https://github.com/pantor/inja tag v3.5.0
+mstch=1.0.2 ff459067bd02e80dc399006bb610238223d41c50 from https://github.com/no1msd/mstch tag 1.0.2, src/*.cpp built with the common flag line into a static library, Boost headers 1.92.0.1
+debian_packages=cargo 1.98.1+dfsg1-1; libbenchmark-dev 1.9.1-1+b2; libkainjow-mustache-dev 4.1+ds-3+b1; nlohmann-json3-dev 3.12.0.really.3.12.0.really.3.11.3-3; rustc 1.98.1+dfsg1-1; 
+rustc=rustc 1.98.1 (48a229cea 2026-09-01) (built from a source tarball)
+cargo=cargo 1.98.1 (797e8a9bc 2026-08-05) (built from a source tarball)
+rust_crates="criterion" "0.8.2"; "markup" "0.16.0"; "maud" "0.27.0"; "ramhorns" "1.0.1"; "sailfish" "0.11.9"; 
+rust_profile=opt-level 3, codegen-units 1, lto fat, RUSTFLAGS -C target-cpu=x86-64-v4, bench profile inherits release
+criterion=defaults of 0.8.2 (cargo_bench_support only) --warm-up-time 0.1 --measurement-time 1.5
+google_benchmark=repetitions 30, random interleaving, --benchmark_min_time=0.05s
+loadavg_at_context=2.46 1.14 0.75 1/125 2258
+binary=inja.2.g++-16
+flags=g++-16 -std=c++26 -freflection -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -falign-jumps=64 -DNDEBUG
+compiler=GCC: (Debian 16.2.0-4) 16.2.0

@@ -1,0 +1,5 @@
+markup/w2               time:   [2.8731 µs 2.9468 µs 3.0317 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  5 (5.00%) high mild
+  6 (6.00%) high severe
+
