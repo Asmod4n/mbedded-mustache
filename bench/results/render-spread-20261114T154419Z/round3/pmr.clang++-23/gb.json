@@ -1,0 +1,186 @@
+{
+  "context": {
+    "date": "2026-11-14T15:45:05+00:00",
+    "host_name": "3cacc1f4b286",
+    "executable": "/w/bin/pmr.clang++-23",
+    "num_cpus": 4,
+    "mhz_per_cpu": 2300,
+    "cpu_scaling_enabled": false,
+    "caches": [
+      {
+        "type": "Data",
+        "level": 1,
+        "size": 49152,
+        "num_sharing": 1
+      },
+      {
+        "type": "Instruction",
+        "level": 1,
+        "size": 65536,
+        "num_sharing": 1
+      },
+      {
+        "type": "Unified",
+        "level": 2,
+        "size": 2097152,
+        "num_sharing": 1
+      },
+      {
+        "type": "Unified",
+        "level": 3,
+        "size": 528482304,
+        "num_sharing": 4
+      }
+    ],
+    "load_avg": [2.21924,2.18018,1.33887],
+    "library_version": "1.9.1",
+    "library_build_type": "debug",
+    "json_schema_version": 1
+  },
+  "benchmarks": [
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 0,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.6534523537022242e+03,
+      "cpu_time": 6.6472134553077949e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 1,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.8838502000838171e+03,
+      "cpu_time": 6.8721207356584719e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 2,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.9804782733344236e+03,
+      "cpu_time": 6.9785261101581873e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 3,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.8291930627037473e+03,
+      "cpu_time": 6.7258022679626465e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 4,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.7800355441037509e+03,
+      "cpu_time": 6.7756480846197810e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "iteration",
+      "repetitions": 6,
+      "repetition_index": 5,
+      "threads": 1,
+      "iterations": 10494,
+      "real_time": 6.6555066704831152e+03,
+      "cpu_time": 6.6511566609491119e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time_mean",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "aggregate",
+      "repetitions": 6,
+      "threads": 1,
+      "aggregate_name": "mean",
+      "aggregate_unit": "time",
+      "iterations": 6,
+      "real_time": 6.7970860174018453e+03,
+      "cpu_time": 6.7750778857759988e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time_median",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "aggregate",
+      "repetitions": 6,
+      "threads": 1,
+      "aggregate_name": "median",
+      "aggregate_unit": "time",
+      "iterations": 6,
+      "real_time": 6.8046143034037486e+03,
+      "cpu_time": 6.7507251762912138e+03,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time_stddev",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "aggregate",
+      "repetitions": 6,
+      "threads": 1,
+      "aggregate_name": "stddev",
+      "aggregate_unit": "time",
+      "iterations": 6,
+      "real_time": 1.2896330078899535e+02,
+      "cpu_time": 1.3034008508261897e+02,
+      "time_unit": "ns"
+    },
+    {
+      "name": "run_time_cv",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "run_time",
+      "run_type": "aggregate",
+      "repetitions": 6,
+      "threads": 1,
+      "aggregate_name": "cv",
+      "aggregate_unit": "percentage",
+      "iterations": 6,
+      "real_time": 1.8973321870405135e-02,
+      "cpu_time": 1.9238167779039510e-02,
+      "time_unit": "ns"
+    }
+  ]
+}

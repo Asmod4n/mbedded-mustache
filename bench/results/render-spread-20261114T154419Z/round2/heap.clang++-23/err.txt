@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8448
+address stack=0x7ffe5a909e40 malloc64=0x5613c44f1420 data=0x5613c44eee50 output=0x5613c44f4910 text=0x5613a82eaac0
+2026-11-14T15:44:53+00:00
+Running /w/bin/heap.clang++-23
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 2.57, 2.24, 1.34
+***WARNING*** Library was built as DEBUG. Timings may be affected.

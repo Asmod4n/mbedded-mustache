@@ -1,0 +1,10 @@
+round 1: pmr.g++-16 warm.clang++-23 pmr.clang++-23 warm.g++-16 ramhorns heapNR.clang++-23 cap.clang++-23 heap.clang++-23 typed.clang++-23 capNR.clang++-23 typed.g++-16 heap.g++-16 cap.g++-16 
+round 2: heap.g++-16 pmr.clang++-23 heap.clang++-23 ramhorns pmr.g++-16 cap.g++-16 warm.clang++-23 cap.clang++-23 capNR.clang++-23 warm.g++-16 typed.g++-16 heapNR.clang++-23 typed.clang++-23 
+round 3: cap.clang++-23 pmr.g++-16 warm.clang++-23 warm.g++-16 ramhorns heap.clang++-23 cap.g++-16 heapNR.clang++-23 heap.g++-16 typed.clang++-23 pmr.clang++-23 capNR.clang++-23 typed.g++-16 
+round 4: warm.g++-16 warm.clang++-23 cap.clang++-23 ramhorns heap.g++-16 heap.clang++-23 capNR.clang++-23 heapNR.clang++-23 pmr.g++-16 cap.g++-16 typed.g++-16 pmr.clang++-23 typed.clang++-23 
+round 5: heapNR.clang++-23 capNR.clang++-23 typed.clang++-23 warm.clang++-23 heap.clang++-23 ramhorns cap.clang++-23 typed.g++-16 heap.g++-16 pmr.g++-16 warm.g++-16 cap.g++-16 pmr.clang++-23 
+round 6: cap.g++-16 typed.g++-16 warm.g++-16 typed.clang++-23 capNR.clang++-23 pmr.clang++-23 heap.clang++-23 ramhorns warm.clang++-23 heap.g++-16 cap.clang++-23 heapNR.clang++-23 pmr.g++-16 
+round 7: warm.clang++-23 heap.g++-16 ramhorns capNR.clang++-23 heap.clang++-23 typed.clang++-23 heapNR.clang++-23 cap.g++-16 pmr.g++-16 cap.clang++-23 warm.g++-16 pmr.clang++-23 typed.g++-16 
+round 8: pmr.g++-16 typed.g++-16 ramhorns heapNR.clang++-23 typed.clang++-23 warm.clang++-23 pmr.clang++-23 heap.g++-16 heap.clang++-23 cap.clang++-23 capNR.clang++-23 warm.g++-16 cap.g++-16 
+round 9: ramhorns pmr.clang++-23 cap.clang++-23 warm.clang++-23 heapNR.clang++-23 heap.g++-16 typed.clang++-23 pmr.g++-16 capNR.clang++-23 warm.g++-16 heap.clang++-23 typed.g++-16 cap.g++-16 
+round 10: typed.clang++-23 warm.g++-16 cap.g++-16 heapNR.clang++-23 heap.g++-16 warm.clang++-23 capNR.clang++-23 cap.clang++-23 heap.clang++-23 pmr.clang++-23 pmr.g++-16 typed.g++-16 ramhorns 

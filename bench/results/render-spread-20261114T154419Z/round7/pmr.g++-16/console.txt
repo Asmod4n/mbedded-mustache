@@ -1,0 +1,13 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+run_time                7375 ns         7361 ns         9609
+run_time                7297 ns         7278 ns         9609
+run_time                7287 ns         7267 ns         9609
+run_time                7301 ns         7295 ns         9609
+run_time                7305 ns         7294 ns         9609
+run_time                8014 ns         7857 ns         9609
+run_time_mean           7430 ns         7392 ns            6
+run_time_median         7303 ns         7295 ns            6
+run_time_stddev          288 ns          230 ns            6
+run_time_cv             3.88 %          3.11 %             6

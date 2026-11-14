@@ -1,0 +1,6 @@
+ramhorns/w2             time:   [3.9525 µs 3.9825 µs 4.0223 µs]
+Found 17 outliers among 100 measurements (17.00%)
+  2 (2.00%) low mild
+  5 (5.00%) high mild
+  10 (10.00%) high severe
+

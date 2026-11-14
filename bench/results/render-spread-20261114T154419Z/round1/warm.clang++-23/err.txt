@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8448
+address stack=0x7ffeaa87e9d0 malloc64=0x564ac4992210 data=0x564ac4a2d670 output=0x564ac4a31120 text=0x564aad52de80
+2026-11-14T15:44:46+00:00
+Running /w/bin/warm.clang++-23
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 2.70, 2.26, 1.35
+***WARNING*** Library was built as DEBUG. Timings may be affected.

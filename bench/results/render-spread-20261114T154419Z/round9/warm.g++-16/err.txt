@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8448
+address stack=0x7ffc72e5019c malloc64=0x55a062cd5210 data=0x55a062d70670 output=0x55a062d74120 text=0x55a026edb080
+2026-11-14T15:45:47+00:00
+Running /w/bin/warm.g++-16
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 1.62, 2.03, 1.32
+***WARNING*** Library was built as DEBUG. Timings may be affected.

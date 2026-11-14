@@ -1,0 +1,4 @@
+Benchmarking ramhorns/w2
+Benchmarking ramhorns/w2: Warming up for 100.00 ms
+Benchmarking ramhorns/w2: Collecting 100 samples in estimated 1.5078 s (348k iterations)
+Benchmarking ramhorns/w2: Analyzing

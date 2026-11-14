@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8224
+address stack=0x7fffd2a5759c malloc64=0x5653b3aa6420 data=0x5653b3aa3e50 output=0x5653b3aa7c00 text=0x565389550b00
+2026-11-14T15:45:21+00:00
+Running /w/bin/cap.g++-16
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 1.95, 2.12, 1.33
+***WARNING*** Library was built as DEBUG. Timings may be affected.

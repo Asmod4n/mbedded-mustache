@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8448
+address stack=0x7fffe155a25c malloc64=0x563c7a92d420 data=0x563c7a92ae50 output=0x563c7a930910 text=0x563c48b9eb00
+2026-11-14T15:45:26+00:00
+Running /w/bin/heap.g++-16
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 1.87, 2.10, 1.33
+***WARNING*** Library was built as DEBUG. Timings may be affected.
