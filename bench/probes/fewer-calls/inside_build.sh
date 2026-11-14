@@ -22,7 +22,7 @@ for cxx in $COMPILERS; do
   for arm in $(cells_of $cxx); do
     b=/w/bin/stocks.$arm.$cxx
     [ -x "$b" ] || continue
-    echo "$arm $cxx text_bytes=$(size -A "$b" | awk '$1 == ".text" {print $2}') compile_seconds_stocks=$(cat "$b.seconds") compile_seconds_extras=$(cat /w/bin/extras.$arm.$cxx.seconds 2> /dev/null)" >> /w/out/sizes.txt
+    echo "$arm $cxx text_bytes=$(size -A "$b" | awk '$1 == ".text" {print $2}') compile_seconds_stocks=$(cat "$b.seconds") compile_seconds_extras=$(cat /w/bin/extras.$arm.$cxx.seconds 2>> /w/out/sizes.err)" >> /w/out/sizes.txt
   done
 done
 chmod -R a+rX /w/bin /w/arms

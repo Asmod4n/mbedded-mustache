@@ -26,7 +26,7 @@ echo "instruction_set=$(g++-16 -march=x86-64-v4 -dM -E -x c++ /dev/null | grep -
 echo "libstdcxx=$(ls -l $(ldconfig -p | awk '/libstdc\+\+.so.6 /{print $NF; exit}') | awk '{print $NF}')"
 echo "libc=$(ldd --version | head -1)"
 echo "kernel=$(uname -srv)"
-echo "sched_autogroup_enabled=$(cat /proc/sys/kernel/sched_autogroup_enabled 2> /dev/null)"
+echo "sched_autogroup_enabled=$(cat /proc/sys/kernel/sched_autogroup_enabled 2>> context.err)"
 echo "machine=$(lscpu | grep -E 'Hypervisor vendor|Virtualization type' | tr -s ' ' | tr '\n' ';')"
 echo "container=podman, cpus visible $(nproc)"
 echo "processor=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
