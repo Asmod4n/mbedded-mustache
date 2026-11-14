@@ -1,0 +1,13 @@
+same g++-16 head stocks against head, bdbb652bd0adb523 7737 bytes
+same g++-16 head extras against head, 001e08820b4e2c53 599441 bytes
+same g++-16 twin stocks against head, bdbb652bd0adb523 7737 bytes
+same g++-16 h2bp stocks against head, bdbb652bd0adb523 7737 bytes
+same g++-16 h2bp extras against head, 001e08820b4e2c53 599441 bytes
+same g++-16 head stocks against bench/render.cpp of 3e49a1c
+same clang++-23 head stocks against head, bdbb652bd0adb523 7737 bytes
+same clang++-23 head extras against head, 3269a02e4051b849 300258 bytes
+same clang++-23 twin stocks against head, bdbb652bd0adb523 7737 bytes
+same clang++-23 h2bp stocks against head, bdbb652bd0adb523 7737 bytes
+same clang++-23 h2bp extras against head, 3269a02e4051b849 300258 bytes
+same clang++-23 head stocks against bench/render.cpp of 3e49a1c
+same head stocks of g++-16 against head stocks of clang++-23

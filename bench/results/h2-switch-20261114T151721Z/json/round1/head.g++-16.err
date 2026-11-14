@@ -1,0 +1,38 @@
+output: 7737 bytes
+2026-11-14T15:17:23+00:00
+Running /w/bin/stocks.head.g++-16
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 0.23, 0.58, 0.60
+avx512_flags: avx512_bf16 avx512_bitalg avx512_fp16 avx512_vbmi2 avx512_vnni avx512_vpopcntdq avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512vl 
+binary: head.g++-16
+commit: 45e5a9192381e74976e04502b3eafdd89617e918
+compiler: GCC: (Debian 16.2.0-4) 16.2.0
+container: podman
+dirty_files: 0
+google_benchmark: 5 rounds of 6 repetitions
+image: sha256:333ddac6440e908c9c0a6ba331ceb5929b368a8f96be274f967cad3bfe5406dc_3a18f18efd74d0b7f81fba1af946d34f39196d7519d8524762f3b32f38bf8e7e
+instruction_set: __AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ 
+kernel: Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+libc: ldd (Debian GLIBC 2.43-7) 2.43
+libstdcxx: libstdc++.so.6.0.36
+loadavg_before: 0.09 0.56 0.60 1/126 16
+machine: Hypervisor vendor: KVM;Virtualization type: full;
+nice: 0
+order: a new random order of the binaries in each round: random.Random(seed * 1000 + round).shuffle of fixed-order.txt
+order_seed: 416700191
+pilot: 0
+podman: podman_version_4.9.3
+priority: nobody cannot lower nice; the run has the default priority and is not pinned
+processor:  Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest: sha256:0750228a0e310f80
+round: 1
+sched_autogroup_enabled: 1
+sysbench_cpu_events_per_second_10_runs_of_1s_1_thread: 2922.38 2936.38 3002.42 2969.00 2898.67 3015.06 2909.24 2957.31 2889.51 2843.66 
+threads: 1
+user: nobody
+***WARNING*** Library was built as DEBUG. Timings may be affected.

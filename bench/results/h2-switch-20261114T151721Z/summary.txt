@@ -1,0 +1,26 @@
+### median ns per render (cv, 30 rows of 5 rounds x 6 repetitions)
+
+| arm | g++-16 | clang++-23 |
+|---|---|---|
+| head 6c50679 | 6785 (15.46 %) | 5864 (24.01 %) |
+| head twin (A/A) | 6137 (16.93 %) | 6035 (12.37 %) |
+| H2b' Call the find of the map directly, with a pair {pointer, type index} and a switch | 7676 (14.04 %) | 5970 (14.69 %) |
+
+### median of the arm over the median of head, minus 1, and the time p-value of the U test of compare.py against head
+
+| arm | g++-16 | clang++-23 |
+|---|---|---|
+| head twin (A/A) | -9.55 % (p 0.0519) | +2.90 % (p 0.6735) |
+| H2b' Call the find of the map directly, with a pair {pointer, type index} and a switch | +13.13 % (p 0.0064) | +1.80 % (p 0.0993) |
+
+noise floor, sysbench cpu events/s, 10 runs of 1 s: min 2843.7 max 3015.1 spread 6.03 %
+
+### .text size and compile time of each binary (four compiles ran at the same time on 4 processors)
+
+head g++-16 text_bytes=142639 compile_seconds_stocks=7.3 compile_seconds_extras=29.6
+twin g++-16 text_bytes=142639 compile_seconds_stocks=6.0 compile_seconds_extras=
+h2bp g++-16 text_bytes=143087 compile_seconds_stocks=6.2 compile_seconds_extras=31.6
+head clang++-23 text_bytes=90680 compile_seconds_stocks=5.1 compile_seconds_extras=8.5
+twin clang++-23 text_bytes=90680 compile_seconds_stocks=5.5 compile_seconds_extras=
+h2bp clang++-23 text_bytes=87992 compile_seconds_stocks=5.4 compile_seconds_extras=9.4
+

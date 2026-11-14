@@ -1,0 +1,6 @@
+head g++-16 text_bytes=142639 compile_seconds_stocks=7.3 compile_seconds_extras=29.6
+twin g++-16 text_bytes=142639 compile_seconds_stocks=6.0 compile_seconds_extras=
+h2bp g++-16 text_bytes=143087 compile_seconds_stocks=6.2 compile_seconds_extras=31.6
+head clang++-23 text_bytes=90680 compile_seconds_stocks=5.1 compile_seconds_extras=8.5
+twin clang++-23 text_bytes=90680 compile_seconds_stocks=5.5 compile_seconds_extras=
+h2bp clang++-23 text_bytes=87992 compile_seconds_stocks=5.4 compile_seconds_extras=9.4
