@@ -96,6 +96,7 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | short-value-copy, arms 10 and 11 | A value of 1 to 16 bytes read with one masked load of AVX-512BW and AVX-512VL; arm 11 also stores with a mask. |
 | scalar-writers | The xml, json, js, css and troff writers of 4dac08e against two forms that store each piece as one 8-byte word. |
 | html-escape-span | escape_into of 738ff29 against two forms of escape_into over a proven std::span<char>, as inline functions of a header. |
+| html-escape-span, arm 4 | Arm 3 with the scalar parts over a std::span that each stored word advances: the store takes a base address and no index. |
 | table-size | The size of .text and .rodata of one small program for 32-bit ARM at four states of the headers, in four forms. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
@@ -129,5 +130,6 @@ No result file stands for them.
 | scalar-writers-20261114T082033Z.json | scalar-writers, arms 0 to 3, x86-64-v3 |
 | html-escape-span-20261114T083204Z.json | html-escape-span, arms 0 to 3, x86-64-v3 and x86-64-v4 |
 | table-size-20261114T085120Z.json | table-size, 4dac08e, 738ff29, 7c3f670 and d08686b |
+| html-escape-span-20261114T085638Z.json | html-escape-span, arms 0, 1, 3 and 4, x86-64-v3 |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
