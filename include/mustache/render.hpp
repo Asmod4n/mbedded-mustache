@@ -420,13 +420,12 @@ private:
           const std::optional<Value> v = lookup(p, op, pc);
           pc++;
           if (!v) break;
-          const Kind k = data_.kind_of(*v);
+          const auto [k, s] = data_.scalar_of(*v, detail::containers::NumberText(number_));
           if (k == Kind::falsy) break;
           if (k != Kind::text) [[unlikely]] {
             fault_ = Fault::not_text;
             return false;
           }
-          const std::string_view s = data_.text_of(*v, detail::containers::NumberText(number_));
           if (s.empty()) break;
           indent_if_pending(ind);
           if (op.tag == Tag::var) escaped_in(context_, s);

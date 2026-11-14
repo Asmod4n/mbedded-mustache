@@ -421,6 +421,12 @@ public:
     });
   }
 
+  containers::Scalar scalar_of(const Entry e, const containers::NumberText text) const
+  {
+    const mustache::Kind k = kind_of(e);
+    return {k, k == mustache::Kind::text ? text_of(e, text) : std::string_view()};
+  }
+
   std::string_view text_of(const Entry e, const containers::NumberText text) const
   {
     return Table::with_type(e, [this, text]<class V>(const V &v) -> std::string_view {

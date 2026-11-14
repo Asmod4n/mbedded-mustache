@@ -70,6 +70,11 @@ using NumberText = std::span<char, kNumberTextMax>;
 
 struct Table;
 
+struct Scalar {
+  Kind             kind;
+  std::string_view text;
+};
+
 struct Value {
   const void  *data;
   const Table *table;
@@ -77,7 +82,7 @@ struct Value {
 
 struct Table {
   Kind (*kind_of)(const void *);
-  std::string_view (*text_of)(const void *, NumberText);
+  Scalar (*scalar_of)(const void *, NumberText);
   size_t (*size_of)(const void *);
   Value (*element)(const void *, size_t);
   std::optional<Value> (*find)(const void *, const std::string &);
@@ -117,24 +122,34 @@ struct TableOf {
     }
   }
 
-  static std::string_view text_of(const void *const p, const NumberText text)
+  static Scalar scalar_of(const void *const p, const NumberText text)
   {
     const T &v = of(p);
     if constexpr (variant_like<T>) {
-      return std::visit([text](const auto &x) { return value_of(x).table->text_of(&x, text); }, variant_base(v));
+      return std::visit([text](const auto &x) { return value_of(x).table->scalar_of(&x, text); }, variant_base(v));
     }
-    else if constexpr (text_like<T>) {
-      return std::string_view(v);
+    else if constexpr (std::same_as<T, bool>) {
+      return {v ? Kind::truthy : Kind::falsy, {}};
     }
     else if constexpr (number_like<T>) {
       const std::to_chars_result r = std::to_chars(text.data(), std::to_address(text.end()), v);
-      return {text.data(), r.ptr};
+      return {Kind::text, {text.data(), r.ptr}};
+    }
+    else if constexpr (text_like<T>) {
+      return {Kind::text, std::string_view(v)};
+    }
+    else if constexpr (falsy_like<T>) {
+      return {Kind::falsy, {}};
     }
     else if constexpr (is_optional_v<T>) {
-      return v ? value_of(*v).table->text_of(std::addressof(*v), text) : std::string_view();
+      return v ? value_of(*v).table->scalar_of(std::addressof(*v), text) : Scalar{Kind::falsy, {}};
+    }
+    else if constexpr (map_like<T>) {
+      return {v.empty() ? Kind::falsy : Kind::map, {}};
     }
     else {
-      return {};
+      static_assert(list_like<T>, "a value is text, a number, a bool, an optional, a variant, a map or a list");
+      return {Kind::list, {}};
     }
   }
 
@@ -192,7 +207,7 @@ struct TableOf {
     }
   }
 
-  static constexpr Table kTable{kind_of, text_of, size_of, element, find};
+  static constexpr Table kTable{kind_of, scalar_of, size_of, element, find};
 };
 
 template <class T>
@@ -206,7 +221,7 @@ struct Access {
   using Value = containers::Value;
 
   static Kind kind_of(const Value v) { return v.table->kind_of(v.data); }
-  static std::string_view text_of(const Value v, const NumberText text) { return v.table->text_of(v.data, text); }
+  static Scalar scalar_of(const Value v, const NumberText text) { return v.table->scalar_of(v.data, text); }
   static size_t size_of(const Value v) { return v.table->size_of(v.data); }
   static Value element(const Value v, const size_t i) { return v.table->element(v.data, i); }
   static std::optional<Value> find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
