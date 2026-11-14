@@ -1,0 +1,47 @@
+same g++-16 main p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 main p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 twin p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 twin p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 main8192 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 main8192 p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 e1 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 e1 p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 e2 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 e2 p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 e3a1024 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 e3a1024 p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 e3a8192 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 e3a8192 p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 all p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 all p200 against main, 406e2c69ba941f4b 68120 bytes
+same g++-16 extras main against main, f3d2334634dbb449 4074823 bytes
+same g++-16 extras e1 against main, f3d2334634dbb449 4074823 bytes
+same g++-16 extras e2 against main, f3d2334634dbb449 4074823 bytes
+same g++-16 extras e3a against main, f3d2334634dbb449 4074823 bytes
+same g++-16 extras all against main, f3d2334634dbb449 4074823 bytes
+same g++-16 main p20 against bench/render.cpp of 5d3c154
+same clang++-23 main p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 main p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 twin p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 twin p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 main8192 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 main8192 p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 e1 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 e1 p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 e2 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 e2 p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 e3a1024 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 e3a1024 p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 e3a8192 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 e3a8192 p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 all p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 all p200 against main, 406e2c69ba941f4b 68120 bytes
+same clang++-23 extras main against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 extras e1 against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 extras e2 against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 extras e3a against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 extras all against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 main p20 against bench/render.cpp of 5d3c154
+same main p20 of g++-16 against main p20 of clang++-23
+same main p200 of g++-16 against main p200 of clang++-23
+note: extras of g++-16 (with reflection sections) and clang++-23 differ by design

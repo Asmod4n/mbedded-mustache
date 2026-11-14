@@ -1,0 +1,10 @@
+Wall time of each phase, seconds, one machine, container localhost/mbedded-cbor-docs.
+build of the arms (make arms, 44 compiles four at a time, .text sizes): 94
+byte checks (every binary writes its render, cmp against main): 2
+build of the tests (65 binaries four at a time, 385.5 s of compile time in all): 98
+run of the tests (65 binaries as nobody): 11
+timed part (noise floor and 10 rounds of the 6 binaries): 121 (131 with the start of the container)
+compare.py (apt install of scipy, clone of Google Benchmark, 4 comparisons): 21
+Work before this run that the owner did not want: a build of the same arms from the working tree (96 s), a pilot of the timed part,
+and a timed run of eight arms that was stopped when the owner cut the run to three arms (about 7 minutes, no result kept).
+The build and the tests above were made for the arms main, twin, E1, E2, E3a and all, before the run was cut; this run times main, main twin and E1.
