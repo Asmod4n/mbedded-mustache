@@ -11,19 +11,22 @@ Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 int main() {
   std::map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
 
-  auto html = mustache::compile("<p>Hello, {{name}}!</p>");                     // HTML by default
-  auto json = mustache::compile(R"({"greeting": "Hello, {{name}}!"})", "application/json");
-  auto raw  = mustache::compile("Hello, {{{name}}}!");                          // no escaping
+  // One partial, escaped by the media type of the template that includes it.
+  mustache::Partials partials{{"greeting", *mustache::compile("Hello, {{name}}!")}};
 
-  std::println("{}", *mustache::render(*html, data));
-  std::println("{}", *mustache::render(*json, data));
+  auto html = mustache::compile("<p>{{> greeting}}</p>");                     // HTML by default
+  auto json = mustache::compile(R"({"text": "{{> greeting}}"})", "application/json");
+  auto raw  = mustache::compile("Hello, {{{name}}}!");                        // no escaping
+
+  std::println("{}", *mustache::render(*html, data, partials));
+  std::println("{}", *mustache::render(*json, data, partials));
   std::println("{}", *mustache::render(*raw, data));
 }
 ```
 
 ```
 <p>Hello, Ada &lt;&quot;admin&quot;&gt;!</p>
-{"greeting": "Hello, Ada <\"admin\">!"}
+{"text": "Hello, Ada <\"admin\">!"}
 Hello, Ada <"admin">!
 ```
 
