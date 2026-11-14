@@ -4,7 +4,8 @@
 // Arms: 0 and 1 escape_into(char *, std::string_view) of 738ff29 as it stands (the same code twice, for the
 // noise); 2 and 3 escape_into(std::span<char>, std::string_view) of escape_span.hpp, an inline function of a
 // header in namespace mustache; 2 has [[gnu::always_inline, gnu::flatten]] on the 32-byte helpers, 3 has
-// [[gnu::flatten]] on escape_into and no attribute on the 32-byte helpers.
+// [[gnu::flatten]] on escape_into and no attribute on the 32-byte helpers; 4 is 3 with the scalar parts over a
+// std::span that each stored word advances.
 // Each arm writes into a room of the exact escaped size + kBytesPastTheWrittenCount, as the callers in out.hpp
 // prove with room_holds_the_escaped_value.
 #include "escape_span.hpp"

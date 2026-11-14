@@ -2,17 +2,36 @@
 // include/mustache/escape.hpp. It is included after mustache/escape.hpp of 738ff29 and adds overloads beside
 // the forms that take char *. Arm 2: the two 32-byte helpers carry [[gnu::always_inline, gnu::flatten]], as the
 // 16-byte helpers of 738ff29 do, and escape_into carries no attribute. Arm 3: the two 32-byte helpers carry no
-// attribute, and escape_into carries [[gnu::flatten]].
+// attribute, and escape_into carries [[gnu::flatten]]. Arm 4: arm 3, and the scalar parts store each word at the
+// start of a std::span that each word advances (std::span::subspan), so that the store takes a base address and no
+// index; the count is std::ranges::distance from the start of the room.
 #pragma once
 
 #include <mustache/escape.hpp>
 
 namespace mustache {
 
+#if ARM == 4
+[[gnu::always_inline, gnu::flatten]] constexpr size_t
+advanced_escaped_into(const std::span<char> room, const size_t count, const std::string_view s, const Entities &table)
+{
+  std::span<char> rest = room.subspan(count);
+  for (const char c : s) {
+    const uint64_t word = entity_word_of(table, static_cast<unsigned char>(c));
+    stored_word(rest.first<kEntityWordBytes>(), word);
+    rest = rest.subspan(entity_length(word));
+  }
+  return static_cast<size_t>(std::ranges::distance(room.begin(), rest.begin()));
+}
+#define SCALAR_ESCAPED_INTO advanced_escaped_into
+#else
+#define SCALAR_ESCAPED_INTO table_escaped_into
+#endif
+
 constexpr size_t
 escape_bytes(const std::span<char> room, const std::string_view s)
 {
-  return table_escaped_into(room, 0, s, kEntities);
+  return SCALAR_ESCAPED_INTO(room, 0, s, kEntities);
 }
 
 #if ARM == 2
@@ -36,7 +55,7 @@ stored(const std::span<char, sizeof(__m256i)> o, const __m256i v)
   std::copy_n(a.begin(), a.size(), o.begin());
 }
 
-#if ARM == 3
+#if ARM == 3 || ARM == 4
 [[gnu::flatten]]
 #endif
 inline size_t
@@ -56,7 +75,7 @@ escape_into(const std::span<char> room, const std::string_view s)
       continue;
     }
     if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
-      w = table_escaped_into(room, w, s.substr(at, kVectorBytes), kEntities);
+      w = SCALAR_ESCAPED_INTO(room, w, s.substr(at, kVectorBytes), kEntities);
       continue;
     }
     std::span<const char> from = in.subspan(at);
@@ -75,7 +94,7 @@ escape_into(const std::span<char> room, const std::string_view s)
     }
     w += kVectorBytes - done;
   }
-  return table_escaped_into(room, w, s.substr(at), kEntities);
+  return SCALAR_ESCAPED_INTO(room, w, s.substr(at), kEntities);
 }
 
 }
