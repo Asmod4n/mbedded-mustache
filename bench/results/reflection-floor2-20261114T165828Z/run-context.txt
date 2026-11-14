@@ -1,0 +1,1 @@
+user=nobody nice=0 threads=1 not pinned; nobody owns no other process, so the run has the default priority

@@ -1,0 +1,54 @@
+Stocks page, reflection render and its floors, g++-16 -O2, real time in ns per operation.
+Each process: the median of its 30 repetitions. Each arm: 10 processes, a new random order of the processes per round.
+
+| arm | median of 10 process medians ns | min ns | max ns | between spread % | between cv % | within cv median % | other cpus max |
+|---|---|---|---|---|---|---|---|
+| R | 914.9 | 881.1 | 956.3 | 8.5 | 3.2 | 16.5 | 0.03 |
+| R2 | 899.1 | 883.6 | 948.9 | 7.4 | 2.4 | 12.9 | 0.09 |
+| S2 | 337.6 | 333.7 | 372.3 | 11.5 | 3.4 | 14.9 | 0.03 |
+
+repetitions per process: [30]
+noise floor, sysbench cpu events/s, 10 runs of 1 s: min 2958.8 max 3044.7 spread 2.91 %
+A/A, R2 against R: -1.72 % (medians of the process medians)
+
+C = 68.0 ns, from another run; S2 = 337.6 ns, C + S2 = 405.6 ns
+R - (C + S2) = 509.2 ns (55.7 % of R)
+R / S2 = 2.71, R / (C + S2) = 2.26
+
+Per process: round, median ns, within cv %, other cpus.
+
+R
+  process  1:    956.29 ns, within cv 14.99 %, other cpus +0.02
+  process  2:    897.50 ns, within cv 15.42 %, other cpus +0.02
+  process  3:    932.20 ns, within cv  9.79 %, other cpus +0.01
+  process  4:    937.31 ns, within cv 17.43 %, other cpus +0.02
+  process  5:    896.92 ns, within cv 23.27 %, other cpus +0.01
+  process  6:    881.12 ns, within cv  8.40 %, other cpus +0.03
+  process  7:    949.69 ns, within cv 20.97 %, other cpus +0.00
+  process  8:    890.63 ns, within cv 30.26 %, other cpus +0.02
+  process  9:    888.04 ns, within cv 19.94 %, other cpus +0.01
+  process 10:    945.14 ns, within cv 15.59 %, other cpus +0.01
+
+R2
+  process  1:    883.60 ns, within cv  8.13 %, other cpus +0.03
+  process  2:    890.57 ns, within cv 18.40 %, other cpus +0.09
+  process  3:    918.39 ns, within cv  6.81 %, other cpus +0.01
+  process  4:    904.20 ns, within cv 14.28 %, other cpus +0.01
+  process  5:    903.17 ns, within cv  4.42 %, other cpus +0.03
+  process  6:    893.10 ns, within cv 13.11 %, other cpus +0.02
+  process  7:    895.06 ns, within cv 21.03 %, other cpus +0.01
+  process  8:    889.90 ns, within cv 12.70 %, other cpus +0.02
+  process  9:    948.93 ns, within cv  9.65 %, other cpus +0.02
+  process 10:    938.07 ns, within cv 17.24 %, other cpus +0.01
+
+S2
+  process  1:    334.83 ns, within cv  4.37 %, other cpus +0.03
+  process  2:    335.61 ns, within cv 13.91 %, other cpus +0.02
+  process  3:    340.51 ns, within cv 18.24 %, other cpus +0.01
+  process  4:    335.21 ns, within cv 17.43 %, other cpus +0.03
+  process  5:    340.01 ns, within cv 15.88 %, other cpus +0.02
+  process  6:    333.72 ns, within cv  9.10 %, other cpus +0.02
+  process  7:    336.98 ns, within cv  9.42 %, other cpus +0.03
+  process  8:    346.85 ns, within cv 33.88 %, other cpus +0.01
+  process  9:    372.27 ns, within cv 28.82 %, other cpus +0.00
+  process 10:    338.29 ns, within cv 10.87 %, other cpus +0.02

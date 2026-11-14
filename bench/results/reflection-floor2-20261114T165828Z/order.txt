@@ -1,0 +1,10 @@
+round 1: R R2 S2 
+round 2: S2 R2 R 
+round 3: S2 R R2 
+round 4: R R2 S2 
+round 5: R R2 S2 
+round 6: S2 R2 R 
+round 7: R2 S2 R 
+round 8: R2 S2 R 
+round 9: S2 R2 R 
+round 10: R S2 R2 

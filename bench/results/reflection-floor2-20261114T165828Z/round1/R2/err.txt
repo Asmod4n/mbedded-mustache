@@ -1,0 +1,11 @@
+output: 7737 bytes, marks in the values: 22 (library scan 22)
+2026-11-14T16:58:49+00:00
+Running /w/bin/R2
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 0.55, 0.39, 0.71
+***WARNING*** Library was built as DEBUG. Timings may be affected.
