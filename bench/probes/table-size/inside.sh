@@ -1,7 +1,9 @@
 #!/bin/sh
 # Container side: installs arm-linux-gnueabihf-g++-16, builds probe.cpp for each state in /w/h and each form
 # (no media type, text/html, application/json, a media type known at run time), four builds at a time,
-# and prints "size <state> <form> <section> <bytes>" for .text, .rodata and their sum. Writes /w/out.
+# and prints "size <state> <form> <section> <bytes>" for .text, .rodata and their sum, and
+# "symbol <state> <form> <name> <bytes>" for each escape table that the linked program holds (read with nm -S).
+# Writes /w/out.
 set -u
 apt-get update -q > /w/out/apt.log 2>&1
 apt-get install -y -q --no-install-recommends g++-16-arm-linux-gnueabihf >> /w/out/apt.log 2>&1 || { echo "apt failed"; tail -5 /w/out/apt.log; exit 1; }
@@ -28,6 +30,13 @@ for s in $STATES; do for f in none html json runtime; do
     $1 == ".text" { t = $2 } $1 == ".rodata" { r = $2 }
     END { print "size", s, f, ".text", t; print "size", s, f, ".rodata", r; print "size", s, f, ".text+.rodata", t + r }'
 done; done | tee /w/out/sizes.txt
+for s in $STATES; do for f in none html json runtime; do
+  e=/w/bin/probe-$s-$f.elf
+  [ -f $e ] || continue
+  arm-linux-gnueabihf-nm -S -C $e > /w/bin/probe-$s-$f.nm 2> /w/bin/probe-$s-$f.nm.log
+  grep -E ' mustache::(k(Xml|Json|Js|Css|Troff)?(Entities|Classes|Pieces)|kClassFields)$' /w/bin/probe-$s-$f.nm |
+    while read -r address bytes type name; do echo "symbol $s $f $name $(printf '%d' 0x$bytes)"; done
+done; done | tee /w/out/symbols.txt
 e=$(ls /w/bin/*.elf | head -1)
 {
 echo "probe commit: $PROBE_COMMIT (dirty files: $DIRTY)"

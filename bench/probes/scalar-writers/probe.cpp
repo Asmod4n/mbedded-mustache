@@ -4,7 +4,13 @@
 // byte too, written as one 8-byte word through std::span<char, 8>, std::bit_cast and std::copy_n, the count
 // moves on by the length of the piece, and the word of each byte comes from a table of 256 words for each
 // context, built at compile time, as the html writer reads kEntities; 3 arm 2 with each run of plain bytes
-// copied with std::copy_n into the room and only the escaped bytes written as words from the same tables.
+// copied with std::copy_n into the room and only the escaped bytes written as words from the same tables;
+// 4 arm 2 with a class in place of a word: for each context a table of 256 classes of one byte (0 the byte
+// stays, 1 a hex form made from the byte, from 2 on, or from 1 on in a context with no hex form, the number of
+// a fixed replacement) and a table of the words of the classes; the word of a byte is the word of its class,
+// with the byte put in by a mask where the class is 0 and the two hex digits, made by arithmetic, put in by a
+// mask where the class is 1; 5 arm 4 with the classes of all five contexts in bit fields of one table of 256
+// entries of 16 bits; 6 the same code as arm 2, a second binary: the noise of the cell.
 // Each arm writes into a room of escaped_size_max_in(context, n) + 32 bytes, as the callers in out.hpp prove.
 #include <algorithm>
 #include <array>
@@ -17,6 +23,7 @@
 #include <print>
 #include <random>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -365,7 +372,7 @@ entity_word_of(const Entities &table, const unsigned char c)
   return table.word[c];
 }
 
-#if ARM == 2 || ARM == 0 || ARM == 1
+#if ARM != 3
 
 [[gnu::always_inline]] constexpr size_t
 table_escaped_into(const std::span<char> room, const size_t count, const std::string_view s, const Entities &table)
@@ -508,11 +515,234 @@ escaped_into_in(const Context c, const std::span<char> room, const std::string_v
 
 }
 
+// The class form of arms 4 and 5: the word of a byte is made from the class of the byte and the byte.
+namespace classes {
+
+using namespace std::string_view_literals;
+using word::byte_word_of;
+using word::word_appended;
+using word::word_of;
+
+inline constexpr uint8_t kUnchanged = 0;
+inline constexpr uint8_t kHexForm = 1;
+inline constexpr size_t kByteValues = 256;
+
+using Classes = std::array<uint8_t, kByteValues>;
+
+inline constexpr int kNibbleBits = 4;
+inline constexpr unsigned kNibbleMask = 15;
+inline constexpr int kBitsPerByte = std::numeric_limits<unsigned char>::digits;
+// A nibble of 10 or more carries into bit 4 when 16 - 10 = 6 is added; the low byte stays under 32, so no carry
+// reaches the high byte.
+inline constexpr uint64_t kSixInBothBytes = 0x0606;
+inline constexpr uint64_t kOneInBothBytes = 0x0101;
+inline constexpr uint64_t kZeroDigitInBothBytes = 0x3030;
+inline constexpr uint64_t kLetterAfterDigits = 'a' - '0' - 10;
+
+// The two hex digits of u, the high digit in the low byte, as text order wants them in a little-endian word.
+constexpr uint64_t
+hex_pair_of(const unsigned char u)
+{
+  const uint64_t nibbles = uint64_t{static_cast<unsigned>(u >> kNibbleBits)} | uint64_t{u & kNibbleMask} << kBitsPerByte;
+  const uint64_t letters = (nibbles + kSixInBothBytes) >> kNibbleBits & kOneInBothBytes;
+  return nibbles + kZeroDigitInBothBytes + letters * kLetterAfterDigits;
+}
+
+constexpr uint64_t
+all_bits_if(const bool b)
+{
+  return uint64_t{0} - uint64_t{b};
+}
+
+template <Context C> inline constexpr int kPieces = 0;
+template <> inline constexpr std::array<uint64_t, 6> kPieces<Context::xml_text> = {
+    byte_word_of('\0'), word_of("&amp;"), word_of("&lt;"), word_of("&gt;"), word_of("&quot;"), word_of("&apos;")};
+template <> inline constexpr std::array<uint64_t, 9> kPieces<Context::json_string> = {
+    byte_word_of('\0'), word_of("\\u00\0\0"sv), word_of("\\\""), word_of("\\\\"), word_of("\\b"), word_of("\\f"),
+    word_of("\\n"),     word_of("\\r"),         word_of("\\t")};
+template <> inline constexpr std::array<uint64_t, 2> kPieces<Context::js_string> = {byte_word_of('\0'), word_of("\\x\0\0"sv)};
+template <> inline constexpr std::array<uint64_t, 2> kPieces<Context::css_string> = {byte_word_of('\0'), word_of("\\\0\0 "sv)};
+template <> inline constexpr std::array<uint64_t, 7> kPieces<Context::troff_text> = {
+    byte_word_of('\0'), word_of("\\e"), word_of("\\(dq"), word_of("\\(aq"), word_of("\\(ga"), word_of("\\(ti"), word_of("\\(ha")};
+
+// The byte place of the two hex digits in the word of the hex form; 0: the context has no hex form.
+template <Context C> inline constexpr size_t kHexAt = 0;
+template <> inline constexpr size_t kHexAt<Context::json_string> = 4;
+template <> inline constexpr size_t kHexAt<Context::js_string> = 2;
+template <> inline constexpr size_t kHexAt<Context::css_string> = 1;
+
+template <Context C, class WordOf>
+consteval Classes
+classes_by(const WordOf &word_of_byte)
+{
+  Classes k{};
+  for (size_t b = 0; b < k.size(); b++) {
+    const unsigned char u = static_cast<unsigned char>(b);
+    const char c = static_cast<char>(u);
+    const uint64_t w = word_of_byte(c);
+    const auto found = std::ranges::find(kPieces<C>, w);
+    if (w == byte_word_of(c)) k.at(b) = kUnchanged;
+    else if (kHexAt<C> != 0 && w == (kPieces<C>.at(kHexForm) | hex_pair_of(u) << (kHexAt<C> * kBitsPerByte))) k.at(b) = kHexForm;
+    else if (found != kPieces<C>.end()) k.at(b) = static_cast<uint8_t>(std::distance(kPieces<C>.begin(), found));
+    else throw std::logic_error("a byte has no class");
+  }
+  return k;
+}
+
+template <Context C> inline constexpr int kClasses = 0;
+template <> inline constexpr Classes kClasses<Context::xml_text> = classes_by<Context::xml_text>(word::xml_word_of);
+template <> inline constexpr Classes kClasses<Context::json_string> = classes_by<Context::json_string>(word::json_word_of);
+template <> inline constexpr Classes kClasses<Context::js_string> = classes_by<Context::js_string>(word::js_word_of);
+template <> inline constexpr Classes kClasses<Context::css_string> = classes_by<Context::css_string>(word::css_word_of);
+template <> inline constexpr Classes kClasses<Context::troff_text> = classes_by<Context::troff_text>(word::troff_word_of);
+
+struct Field {
+  int      shift;
+  uint16_t mask;
+};
+
+template <Context C> inline constexpr Field kField{};
+template <> inline constexpr Field kField<Context::xml_text>{0, 7};
+template <> inline constexpr Field kField<Context::json_string>{3, 15};
+template <> inline constexpr Field kField<Context::js_string>{7, 1};
+template <> inline constexpr Field kField<Context::css_string>{8, 1};
+template <> inline constexpr Field kField<Context::troff_text>{9, 7};
+
+template <Context C>
+consteval uint16_t
+field_bits_of(const size_t b)
+{
+  if (kClasses<C>.at(b) > kField<C>.mask) throw std::logic_error("a class does not fit its field");
+  return static_cast<uint16_t>(kClasses<C>.at(b) << kField<C>.shift);
+}
+
+consteval std::array<uint16_t, kByteValues>
+fields_of()
+{
+  std::array<uint16_t, kByteValues> f{};
+  for (size_t b = 0; b < f.size(); b++)
+    f.at(b) = field_bits_of<Context::xml_text>(b) | field_bits_of<Context::json_string>(b) | field_bits_of<Context::js_string>(b) |
+              field_bits_of<Context::css_string>(b) | field_bits_of<Context::troff_text>(b);
+  return f;
+}
+
+inline constexpr std::array<uint16_t, kByteValues> kFields = fields_of();
+
+template <Context C>
+[[gnu::always_inline]] constexpr uint8_t
+class_of(const unsigned char u)
+{
+  static_assert(std::cmp_less(std::numeric_limits<unsigned char>::max(), kByteValues), "every value of unsigned char indexes an entry");
+#if ARM == 5
+  return static_cast<uint8_t>(kFields[u] >> kField<C>.shift & kField<C>.mask);
+#else
+  return kClasses<C>[u];
+#endif
+}
+
+template <Context C>
+consteval bool
+every_class_indexes_a_piece()
+{
+  for (size_t b = 0; b < kByteValues; b++) {
+    if (class_of<C>(static_cast<unsigned char>(b)) >= kPieces<C>.size()) return false;
+  }
+  return true;
+}
+
+static_assert(every_class_indexes_a_piece<Context::xml_text>() && every_class_indexes_a_piece<Context::json_string>() &&
+                  every_class_indexes_a_piece<Context::js_string>() && every_class_indexes_a_piece<Context::css_string>() &&
+                  every_class_indexes_a_piece<Context::troff_text>(),
+              "the class of every byte indexes a word of the pieces of its context");
+
+template <Context C>
+[[gnu::always_inline]] constexpr uint64_t
+word_of_byte(const unsigned char u)
+{
+  const uint8_t k = class_of<C>(u);
+  uint64_t w = kPieces<C>[k] | (uint64_t{u} & all_bits_if(k == kUnchanged));
+  if constexpr (kHexAt<C> != 0) w |= hex_pair_of(u) << (kHexAt<C> * kBitsPerByte) & all_bits_if(k == kHexForm);
+  return w;
+}
+
+template <Context C>
+[[gnu::always_inline]] constexpr size_t
+classes_escaped_into(const std::span<char> room, const size_t count, const std::string_view s)
+{
+  size_t at = count;
+  for (const char c : s) at = word_appended(room, at, word_of_byte<C>(static_cast<unsigned char>(c)));
+  return at;
+}
+
+constexpr size_t
+js_string_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  size_t count = 0;
+  for (auto at = s.begin(); at != s.end(); ++at) {
+    const std::string_view rest(at, s.end());
+    if (*at != word::kLineSeparator.front()) count = word_appended(room, count, word_of_byte<Context::js_string>(static_cast<unsigned char>(*at)));
+    else if (rest.starts_with(word::kLineSeparator)) {
+      count = word_appended(room, count, word_of("\\u2028"));
+      at = std::next(at, word::kLineSeparator.size() - 1);
+    }
+    else if (rest.starts_with(word::kParagraphSeparator)) {
+      count = word_appended(room, count, word_of("\\u2029"));
+      at = std::next(at, word::kParagraphSeparator.size() - 1);
+    }
+    else count = word_appended(room, count, word_of_byte<Context::js_string>(static_cast<unsigned char>(*at)));
+  }
+  return count;
+}
+
+constexpr size_t
+troff_line_escaped_into(const std::span<char> room, const std::string_view line)
+{
+  size_t count = 0;
+  if (line.starts_with(' ') || line.starts_with('.')) count = word_appended(room, count, word_of("\\&"));
+  const bool ends_in_space = line.ends_with(' ');
+  count = classes_escaped_into<Context::troff_text>(room, count, ends_in_space ? line.substr(0, line.size() - 1) : line);
+  if (ends_in_space) count = word_appended(room, count, word_of("\\ "));
+  const auto core = std::find_if_not(line.rbegin(), line.rend(), is_closing_delimiter);
+  const bool ends_a_sentence = core != line.rend() && is_sentence_mark(*core);
+  if (ends_in_space || ends_a_sentence) count = word_appended(room, count, word_of("\\&"));
+  return count;
+}
+
+constexpr size_t
+troff_text_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  size_t count = 0;
+  std::string_view rest = s;
+  for (;;) {
+    const size_t nl = rest.find('\n');
+    count += troff_line_escaped_into(room.subspan(count), rest.substr(0, nl));
+    if (nl == std::string_view::npos) return count;
+    count = word_appended(room, count, byte_word_of('\n'));
+    rest.remove_prefix(nl + 1);
+  }
+}
+
+constexpr size_t
+escaped_into_in(const Context c, const std::span<char> room, const std::string_view s)
+{
+  switch (c) {
+    case Context::xml_text: return classes_escaped_into<Context::xml_text>(room, 0, s);
+    case Context::json_string: return classes_escaped_into<Context::json_string>(room, 0, s);
+    case Context::js_string: return js_string_escaped_into(room, s);
+    case Context::css_string: return classes_escaped_into<Context::css_string>(room, 0, s);
+    default: return troff_text_escaped_into(room, s);
+  }
+}
+
+}
+
 [[gnu::always_inline]] inline size_t
 escaped(const Context c, const std::span<char> room, const std::string_view s)
 {
 #if ARM == 0 || ARM == 1
   return before::escaped_into_in(c, room, s);
+#elif ARM == 4 || ARM == 5
+  return classes::escaped_into_in(c, room, s);
 #else
   return word::escaped_into_in(c, room, s);
 #endif
