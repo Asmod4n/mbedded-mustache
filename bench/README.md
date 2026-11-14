@@ -138,5 +138,7 @@ No result file stands for them.
 | html-escape-span-20261114T085638Z.json | html-escape-span, arms 0, 1, 3 and 4, x86-64-v3 |
 | scalar-writers-20261114T090839Z.json | scalar-writers, arms 0, 2, 6, 4 and 5, x86-64-v3 |
 | table-size-20261114T091231Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables and f331cd1+class-fields, with the size of each table |
+| scalar-writers-20261114T093713Z.json | scalar-writers, arms 2, 6 and 7, x86-64-v3 |
+| table-size-20261114T093644Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables, f331cd1+class-fields and f331cd1+half-tables, with the size of each table |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
