@@ -49,9 +49,11 @@ Each input names one reader:
 - `labelled_lines`: lines of labels and numbers, for example `run_time 184.3 186.2 188.4`.
 - `key_value_lines`: lines of `<key>=<value>` pairs with one round field.
 - `number_line`: the numbers of one line, for example the output of sysbench.
+- `labelled_values`: lines of labels and one number, for example `size 7c3f670 html .rodata 13960`. Each line is
+  one cell with one value and no rounds, for a quantity with no repetition, such as a size in bytes.
 
 `check` computes the count, the median, the minimum, the maximum and the spread of each cell again from
-its values. It prints `ok` for each file that agrees, and exits with code 1 when a file does not agree.
+its values. A cell with no rounds must hold a key and one number. It prints `ok` for each file that agrees, and exits with code 1 when a file does not agree.
 
 ## Result
 
@@ -94,6 +96,7 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | short-value-copy, arms 10 and 11 | A value of 1 to 16 bytes read with one masked load of AVX-512BW and AVX-512VL; arm 11 also stores with a mask. |
 | scalar-writers | The xml, json, js, css and troff writers of 4dac08e against two forms that store each piece as one 8-byte word. |
 | html-escape-span | escape_into of 738ff29 against two forms of escape_into over a proven std::span<char>, as inline functions of a header. |
+| table-size | The size of .text and .rodata of one small program for 32-bit ARM at four states of the headers, in four forms. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
 They find the stores past the written count with guard bytes, and give no time.
@@ -125,5 +128,6 @@ No result file stands for them.
 | compare-20261114T072715Z.json | compare.sh, dbd4cac against d3a413d |
 | scalar-writers-20261114T082033Z.json | scalar-writers, arms 0 to 3, x86-64-v3 |
 | html-escape-span-20261114T083204Z.json | html-escape-span, arms 0 to 3, x86-64-v3 and x86-64-v4 |
+| table-size-20261114T085120Z.json | table-size, 4dac08e, 738ff29, 7c3f670 and d08686b |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.

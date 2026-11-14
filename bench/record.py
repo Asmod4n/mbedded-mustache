@@ -154,11 +154,33 @@ def read_number_line(text, spec):
     return [{"name": spec["name"], "unit": spec["unit"], "cells": make_cells(collected)}], {}
 
 
+def read_labelled_values(text, spec):
+    accepted = re.compile(spec["match"])
+    names = spec["label_names"]
+    cells, seen_twice, failed = [], [], []
+    for line in text.splitlines():
+        if not accepted.match(line):
+            continue
+        words = line.split()
+        key = dict(zip(names, words[spec.get("skip", 0) : spec.get("skip", 0) + len(names)]))
+        rest = words[spec.get("skip", 0) + len(names) :]
+        if len(rest) != 1 or not NUMBER.fullmatch(rest[0]):
+            failed.append({"key": key, "line": line.strip()})
+            continue
+        if any(c["key"] == key for c in cells):
+            seen_twice.append(key)
+            continue
+        cells.append({"key": key, "value": float(rest[0]) if "." in rest[0] else int(rest[0])})
+    cells.sort(key=lambda c: json.dumps(c["key"]))
+    return [{"name": spec["name"], "unit": spec["unit"], "cells": cells}], {"lines_without_one_value": failed, "keys_seen_twice": seen_twice}
+
+
 READERS = {
     "google_benchmark_console": read_google_benchmark_console,
     "labelled_lines": read_labelled_lines,
     "key_value_lines": read_key_value_lines,
     "number_line": read_number_line,
+    "labelled_values": read_labelled_values,
 }
 
 
@@ -207,6 +229,10 @@ def find_mismatches(result):
     mismatches = []
     for m in result.get("measurements", []):
         for cell in m["cells"]:
+            if "rounds" not in cell:
+                if set(cell) != {"key", "value"} or not isinstance(cell["value"], (int, float)):
+                    mismatches.append({"measurement": m["name"], "key": cell.get("key"), "stored": cell, "recomputed": "a cell without rounds holds a key and one number"})
+                continue
             again = summarize(cell["rounds"])
             stored = {k: cell.get(k) for k in again}
             if stored != again:
