@@ -21,6 +21,7 @@
 #include "compile.hpp"
 #include "out.hpp"
 #include "render.hpp"
+#include "target.hpp"
 #include "media_type.hpp"
 
 namespace mustache {
@@ -688,6 +689,15 @@ inline constexpr fixed_string kCss = "text/css";
 inline constexpr fixed_string kTroff = "text/troff";
 
 template <fixed_string Src, fixed_string Media, class Partials, class T>
+void
+walked(Answer &out, const T &data)
+{
+  bool pending = false;
+  Renderer<Src, Partials, no_frame, no_indent, 0, Media>::template run<
+      0, (uint32_t)static_program_of<Src, Media>.ops.size()>(out, pending, data);
+}
+
+template <fixed_string Src, fixed_string Media, class Partials, class T>
 std::expected<std::string, Error>
 rendered_as(const T &data, const size_t initial_capacity)
 {
@@ -695,15 +705,66 @@ rendered_as(const T &data, const size_t initial_capacity)
     return std::unexpected(Error{Fault::parse, {}, 0, 0});
   }
   else {
-    Answer out;
-    if (!out.opened(initial_capacity)) [[unlikely]] return std::unexpected(out.error());
-    bool pending = false;
-    Renderer<Src, Partials, no_frame, no_indent, 0, Media>::template run<
-        0, (uint32_t)static_program_of<Src, Media>.ops.size()>(out, pending, data);
-    if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
-    return out.closed();
+    return rendered_by(initial_capacity, [&](Answer &out) { walked<Src, Media, Partials>(out, data); });
   }
 }
+
+template <fixed_string Src, fixed_string Media, class Partials, class T>
+std::expected<void, Error>
+appended_as(std::string &target, const T &data, const size_t initial_capacity)
+{
+  if constexpr (static_program_of<Src, Media>.refused) {
+    return std::unexpected(Error{Fault::parse, {}, 0, 0});
+  }
+  else {
+    return appended_by(target, initial_capacity, [&](Answer &out) { walked<Src, Media, Partials>(out, data); });
+  }
+}
+
+template <class Result, class Visit>
+Result
+in_media_type(const std::string_view media_type, const Visit &visit)
+{
+  const std::optional<Grammar> g = grammar_of(media_type);
+  if (!g) [[unlikely]] return std::unexpected(Error{Fault::parse, {}, 0, 0});
+  switch (*g) {
+    case Grammar::html: return visit.template operator()<kHtml>();
+    case Grammar::xml:  return visit.template operator()<kXml>();
+    case Grammar::json: return visit.template operator()<kJson>();
+    case Grammar::js:   return visit.template operator()<kJs>();
+    case Grammar::css:  return visit.template operator()<kCss>();
+    case Grammar::troff: return visit.template operator()<kTroff>();
+    default:            return std::unexpected(Error{Fault::parse, {}, 0, 0});
+  }
+}
+
+template <fixed_string Src, class Partials, class T>
+struct MediaTypeAppender {
+  const T         &data;
+  std::string_view media_type;
+  size_t           initial_capacity;
+
+  std::expected<void, Error> operator()(std::string &target) const
+  {
+    return in_media_type<std::expected<void, Error>>(
+        media_type, [&]<fixed_string Media>() { return appended_as<Src, Media, Partials>(target, data, initial_capacity); });
+  }
+};
+
+template <fixed_string Src, class Partials, class T>
+struct DefaultMediaAppender {
+  const T &data;
+  size_t   initial_capacity;
+
+  std::expected<void, Error> operator()(std::string &target) const
+  {
+    if constexpr (static_program_of<Src>.refused) does_not_compile<Src>();
+    return appended_by(target, initial_capacity, [&](Answer &out) {
+      bool pending = false;
+      Renderer<Src, Partials>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(out, pending, data);
+    });
+  }
+};
 
 }
 
@@ -712,17 +773,8 @@ std::expected<std::string, Error>
 render(const T &data, const std::string_view media_type, const size_t initial_capacity = kInitialCapacity)
 {
   using List = static_partial_list<Partials...>;
-  const std::optional<Grammar> g = grammar_of(media_type);
-  if (!g) [[unlikely]] return std::unexpected(Error{Fault::parse, {}, 0, 0});
-  switch (*g) {
-    case Grammar::html: return detail::rendered_as<Src, detail::kHtml, List>(data, initial_capacity);
-    case Grammar::xml:  return detail::rendered_as<Src, detail::kXml, List>(data, initial_capacity);
-    case Grammar::json: return detail::rendered_as<Src, detail::kJson, List>(data, initial_capacity);
-    case Grammar::js:   return detail::rendered_as<Src, detail::kJs, List>(data, initial_capacity);
-    case Grammar::css:  return detail::rendered_as<Src, detail::kCss, List>(data, initial_capacity);
-    case Grammar::troff: return detail::rendered_as<Src, detail::kTroff, List>(data, initial_capacity);
-    default:            return std::unexpected(Error{Fault::parse, {}, 0, 0});
-  }
+  return detail::in_media_type<std::expected<std::string, Error>>(
+      media_type, [&]<fixed_string Media>() { return detail::rendered_as<Src, Media, List>(data, initial_capacity); });
 }
 
 template <fixed_string Src, class... Partials, class T>
@@ -730,13 +782,33 @@ std::expected<std::string, Error>
 render(const T &data, const size_t initial_capacity = kInitialCapacity)
 {
   if constexpr (static_program_of<Src>.refused) detail::does_not_compile<Src>();
-  Answer out;
-  if (!out.opened(initial_capacity)) [[unlikely]] return std::unexpected(out.error());
-  bool pending = false;
-  Renderer<Src, static_partial_list<Partials...>>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(
-      out, pending, data);
-  if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
-  return out.closed();
+  return rendered_by(initial_capacity, [&](Answer &out) {
+    bool pending = false;
+    Renderer<Src, static_partial_list<Partials...>>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(
+        out, pending, data);
+  });
+}
+
+/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// the same arguments. On an error `out` is as it was before the call. A std::string keeps
+/// its capacity and takes the render without a copy; another string type takes one copy.
+template <fixed_string Src, class... Partials, class Traits, class Allocator, class T>
+std::expected<void, Error>
+render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const std::string_view media_type,
+          const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(
+      out, detail::MediaTypeAppender<Src, static_partial_list<Partials...>, T>{data, media_type, initial_capacity});
+}
+
+/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// the same arguments. On an error `out` is as it was before the call. A std::string keeps
+/// its capacity and takes the render without a copy; another string type takes one copy.
+template <fixed_string Src, class... Partials, class Traits, class Allocator, class T>
+std::expected<void, Error>
+render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(out, detail::DefaultMediaAppender<Src, static_partial_list<Partials...>, T>{data, initial_capacity});
 }
 
 }

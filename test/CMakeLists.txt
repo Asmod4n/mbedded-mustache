@@ -33,6 +33,10 @@ add_executable(output output.cpp)
 target_link_libraries(output PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(output)
 
+add_executable(targets targets.cpp)
+target_link_libraries(targets PRIVATE mustache::mustache GTest::gtest_main)
+gtest_discover_tests(targets)
+
 add_executable(limits limits.cpp)
 target_link_libraries(limits PRIVATE mustache::mustache GTest::gtest_main)
 gtest_discover_tests(limits)

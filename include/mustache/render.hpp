@@ -50,6 +50,21 @@ inline constexpr size_t kInitialCapacity = 1024;
 
 inline constexpr size_t kMaxCapacity = (size_t)std::numeric_limits<std::ptrdiff_t>::max() - kEscapeSlack;
 
+template <class Change>
+bool
+memory_sufficed(const Change &change)
+{
+  try {
+    change();
+    return true;
+  }
+  catch (const std::bad_alloc &) {
+  }
+  catch (const std::length_error &) {
+  }
+  return false;
+}
+
 struct Answer {
   std::string bytes;
   size_t      size = 0;
@@ -69,17 +84,12 @@ struct Answer {
 
   bool resized(const size_t capacity)
   {
-    try {
-      bytes.resize(capacity + kEscapeSlack);
-      return true;
+    if (!memory_sufficed([&] { bytes.resize(capacity + kEscapeSlack); })) [[unlikely]] {
+      fault = Fault::no_memory;
+      asked = capacity;
+      return false;
     }
-    catch (const std::bad_alloc &) {
-    }
-    catch (const std::length_error &) {
-    }
-    fault = Fault::no_memory;
-    asked = capacity;
-    return false;
+    return true;
   }
 
   bool opened(const size_t initial_capacity)
@@ -91,6 +101,19 @@ struct Answer {
       return false;
     }
     return resized(initial_capacity);
+  }
+
+  bool opened_after(const size_t kept, const size_t initial_capacity)
+  {
+    size = kept;
+    if (kept > max_capacity || initial_capacity > max_capacity - kept) [[unlikely]] {
+      fault = Fault::over_limit;
+      asked = kept > max_capacity ? kept : kept + initial_capacity;
+      allowed = max_capacity;
+      return false;
+    }
+    const size_t held = bytes.capacity() > kEscapeSlack ? bytes.capacity() - kEscapeSlack : 0;
+    return resized(std::max(kept + initial_capacity, std::min(held, max_capacity)));
   }
 
   bool grown(const size_t needed)
@@ -157,6 +180,57 @@ struct Answer {
     size += detail::escaped_into(rest(), s);
   }
 };
+
+class Borrowed {
+public:
+  Borrowed(Answer &answer, std::string &target) : answer_(answer), target_(target), kept_(target.size())
+  {
+    answer_.bytes = std::move(target);
+  }
+
+  Borrowed(const Borrowed &) = delete;
+  Borrowed &operator=(const Borrowed &) = delete;
+
+  ~Borrowed()
+  {
+    answer_.bytes.resize(done_ ? answer_.size : kept_);
+    target_ = std::move(answer_.bytes);
+  }
+
+  size_t kept() const { return kept_; }
+
+  void done() { done_ = true; }
+
+private:
+  Answer      &answer_;
+  std::string &target_;
+  size_t       kept_;
+  bool         done_ = false;
+};
+
+template <class Run>
+std::expected<std::string, Error>
+rendered_by(const size_t initial_capacity, const Run &run)
+{
+  Answer out;
+  if (!out.opened(initial_capacity)) [[unlikely]] return std::unexpected(out.error());
+  run(out);
+  if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
+  return out.closed();
+}
+
+template <class Run>
+std::expected<void, Error>
+appended_by(std::string &target, const size_t initial_capacity, const Run &run)
+{
+  Answer out;
+  Borrowed borrowed(out, target);
+  if (!out.opened_after(borrowed.kept(), initial_capacity)) [[unlikely]] return std::unexpected(out.error());
+  run(out);
+  if (out.fault != Fault::none) [[unlikely]] return std::unexpected(out.error());
+  borrowed.done();
+  return {};
+}
 
 struct Batch {
   std::span<char> room;
@@ -239,17 +313,33 @@ public:
 
   std::expected<std::string, Error> run(const Template &p, const Value root)
   {
-    stack_.at(0) = root;
-    depth_ = 1;
-    generation_++;
-    context_ = p.context;
+    started(p, root);
     if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
     if (fault_ != Fault::none) [[unlikely]] return std::unexpected(error_of(fault_));
     return out_.closed();
   }
 
+  std::expected<void, Error> appended_to(std::string &target, const Template &p, const Value root)
+  {
+    started(p, root);
+    Borrowed borrowed(out_, target);
+    if (!out_.opened_after(borrowed.kept(), initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
+    run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
+    if (fault_ != Fault::none) [[unlikely]] return std::unexpected(error_of(fault_));
+    borrowed.done();
+    return {};
+  }
+
 private:
+  void started(const Template &p, const Value root)
+  {
+    stack_.at(0) = root;
+    depth_ = 1;
+    generation_++;
+    context_ = p.context;
+  }
+
   Error error_of(const Fault fault) const
   {
     switch (fault) {

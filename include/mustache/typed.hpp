@@ -25,6 +25,7 @@
 
 #include "containers.hpp"
 #include "render.hpp"
+#include "target.hpp"
 
 namespace mustache {
 
@@ -509,6 +510,35 @@ render(const TypedTemplate<T> &t, const T &data, const Partials &partials = {}, 
   using Table = typename TypedTemplate<T>::Table;
   return Walk<detail::typed::Access<T>>(detail::typed::Access<T>(t), &partials, kMaxRenderScore, initial_capacity)
       .run(t.program, Table::entry(data));
+}
+
+namespace detail::typed {
+
+template <class T>
+struct Appender {
+  const TypedTemplate<T> &t;
+  const T                &data;
+  const Partials         &partials;
+  size_t                  initial_capacity;
+
+  std::expected<void, Error> operator()(std::string &out) const
+  {
+    using Table = typename TypedTemplate<T>::Table;
+    return Walk<Access<T>>(Access<T>(t), &partials, kMaxRenderScore, initial_capacity).appended_to(out, t.program, Table::entry(data));
+  }
+};
+
+}
+
+/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// the same arguments. On an error `out` is as it was before the call. A std::string keeps
+/// its capacity and takes the render without a copy; another string type takes one copy.
+template <class Traits, class Allocator, class T>
+std::expected<void, Error>
+render_to(std::basic_string<char, Traits, Allocator> &out, const TypedTemplate<T> &t, const T &data,
+          const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(out, detail::typed::Appender<T>{t, data, partials, initial_capacity});
 }
 
 }

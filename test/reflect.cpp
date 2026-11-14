@@ -5,6 +5,8 @@
 #include "node.hpp"
 
 #include <cstdint>
+#include <limits>
+#include <memory_resource>
 #include <flat_map>
 #include <optional>
 #include <variant>
@@ -292,6 +294,58 @@ TEST(ReflectValue, ADocumentRendersAsAtRunTime)
   ASSERT_TRUE(walked);
   EXPECT_EQ(*reflected, *walked);
   EXPECT_EQ(*reflected, "T:<one=1><&lt;two&gt;>!~");
+}
+
+// render_to is the append form of the reflection render, with the media
+// type and without it. The initial capacity and the media type are two
+// arguments that overload resolution does not mix up.
+TEST(ReflectRenderTo, AppendsWhatRenderReturns)
+{
+  const Pair data{"a<b", "'"};
+  std::string out = "head:";
+  ASSERT_TRUE(mustache::render_to<"{{x}}|{{y}}">(out, data));
+  EXPECT_EQ(out, "head:a&lt;b|&#39;");
+  out = "head:";
+  ASSERT_TRUE(mustache::render_to<"{{x}}|{{y}}">(out, data, 0));
+  EXPECT_EQ(out, "head:a&lt;b|&#39;");
+  out = "head:";
+  ASSERT_TRUE(mustache::render_to<"{\"a\":\"{{x}}\"}">(out, data, "application/json"));
+  EXPECT_EQ(out, "head:{\"a\":\"a<b\"}");
+  out = "head:";
+  ASSERT_TRUE(mustache::render_to<"{{x}}">(out, data, std::string_view("text/html"), 0));
+  EXPECT_EQ(out, "head:a&lt;b");
+}
+
+// An error leaves the string as it was: a type with no escaper, an
+// initial capacity over the limit.
+TEST(ReflectRenderTo, LeavesTheStringAsItWasOnAnError)
+{
+  const Pair data{"v", "w"};
+  std::string out = "keep";
+  const std::expected<void, mustache::Error> no_escaper = mustache::render_to<"<p>{{x}}</p>">(out, data, "text/plain");
+  ASSERT_FALSE(no_escaper);
+  EXPECT_EQ(no_escaper.error().fault, mustache::Fault::parse);
+  EXPECT_EQ(out, "keep");
+  const std::expected<void, mustache::Error> over =
+      mustache::render_to<"<p>{{x}}</p>">(out, data, std::numeric_limits<size_t>::max());
+  ASSERT_FALSE(over);
+  EXPECT_EQ(over.error().fault, mustache::Fault::over_limit);
+  EXPECT_EQ(out, "keep");
+  const std::expected<void, mustache::Error> over_media =
+      mustache::render_to<"<p>{{x}}</p>">(out, data, "text/html", std::numeric_limits<size_t>::max());
+  ASSERT_FALSE(over_media);
+  EXPECT_EQ(over_media.error().fault, mustache::Fault::over_limit);
+  EXPECT_EQ(out, "keep");
+}
+
+// A string of another allocator takes the render with one copy.
+TEST(ReflectRenderTo, AppendsToAStringOfAnotherAllocator)
+{
+  const Pair data{"v", "w"};
+  std::pmr::string out("keep:");
+  ASSERT_TRUE(mustache::render_to<"{{x}}{{y}}">(out, data));
+  ASSERT_TRUE(mustache::render_to<"{{x}}{{y}}">(out, data, "text/html"));
+  EXPECT_EQ(std::string_view(out), "keep:vwvw");
 }
 
 }

@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <expected>
+#include <limits>
+#include <memory_resource>
 #include <map>
 #include <optional>
 #include <unordered_map>
@@ -98,6 +100,43 @@ TEST(Typed, RendersPartials)
   const std::expected<std::string, mustache::Error> r = mustache::render(*t, page, partials);
   ASSERT_TRUE(r);
   EXPECT_EQ(*r, "[a1top]");
+}
+
+// render_to is the append form of render for a typed template: the
+// bytes that render returns are appended behind the bytes of the string.
+TEST(TypedRenderTo, AppendsWhatRenderReturns)
+{
+  const Page page{"top & co", {{"a1", "b1"}, {"a2", "b2"}}, 7, true};
+  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t = mustache::compile<Page>("{{single}}:{{#rows}}[{{a}}/{{b}}]{{/rows}}{{count}}");
+  ASSERT_TRUE(t);
+  std::string out = "head:";
+  ASSERT_TRUE(mustache::render_to(out, *t, page));
+  EXPECT_EQ(out, "head:top &amp; co:[a1/b1][a2/b2]7");
+}
+
+// The string of the caller is as it was after an error.
+TEST(TypedRenderTo, LeavesTheStringAsItWasOnAnError)
+{
+  const Page page{"x", {}, std::nullopt, false};
+  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t = mustache::compile<Page>("{{single}}");
+  ASSERT_TRUE(t);
+  std::string out = "keep";
+  const std::expected<void, mustache::Error> r =
+      mustache::render_to(out, *t, page, {}, std::numeric_limits<size_t>::max());
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::over_limit);
+  EXPECT_EQ(out, "keep");
+}
+
+// A string of another allocator takes the render with one copy.
+TEST(TypedRenderTo, AppendsToAStringOfAnotherAllocator)
+{
+  const Page page{"x", {}, std::nullopt, false};
+  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t = mustache::compile<Page>("<{{single}}>");
+  ASSERT_TRUE(t);
+  std::pmr::string out("keep:");
+  ASSERT_TRUE(mustache::render_to(out, *t, page));
+  EXPECT_EQ(std::string_view(out), "keep:<x>");
 }
 
 }
