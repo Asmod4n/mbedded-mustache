@@ -101,6 +101,16 @@ target_link_libraries(app PRIVATE mustache::mustache)
 
 A key that isn't in the data renders as nothing, as the specification says.
 
+**Pick `std::unordered_map` for speed.** The render looks up every tag in your map, so the map type matters more than anything else. On the stocks page, one render took:
+
+| map type | g++ 16 | clang 23 |
+|---|---|---|
+| `std::unordered_map` | 10.0 µs | 7.9 µs |
+| `std::flat_map` | 10.9 µs | 9.5 µs |
+| `std::map` | 11.1 µs | 14.1 µs |
+
+([this run](bench/results/runtime-speed-20261114T130319Z/), `-O2 -march=x86-64-v4`, median of 30 repetitions)
+
 For data that contains itself, such as a JSON tree, derive a type from the variant:
 
 ```cpp
