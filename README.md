@@ -43,15 +43,15 @@ Hello, Ada <"admin">!
 
 ## Performance
 
-Median time per render, x86-64 with AVX-512 (`-O2 -march=x86-64-v4`), one thread, each render into a fresh `std::string`:
+Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark)), x86-64 with AVX-512 (`-O2 -march=x86-64-v4`), one thread, each render into a fresh `std::string`:
 
 | template | run time, g++ 16 | run time, clang 23 | reflection, g++ 16 |
 |---|---|---|---|
-| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 134 ns | 137 ns | 43 ns |
-| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.1 µs | 1.35 µs |
-| news page (20 articles, 3 tags each) | 7.9 µs | 8.0 µs | 1.47 µs |
+| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 136 ns | 144 ns | 45 ns |
+| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.4 µs | 1.43 µs |
+| news page (20 articles, 3 tags each) | 8.0 µs | 8.3 µs | 1.52 µs |
 
-*Run time* compiles the template at run time and renders from `std::map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T111409Z.json)).
+*Run time* compiles the template at run time and renders from `std::map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
 
 ## Installation
 
