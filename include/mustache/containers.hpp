@@ -85,7 +85,7 @@ struct Table {
   Scalar (*scalar_of)(const void *, NumberText);
   size_t (*size_of)(const void *);
   Value (*element)(const void *, size_t);
-  std::optional<Value> (*find)(const void *, const std::string &);
+  Value (*find)(const void *, const std::string &);
 };
 
 template <class T>
@@ -187,23 +187,23 @@ struct TableOf {
     }
   }
 
-  static std::optional<Value> find(const void *const p, const std::string &key)
+  static Value find(const void *const p, const std::string &key)
   {
     const T &v = of(p);
     if constexpr (variant_like<T>) {
       return std::visit([&key](const auto &x) { return value_of(x).table->find(&x, key); }, variant_base(v));
     }
     else if constexpr (is_optional_v<T>) {
-      if (!v) return std::nullopt;
+      if (!v) return Value{nullptr, nullptr};
       return value_of(*v).table->find(std::addressof(*v), key);
     }
     else if constexpr (map_like<T>) {
       const auto it = v.find(key);
-      if (it == v.end()) return std::nullopt;
+      if (it == v.end()) return Value{nullptr, nullptr};
       return value_of(it->second);
     }
     else {
-      return std::nullopt;
+      return Value{nullptr, nullptr};
     }
   }
 
@@ -224,10 +224,11 @@ struct Access {
   static Scalar scalar_of(const Value v, const NumberText text) { return v.table->scalar_of(v.data, text); }
   static size_t size_of(const Value v) { return v.table->size_of(v.data); }
   static Value element(const Value v, const size_t i) { return v.table->element(v.data, i); }
-  static std::optional<Value> find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
+  static Value find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
+  static bool value_is_absent(const Value v) { return v.data == nullptr; }
 
   template <class Program, class Stack>
-  static std::optional<std::optional<Value>> bound(const Program &, uint32_t, const Stack &, int)
+  static std::optional<Value> bound(const Program &, uint32_t, const Stack &, int)
   {
     return std::nullopt;
   }
