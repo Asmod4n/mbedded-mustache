@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -111,19 +113,19 @@ struct Answer {
     return std::move(bytes);
   }
 
-  [[gnu::always_inline]] void raw(const std::string_view s)
+  MUSTACHE_ALWAYS_INLINE void raw(const std::string_view s)
   {
     if (s.size() + kBytesPastTheWrittenCount > rest().size() && !grown(size + s.size())) [[unlikely]] return;
     std::ranges::copy(s, rest().begin());
     size += s.size();
   }
 
-  [[gnu::always_inline]] bool reserved(const size_t bound)
+  MUSTACHE_ALWAYS_INLINE bool reserved(const size_t bound)
   {
     return size + bound <= capacity() || grown(size + bound);
   }
 
-  [[gnu::always_inline]] void escaped_string(const std::string &s)
+  MUSTACHE_ALWAYS_INLINE void escaped_string(const std::string &s)
   {
     if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
         !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
@@ -147,7 +149,7 @@ struct Answer {
     size += detail::escaped_into_in(c, rest(), s);
   }
 
-  [[gnu::always_inline]] void escaped(const std::string_view s)
+  MUSTACHE_ALWAYS_INLINE void escaped(const std::string_view s)
   {
     if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
         !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
@@ -161,13 +163,13 @@ struct Batch {
   size_t          size = 0;
   bool            dirty = false;
 
-  [[gnu::always_inline]] void text(const std::string_view s)
+  MUSTACHE_ALWAYS_INLINE void text(const std::string_view s)
   {
     std::ranges::copy(s, room.subspan(size).begin());
     size += s.size();
   }
 
-  [[gnu::always_inline]] void raw(const std::string_view s)
+  MUSTACHE_ALWAYS_INLINE void raw(const std::string_view s)
   {
     if (!room_holds_the_copied_value(s, kCopiedStringMax)) [[unlikely]] {
       dirty = true;
@@ -176,12 +178,12 @@ struct Batch {
     text(s);
   }
 
-  [[gnu::always_inline]] void escaped(const std::string_view) { dirty = true; }
+  MUSTACHE_ALWAYS_INLINE void escaped(const std::string_view) { dirty = true; }
 
-  [[gnu::always_inline]] void escaped_in(const Context, const std::string_view) { dirty = true; }
+  MUSTACHE_ALWAYS_INLINE void escaped_in(const Context, const std::string_view) { dirty = true; }
 
 
-  [[gnu::always_inline]] void escaped_string(const std::string &s)
+  MUSTACHE_ALWAYS_INLINE void escaped_string(const std::string &s)
   {
     if (!room_holds_the_copied_value(s, kCopiedStringMax)) [[unlikely]] {
       dirty = true;

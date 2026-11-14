@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform.hpp"
+
 #ifdef __cpp_impl_reflection
 
 #include <meta>
@@ -454,7 +456,7 @@ struct Renderer {
   }
 
   template <class W>
-  [[gnu::always_inline]] static constexpr void indent_if_pending(W &out, bool &pending)
+  MUSTACHE_ALWAYS_INLINE static constexpr void indent_if_pending(W &out, bool &pending)
   {
     if constexpr (kIndented) {
       if (pending) {
@@ -465,7 +467,7 @@ struct Renderer {
   }
 
   template <class W>
-  [[gnu::always_inline]] static constexpr void text(W &out, bool &pending, const std::string_view all)
+  MUSTACHE_ALWAYS_INLINE static constexpr void text(W &out, bool &pending, const std::string_view all)
   {
     if constexpr (!kIndented) {
       if constexpr (requires { out.text(all); }) out.text(all);
@@ -485,7 +487,7 @@ struct Renderer {
   }
 
   template <Tag tag, Context context, class W>
-  [[gnu::always_inline]] static constexpr void value(W &out, bool &pending, const std::string_view s)
+  MUSTACHE_ALWAYS_INLINE static constexpr void value(W &out, bool &pending, const std::string_view s)
   {
     if (s.empty()) return;
     indent_if_pending(out, pending);

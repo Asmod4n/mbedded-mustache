@@ -1,5 +1,7 @@
 #pragma once
 
+#include "platform.hpp"
+
 #if defined(__AVX2__)
 #include <immintrin.h>
 #elif defined(__ARM_NEON)
@@ -86,14 +88,14 @@ is_marked(const char c)
   return entity_length(entity_word_of(kEntities, static_cast<unsigned char>(c))) != 1;
 }
 
-[[gnu::always_inline, gnu::flatten]] constexpr void
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN constexpr void
 stored_word(const std::span<char, kEntityWordBytes> o, const uint64_t word)
 {
   const auto bytes = std::bit_cast<std::array<char, kEntityWordBytes>>(word);
   std::copy_n(bytes.begin(), bytes.size(), o.begin());
 }
 
-[[gnu::always_inline, gnu::flatten]] constexpr size_t
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN constexpr size_t
 word_appended(const std::span<char> room, const size_t count, const uint64_t word)
 {
   static_assert(kBytesPastTheWrittenCount >= kEntityWordBytes,
@@ -102,7 +104,7 @@ word_appended(const std::span<char> room, const size_t count, const uint64_t wor
   return count + entity_length(word);
 }
 
-[[gnu::always_inline, gnu::flatten]] constexpr size_t
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN constexpr size_t
 table_escaped_into(const std::span<char> room, const size_t count, const std::string_view s, const Entities &table)
 {
   size_t at = count;
@@ -392,7 +394,7 @@ marks16_of(const __m128i b)
   return (uint32_t)_mm_movemask_epi8(hit);
 }
 
-[[gnu::always_inline, gnu::flatten]] inline __m128i
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN inline __m128i
 loaded(const std::span<const char, sizeof(__m128i)> b)
 {
   std::array<char, sizeof(__m128i)> a;
@@ -400,7 +402,7 @@ loaded(const std::span<const char, sizeof(__m128i)> b)
   return std::bit_cast<__m128i>(a);
 }
 
-[[gnu::always_inline, gnu::flatten]] inline void
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN inline void
 stored(const std::span<char, sizeof(__m128i)> o, const __m128i v)
 {
   const auto a = std::bit_cast<std::array<char, sizeof(__m128i)>>(v);
@@ -422,7 +424,7 @@ stored(const std::span<char, sizeof(__m256i)> o, const __m256i v)
   std::copy_n(a.begin(), a.size(), o.begin());
 }
 
-[[gnu::flatten]] inline size_t
+MUSTACHE_FLATTEN inline size_t
 escape_into(const std::span<char> room, const std::string_view s)
 {
   if (s.size() < kVectorBytes) return escape_bytes(room, s);
@@ -461,7 +463,7 @@ escape_into(const std::span<char> room, const std::string_view s)
   return table_escaped_into(room, w, s.substr(at), kEntities);
 }
 
-[[gnu::always_inline]] inline Copied
+MUSTACHE_ALWAYS_INLINE inline Copied
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
@@ -508,7 +510,7 @@ marks_of(const uint8x16_t b)
   return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(hit), 4)), 0);
 }
 
-[[gnu::always_inline, gnu::flatten]] inline uint8x16_t
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN inline uint8x16_t
 loaded(const std::span<const char, kVectorBytes> b)
 {
   std::array<char, kVectorBytes> a;
@@ -516,14 +518,14 @@ loaded(const std::span<const char, kVectorBytes> b)
   return std::bit_cast<uint8x16_t>(a);
 }
 
-[[gnu::always_inline, gnu::flatten]] inline void
+MUSTACHE_ALWAYS_INLINE MUSTACHE_FLATTEN inline void
 stored(const std::span<char, kVectorBytes> o, const uint8x16_t v)
 {
   const auto a = std::bit_cast<std::array<char, kVectorBytes>>(v);
   std::copy_n(a.begin(), a.size(), o.begin());
 }
 
-[[gnu::flatten]] inline size_t
+MUSTACHE_FLATTEN inline size_t
 escape_into(const std::span<char> room, const std::string_view s)
 {
   if (s.size() < kVectorBytes) return escape_bytes(room, s);
@@ -562,7 +564,7 @@ escape_into(const std::span<char> room, const std::string_view s)
   return table_escaped_into(room, w, s.substr(at), kEntities);
 }
 
-[[gnu::always_inline]] inline Copied
+MUSTACHE_ALWAYS_INLINE inline Copied
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
@@ -605,7 +607,7 @@ copied_string(const std::span<char> out, const std::string &s)
 
 #endif
 
-[[gnu::always_inline]] inline size_t
+MUSTACHE_ALWAYS_INLINE inline size_t
 escape_string_into(const std::span<char> out, const std::string &s)
 {
   const Copied c = copied_string(out, s);
