@@ -35,11 +35,11 @@ escaped_size_max_in(const Context c, const size_t n)
 
 namespace detail {
 
-constexpr char *
-escaped_into(char *const w, const std::string_view s)
+constexpr size_t
+escaped_into(const std::span<char> room, const std::string_view s)
 {
-  if (std::is_constant_evaluated()) return escape_bytes(w, s);
-  return escape_into(w, s);
+  if (std::is_constant_evaluated()) return escape_bytes(room, s);
+  return escape_into(room, s);
 }
 
 constexpr size_t
@@ -51,7 +51,7 @@ escaped_into_in(const Context c, const std::span<char> room, const std::string_v
     case Context::js_string:      return js_string_escaped_into(room, s);
     case Context::css_string:     return css_string_escaped_into(room, s);
     case Context::troff_text:     return troff_text_escaped_into(room, s);
-    default:                      return static_cast<size_t>(std::distance(room.data(), escaped_into(room.data(), s)));
+    default:                      return escaped_into(room, s);
   }
 }
 
@@ -113,7 +113,8 @@ struct Out {
       full = true;
       return;
     }
-    w = detail::escaped_into(w, s);
+    const std::span<char> room(w, end);
+    w = room.subspan(detail::escaped_into(room, s)).data();
   }
 };
 

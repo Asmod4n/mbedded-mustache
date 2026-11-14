@@ -152,8 +152,7 @@ struct Answer {
     if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
         !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
       return;
-    char *const w = rest().data();
-    size += (size_t)std::distance(w, detail::escaped_into(w, s));
+    size += detail::escaped_into(rest(), s);
   }
 };
 

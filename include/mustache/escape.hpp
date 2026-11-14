@@ -86,22 +86,6 @@ is_marked(const char c)
   return entity_length(entity_word_of(kEntities, static_cast<unsigned char>(c))) != 1;
 }
 
-constexpr char *
-entity_into(char *const w, const uint64_t word)
-{
-  const std::array<char, kEntityWordBytes> bytes = std::bit_cast<std::array<char, kEntityWordBytes>>(word);
-  std::copy_n(bytes.begin(), bytes.size(), w);
-  return w + entity_length(word);
-}
-
-constexpr char *
-escape_bytes(char *const out, const std::string_view s)
-{
-  char *w = out;
-  for (const char c : s) w = entity_into(w, entity_word_of(kEntities, static_cast<unsigned char>(c)));
-  return w;
-}
-
 [[gnu::always_inline, gnu::flatten]] constexpr void
 stored_word(const std::span<char, kEntityWordBytes> o, const uint64_t word)
 {
@@ -124,6 +108,12 @@ table_escaped_into(const std::span<char> room, const size_t count, const std::st
   size_t at = count;
   for (const char c : s) at = word_appended(room, at, entity_word_of(table, static_cast<unsigned char>(c)));
   return at;
+}
+
+constexpr size_t
+escape_bytes(const std::span<char> room, const std::string_view s)
+{
+  return table_escaped_into(room, 0, s, kEntities);
 }
 
 template <class WordOf>
@@ -392,46 +382,6 @@ marks_of(const __m256i b)
   return (uint32_t)_mm256_movemask_epi8(hit);
 }
 
-inline char *
-escape_into(char *const out, const std::string_view s)
-{
-  if (s.size() < kVectorBytes) return escape_bytes(out, s);
-  char *w = out;
-  const auto *src = reinterpret_cast<const unsigned char *>(s.data());
-  alignas(kVectorBytes) unsigned char block[2 * kVectorBytes];
-  size_t at = 0;
-  for (; at + kVectorBytes <= s.size(); at += kVectorBytes) {
-    const __m256i b = _mm256_loadu_si256((const __m256i *)(src + at));
-    uint32_t mask = marks_of(b);
-    _mm256_storeu_si256((__m256i *)w, b);
-    if (mask == 0) {
-      w += kVectorBytes;
-      continue;
-    }
-    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
-      w = escape_bytes(w, s.substr(at, kVectorBytes));
-      continue;
-    }
-    const unsigned char *from = src + at;
-    if (at + 2 * kVectorBytes > s.size()) {
-      _mm256_store_si256((__m256i *)block, b);
-      _mm256_store_si256((__m256i *)(block + kVectorBytes), _mm256_setzero_si256());
-      from = block;
-    }
-    size_t done = 0;
-    while (mask != 0) {
-      const size_t i = static_cast<size_t>(std::countr_zero(mask));
-      w += i - done;
-      w = entity_into(w, entity_word_of(kEntities, from[i]));
-      done = i + 1;
-      _mm256_storeu_si256((__m256i *)w, _mm256_loadu_si256((const __m256i *)(from + done)));
-      mask &= mask - 1;
-    }
-    w += kVectorBytes - done;
-  }
-  return escape_bytes(w, s.substr(at));
-}
-
 inline uint32_t
 marks16_of(const __m128i b)
 {
@@ -455,6 +405,60 @@ stored(const std::span<char, sizeof(__m128i)> o, const __m128i v)
 {
   const auto a = std::bit_cast<std::array<char, sizeof(__m128i)>>(v);
   std::copy_n(a.begin(), a.size(), o.begin());
+}
+
+inline __m256i
+loaded(const std::span<const char, sizeof(__m256i)> b)
+{
+  std::array<char, sizeof(__m256i)> a;
+  std::copy_n(b.begin(), b.size(), a.begin());
+  return std::bit_cast<__m256i>(a);
+}
+
+inline void
+stored(const std::span<char, sizeof(__m256i)> o, const __m256i v)
+{
+  const auto a = std::bit_cast<std::array<char, sizeof(__m256i)>>(v);
+  std::copy_n(a.begin(), a.size(), o.begin());
+}
+
+[[gnu::flatten]] inline size_t
+escape_into(const std::span<char> room, const std::string_view s)
+{
+  if (s.size() < kVectorBytes) return escape_bytes(room, s);
+  const std::span<const char> in(s);
+  std::array<char, 2 * kVectorBytes> block;
+  size_t w = 0;
+  size_t at = 0;
+  for (; at + kVectorBytes <= in.size(); at += kVectorBytes) {
+    const __m256i b = loaded(in.subspan(at).first<kVectorBytes>());
+    uint32_t mask = marks_of(b);
+    stored(room.subspan(w).first<kVectorBytes>(), b);
+    if (mask == 0) {
+      w += kVectorBytes;
+      continue;
+    }
+    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
+      w = table_escaped_into(room, w, s.substr(at, kVectorBytes), kEntities);
+      continue;
+    }
+    std::span<const char> from = in.subspan(at);
+    if (at + 2 * kVectorBytes > in.size()) {
+      stored(std::span(block).first<kVectorBytes>(), b);
+      stored(std::span(block).last<kVectorBytes>(), _mm256_setzero_si256());
+      from = block;
+    }
+    size_t done = 0;
+    while (mask != 0) {
+      const size_t i = static_cast<size_t>(std::countr_zero(mask));
+      w = word_appended(room, w + (i - done), entity_word_of(kEntities, static_cast<unsigned char>(*std::ranges::next(from.begin(), i))));
+      done = i + 1;
+      stored(room.subspan(w).first<kVectorBytes>(), loaded(from.subspan(done).first<kVectorBytes>()));
+      mask &= mask - 1;
+    }
+    w += kVectorBytes - done;
+  }
+  return table_escaped_into(room, w, s.substr(at), kEntities);
 }
 
 [[gnu::always_inline]] inline Copied
@@ -504,46 +508,6 @@ marks_of(const uint8x16_t b)
   return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vreinterpretq_u16_u8(hit), 4)), 0);
 }
 
-inline char *
-escape_into(char *const out, const std::string_view s)
-{
-  if (s.size() < kVectorBytes) return escape_bytes(out, s);
-  char *w = out;
-  const auto *src = reinterpret_cast<const unsigned char *>(s.data());
-  alignas(kVectorBytes) unsigned char block[2 * kVectorBytes];
-  size_t at = 0;
-  for (; at + kVectorBytes <= s.size(); at += kVectorBytes) {
-    const uint8x16_t b = vld1q_u8(src + at);
-    uint64_t mask = marks_of(b) & kLaneMarkBits;
-    vst1q_u8((uint8_t *)w, b);
-    if (mask == 0) {
-      w += kVectorBytes;
-      continue;
-    }
-    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
-      w = escape_bytes(w, s.substr(at, kVectorBytes));
-      continue;
-    }
-    const unsigned char *from = src + at;
-    if (at + 2 * kVectorBytes > s.size()) {
-      vst1q_u8(block, b);
-      vst1q_u8(block + kVectorBytes, vdupq_n_u8(0));
-      from = block;
-    }
-    size_t done = 0;
-    while (mask != 0) {
-      const size_t i = static_cast<size_t>(std::countr_zero(mask)) / kBitsPerLane;
-      w += i - done;
-      w = entity_into(w, entity_word_of(kEntities, from[i]));
-      done = i + 1;
-      vst1q_u8((uint8_t *)w, vld1q_u8(from + done));
-      mask &= mask - 1;
-    }
-    w += kVectorBytes - done;
-  }
-  return escape_bytes(w, s.substr(at));
-}
-
 [[gnu::always_inline, gnu::flatten]] inline uint8x16_t
 loaded(const std::span<const char, kVectorBytes> b)
 {
@@ -557,6 +521,45 @@ stored(const std::span<char, kVectorBytes> o, const uint8x16_t v)
 {
   const auto a = std::bit_cast<std::array<char, kVectorBytes>>(v);
   std::copy_n(a.begin(), a.size(), o.begin());
+}
+
+[[gnu::flatten]] inline size_t
+escape_into(const std::span<char> room, const std::string_view s)
+{
+  if (s.size() < kVectorBytes) return escape_bytes(room, s);
+  const std::span<const char> in(s);
+  std::array<char, 2 * kVectorBytes> block;
+  size_t w = 0;
+  size_t at = 0;
+  for (; at + kVectorBytes <= in.size(); at += kVectorBytes) {
+    const uint8x16_t b = loaded(in.subspan(at).first<kVectorBytes>());
+    uint64_t mask = marks_of(b) & kLaneMarkBits;
+    stored(room.subspan(w).first<kVectorBytes>(), b);
+    if (mask == 0) {
+      w += kVectorBytes;
+      continue;
+    }
+    if (std::cmp_greater(std::popcount(mask), kMarksPerVectorMax)) [[unlikely]] {
+      w = table_escaped_into(room, w, s.substr(at, kVectorBytes), kEntities);
+      continue;
+    }
+    std::span<const char> from = in.subspan(at);
+    if (at + 2 * kVectorBytes > in.size()) {
+      stored(std::span(block).first<kVectorBytes>(), b);
+      stored(std::span(block).last<kVectorBytes>(), vdupq_n_u8(0));
+      from = block;
+    }
+    size_t done = 0;
+    while (mask != 0) {
+      const size_t i = static_cast<size_t>(std::countr_zero(mask)) / kBitsPerLane;
+      w = word_appended(room, w + (i - done), entity_word_of(kEntities, static_cast<unsigned char>(*std::ranges::next(from.begin(), i))));
+      done = i + 1;
+      stored(room.subspan(w).first<kVectorBytes>(), loaded(from.subspan(done).first<kVectorBytes>()));
+      mask &= mask - 1;
+    }
+    w += kVectorBytes - done;
+  }
+  return table_escaped_into(room, w, s.substr(at), kEntities);
 }
 
 [[gnu::always_inline]] inline Copied
@@ -588,10 +591,10 @@ copied_string(const std::span<char> out, const std::string &s)
 
 inline constexpr size_t kVectorBytes = kEntityWordBytes;
 
-constexpr char *
-escape_into(char *const out, const std::string_view s)
+constexpr size_t
+escape_into(const std::span<char> room, const std::string_view s)
 {
-  return escape_bytes(out, s);
+  return escape_bytes(room, s);
 }
 
 inline Copied
@@ -607,7 +610,7 @@ escape_string_into(const std::span<char> out, const std::string &s)
 {
   const Copied c = copied_string(out, s);
   if (s.size() <= kCopiedStringMax && c.marks == 0) [[likely]] return c.count;
-  return static_cast<size_t>(std::distance(out.data(), escape_into(out.data(), s)));
+  return escape_into(out, s);
 }
 
 }

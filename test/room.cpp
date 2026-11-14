@@ -401,6 +401,17 @@ TEST(Room, TheFiveWritersRunInAConstantEvaluation)
   EXPECT_TRUE(kTroff);
 }
 
+// detail::escaped_into takes escape_bytes in a constant evaluation and the
+// SIMD escape_into at run time. Only static_page reaches that branch in
+// the other tests, and static_page needs reflection, so a build without
+// reflection has no other test of it. The expected bytes are the five
+// replacements of the Mustache spec.
+TEST(Room, TheHtmlEscapeRunsInAConstantEvaluation)
+{
+  constexpr bool kHtml = escapes_at_compile_time(Context::html_text, "<'&\">", "&lt;&#39;&amp;&quot;&gt;");
+  EXPECT_TRUE(kHtml);
+}
+
 // Random strings find the mixes that the cases above do not list. The seed
 // is fixed so that a failure shows again. Each string takes a share of
 // bytes from a set of marks and line pieces, or any byte value, and the
