@@ -1,0 +1,23 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+reflection              1326 ns         1326 ns        53394
+reflection              1301 ns         1300 ns        53394
+reflection              1308 ns         1308 ns        53394
+reflection              1304 ns         1304 ns        53394
+reflection              1336 ns         1336 ns        53394
+reflection              1338 ns         1338 ns        53394
+reflection_mean         1319 ns         1319 ns            6
+reflection_median       1317 ns         1317 ns            6
+reflection_stddev       16.6 ns         16.6 ns            6
+reflection_cv           1.26 %          1.26 %             6
+run_time               11336 ns        11336 ns         6077
+run_time               11340 ns        11329 ns         6077
+run_time               11422 ns        11416 ns         6077
+run_time               11517 ns        11518 ns         6077
+run_time               11657 ns        11657 ns         6077
+run_time               12137 ns        12135 ns         6077
+run_time_mean          11568 ns        11565 ns            6
+run_time_median        11470 ns        11467 ns            6
+run_time_stddev          304 ns          305 ns            6
+run_time_cv             2.63 %          2.64 %             6

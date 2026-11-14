@@ -1,0 +1,77 @@
+What was measured: the render of the stocks page (workload 2 of bench/render.cpp at 3e49a1c) from std::unordered_map data (run_time: a template compiled at run time)
+and from structs (reflection: a template of the source, g++-16 only), per binary, with Google Benchmark 1.9.1, 5 rounds of 6 repetitions,
+--benchmark_min_time=0.05s, a new random order of the 14 binaries in each round (seed in context-common.txt), as the user nobody in
+localhost/mbedded-cbor-docs. g++-16 -std=c++26 -freflection and clang++-23 -std=c++26, -O2 -march=x86-64-v4 -DNDEBUG and the align flags.
+The code of the probe is at commit 1efeb1e8cb776ebada8509c7000e66529dcabec5 (bench/probes/fewer-calls). The base of every arm is include/ of 4e036ed.
+Each arm is a patch of that probe directory; head and twin are two copies of the base with no patch. The cells of H5 and H6 on clang++-23 are error cells.
+The U test p-values are from tools/compare.py of Google Benchmark 1.9.1 (compare/ARM.COMPILER.txt), arm against head, 30 rows against 30 rows.
+
+### g++-16: median ns per render (cv, 30 rows of 5 rounds x 6 repetitions)
+
+| arm | run_time | reflection |
+|---|---|---|
+| head 4e036ed | 9781 (8.80 %) | 1374 (23.50 %) |
+| head twin (A/A) | 9871 (4.24 %) | 1384 (18.33 %) |
+| H1 Find the map of a dotted name once per row | 8678 (11.46 %) | 1365 (16.26 %) |
+| H2a Call the find of the map directly, without function pointers (std::visit) | 11967 (4.11 %) | 1357 (5.92 %) |
+| H2b Call the find of the map directly, without function pointers (switch) | 11201 (14.08 %) | 1387 (21.35 %) |
+| H5 Search the 16 marks inline with one load | 9853 (9.24 %) | 1347 (15.18 %) |
+| H6 Render a row of the batch path only once | 9867 (9.38 %) | 1053 (19.82 %) |
+| all: H1, H2a, H5 and H6 | 11760 (10.49 %) | 948 (16.96 %) |
+
+Median of the arm over the median of head, minus 1, and the time p-value of the U test against head:
+
+| arm | run_time | reflection |
+|---|---|---|
+| head twin (A/A) | +0.92 % (p 0.5997) | +0.72 % (p 0.7506) |
+| H1 Find the map of a dotted name once per row | -11.28 % (p 0.0000) | -0.65 % (p 0.4204) |
+| H2a Call the find of the map directly, without function pointers (std::visit) | +22.35 % (p 0.0000) | -1.26 % (p 0.0184) |
+| H2b Call the find of the map directly, without function pointers (switch) | +14.51 % (p 0.0000) | +0.92 % (p 0.9234) |
+| H5 Search the 16 marks inline with one load | +0.73 % (p 0.1224) | -1.95 % (p 0.0061) |
+| H6 Render a row of the batch path only once | +0.88 % (p 0.1580) | -23.39 % (p 0.0000) |
+| all: H1, H2a, H5 and H6 | +20.23 % (p 0.0000) | -31.01 % (p 0.0000) |
+
+### clang++-23: median ns per render (cv, 30 rows of 5 rounds x 6 repetitions)
+
+| arm | run_time | reflection |
+|---|---|---|
+| head 4e036ed | 7487 (8.74 %) | error cell: no reflection in clang++-23 |
+| head twin (A/A) | 7482 (18.40 %) | error cell: no reflection in clang++-23 |
+| H1 Find the map of a dotted name once per row | 8229 (15.26 %) | error cell: no reflection in clang++-23 |
+| H2a Call the find of the map directly, without function pointers (std::visit) | 6551 (14.98 %) | error cell: no reflection in clang++-23 |
+| H2b Call the find of the map directly, without function pointers (switch) | 7677 (5.47 %) | error cell: no reflection in clang++-23 |
+| H5 Search the 16 marks inline with one load | error cell: no build for this arm on clang++-23 | error cell |
+| H6 Render a row of the batch path only once | error cell: no build for this arm on clang++-23 | error cell |
+| all: H1, H2a, H5 and H6 | 6837 (6.90 %) | error cell: no reflection in clang++-23 |
+
+Median of the arm over the median of head, minus 1, and the time p-value of the U test against head:
+
+| arm | run_time | reflection |
+|---|---|---|
+| head twin (A/A) | -0.07 % (p 0.9470) | n/a |
+| H1 Find the map of a dotted name once per row | +9.91 % (p 0.0000) | n/a |
+| H2a Call the find of the map directly, without function pointers (std::visit) | -12.51 % (p 0.0000) | n/a |
+| H2b Call the find of the map directly, without function pointers (switch) | +2.53 % (p 0.2116) | n/a |
+| H5 Search the 16 marks inline with one load | n/a | n/a |
+| H6 Render a row of the batch path only once | n/a | n/a |
+| all: H1, H2a, H5 and H6 | -8.68 % (p 0.0000) | n/a |
+
+noise floor, sysbench cpu events/s, 10 runs of 1 s: min 2856.5 max 3041.6 spread 6.48 %
+
+### .text size and compile time of each binary (four compiles ran at the same time on 4 processors)
+
+head g++-16 text_bytes=123439 compile_seconds_stocks=6.2 compile_seconds_extras=26.6
+h1 g++-16 text_bytes=127855 compile_seconds_stocks=6.4 compile_seconds_extras=26.8
+h2a g++-16 text_bytes=121853 compile_seconds_stocks=6.2 compile_seconds_extras=28.8
+twin g++-16 text_bytes=123439 compile_seconds_stocks=6.0 compile_seconds_extras=
+h2b g++-16 text_bytes=122351 compile_seconds_stocks=6.3 compile_seconds_extras=30.1
+h5 g++-16 text_bytes=130479 compile_seconds_stocks=6.7 compile_seconds_extras=27.6
+h6 g++-16 text_bytes=131823 compile_seconds_stocks=6.7 compile_seconds_extras=27.3
+all g++-16 text_bytes=141693 compile_seconds_stocks=7.0 compile_seconds_extras=30.1
+head clang++-23 text_bytes=89656 compile_seconds_stocks=4.7 compile_seconds_extras=6.8
+h1 clang++-23 text_bytes=90808 compile_seconds_stocks=4.5 compile_seconds_extras=8.4
+h2a clang++-23 text_bytes=87800 compile_seconds_stocks=5.5 compile_seconds_extras=8.2
+twin clang++-23 text_bytes=89656 compile_seconds_stocks=5.1 compile_seconds_extras=
+h2b clang++-23 text_bytes=88120 compile_seconds_stocks=5.4 compile_seconds_extras=7.5
+all clang++-23 text_bytes=88440 compile_seconds_stocks=4.6 compile_seconds_extras=9.1
+
