@@ -1,0 +1,21 @@
+commit=83181119390eeafaa23771f13938b3761a7b4ad4
+dirty_files=0
+image=sha256:333ddac6440e908c9c0a6ba331ceb5929b368a8f96be274f967cad3bfe5406dc 3a18f18efd74d0b7f81fba1af946d34f39196d7519d8524762f3b32f38bf8e7e
+podman=podman version 4.9.3, --network none, --security-opt seccomp=unconfined
+g++=g++-16 (Debian 16.2.0-4) 16.2.0
+clang=Debian clang version 23.1.5 (2)
+google_benchmark=1.9.1-1+b2
+libstdcxx=libstdc++.so.6.0.36
+libc=ldd (Debian GLIBC 2.43-7) 2.43
+instruction_set=__AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ 
+kernel=Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+scheduler=sched_autogroup_enabled 1
+randomize_va_space=2
+machine=Hypervisor vendor: KVM;Virtualization type: full;
+container=podman, cpus visible 4
+processor= Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest=sha256:0750228a0e310f80
+transparent_hugepage=always [madvise] never
+ramhorns=binary of bench/results/ramhorns-spread-20261114T153040Z (A, probe 9aa4b55), Criterion --warm-up-time 0.1 --measurement-time 1.5
+google_benchmark_arguments=--benchmark_repetitions=30 --benchmark_min_time=0.05s
+threads=1, not pinned

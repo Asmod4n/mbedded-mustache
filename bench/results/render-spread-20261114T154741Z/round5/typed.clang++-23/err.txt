@@ -1,0 +1,12 @@
+output_bytes=7737 output_capacity=8448
+address stack=0x7ffca3f919c8 malloc64=0x5621dd6fa250 data=0x5621dd6fcd60 output=0x5621dd701170 text=0x5621b455d980
+2026-11-14T15:49:06+00:00
+Running /w/bin/typed.clang++-23
+Run on (4 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x4)
+  L3 Unified 516096 KiB (x1)
+Load Average: 1.00, 1.41, 1.20
+***WARNING*** Library was built as DEBUG. Timings may be affected.

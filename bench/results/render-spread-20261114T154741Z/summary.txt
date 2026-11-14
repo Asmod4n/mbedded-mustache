@@ -1,0 +1,124 @@
+Stocks page, run-time render, ns per render. within: over the repetitions of one process (6 for Google Benchmark,
+the Criterion samples for ramhorns); between: over the medians of the 10 processes. spread = max/min - 1.
+other cpus: busy cpus of the machine during the process, from /proc/stat, less one.
+
+| executable | median of medians ns | within spread median % | within cv median % | between spread % | between cv % | other cpus max |
+|---|---|---|---|---|---|---|
+| cap.clang++-23 | 5576 | 48.9 | 9.1 | 5.0 | 1.9 | 0.04 |
+| cap.g++-16 | 5930 | 48.8 | 10.3 | 18.6 | 5.5 | 0.04 |
+| heap.clang++-23 | 5764 | 41.1 | 8.6 | 2.6 | 1.0 | 0.03 |
+| heap.g++-16 | 6142 | 26.8 | 5.6 | 3.7 | 1.1 | 0.03 |
+| heapNR.clang++-23 | 5786 | 46.3 | 9.9 | 3.3 | 1.1 | 0.03 |
+| ramhorns | 3984 | 53.2 | 7.5 | 27.7 | 8.1 | 0.03 |
+| typed.clang++-23 | 3913 | 38.7 | 6.9 | 1.2 | 0.5 | 0.03 |
+
+The same processes with two other estimates: the minimum of the process, and for ramhorns the median of its
+samples cut into 6 parts of equal time (the estimate of 6 Google Benchmark repetitions).
+
+| executable | minimum: median ns | minimum: between spread % | 6 parts: between spread % |
+|---|---|---|---|
+| cap.clang++-23 | 5394 | 5.2 | - |
+| cap.g++-16 | 5752 | 4.1 | - |
+| heap.clang++-23 | 5634 | 6.1 | - |
+| heap.g++-16 | 6021 | 4.1 | - |
+| heapNR.clang++-23 | 5652 | 4.5 | - |
+| ramhorns | 3827 | 5.4 | 13.1 |
+| typed.clang++-23 | 3833 | 2.5 | - |
+
+Rank correlation (Spearman) of the process median with address bits, mbedded arms.
+low = address mod 4096; page = (address >> 12) mod 512.
+
+| executable | stack low | stack page | output low | data low | malloc64 low | other cpus |
+|---|---|---|---|---|---|---|
+| cap.clang++-23 | -0.05 | -0.85 | +nan | +nan | +nan | +0.01 |
+| cap.g++-16 | -0.25 | +0.08 | +nan | +nan | +nan | -0.03 |
+| heap.clang++-23 | +0.25 | -0.43 | +nan | +nan | +nan | -0.16 |
+| heap.g++-16 | -0.38 | -0.09 | +nan | +nan | +nan | +0.22 |
+| heapNR.clang++-23 | +nan | +nan | +nan | +nan | +nan | +0.07 |
+| typed.clang++-23 | -0.02 | -0.01 | +nan | +nan | +nan | +0.15 |
+
+Per process: round, median ns, within spread %, other cpus, stack, output.
+
+cap.clang++-23
+  round  1:   5434.9 ns, within  74.9 %, other cpus +0.04 stack=0x7ffc8a727ea0 output=0x559833723c00
+  round  2:   5401.0 ns, within  57.3 %, other cpus +0.02 stack=0x7ffd8755a0d0 output=0x559227a57c00
+  round  3:   5586.4 ns, within  60.1 %, other cpus +0.02 stack=0x7ffcea944680 output=0x56334c05fc00
+  round  4:   5618.0 ns, within  46.9 %, other cpus +0.03 stack=0x7fff768d6160 output=0x557c20718c00
+  round  5:   5620.2 ns, within  53.3 %, other cpus +0.01 stack=0x7ffe9b480010 output=0x5564f25d6c00
+  round  6:   5462.1 ns, within   1.8 %, other cpus +0.02 stack=0x7ffef09487e0 output=0x55f19321fc00
+  round  7:   5566.2 ns, within  20.0 %, other cpus +0.01 stack=0x7ffc2c64ceb0 output=0x56483b799c00
+  round  8:   5669.7 ns, within  50.8 %, other cpus +0.03 stack=0x7ffc5e0482d0 output=0x55fc3d655c00
+  round  9:   5411.0 ns, within  32.8 %, other cpus +0.01 stack=0x7fffd9598b80 output=0x56484d011c00
+  round 10:   5658.0 ns, within  29.4 %, other cpus +0.01 stack=0x7ffd4c847fc0 output=0x555b88555c00
+
+cap.g++-16
+  round  1:   5883.8 ns, within  47.9 %, other cpus +0.02 stack=0x7ffe854e13fc output=0x558c3a498c00
+  round  2:   6219.1 ns, within  45.1 %, other cpus +0.02 stack=0x7ffd7670241c output=0x55dfa6b0fc00
+  round  3:   5946.4 ns, within  49.6 %, other cpus +0.01 stack=0x7ffee3cbb57c output=0x5601c8a28c00
+  round  4:   6063.2 ns, within  48.3 %, other cpus +0.01 stack=0x7fffc70daf5c output=0x5594de007c00
+  round  5:   5985.3 ns, within  25.2 %, other cpus +0.03 stack=0x7ffd4e2a597c output=0x55812c862c00
+  round  6:   5873.6 ns, within   5.8 %, other cpus +0.02 stack=0x7ffced1d4a1c output=0x557c11eabc00
+  round  7:   5848.0 ns, within  73.3 %, other cpus +0.02 stack=0x7ffd80ecf73c output=0x56538eb9fc00
+  round  8:   5856.6 ns, within  62.2 %, other cpus +0.03 stack=0x7fffabd4bc5c output=0x55f3f4eb3c00
+  round  9:   6937.4 ns, within  49.2 %, other cpus +0.04 stack=0x7fff879f045c output=0x557032478c00
+  round 10:   5912.7 ns, within  50.5 %, other cpus +0.01 stack=0x7fff113a4fbc output=0x557722631c00
+
+heap.clang++-23
+  round  1:   5830.1 ns, within   9.0 %, other cpus +0.02 stack=0x7ffd763e77f0 output=0x561885a99910
+  round  2:   5738.6 ns, within  30.1 %, other cpus +0.02 stack=0x7ffcd9135d80 output=0x5638d4a1e910
+  round  3:   5822.9 ns, within  25.4 %, other cpus +0.01 stack=0x7fff3c09f2c0 output=0x5561f786e910
+  round  4:   5825.6 ns, within  31.1 %, other cpus +0.02 stack=0x7ffcca2b9370 output=0x55ffe5699910
+  round  5:   5697.4 ns, within  12.8 %, other cpus +0.02 stack=0x7fff44938200 output=0x561e34277910
+  round  6:   5701.7 ns, within  74.7 %, other cpus +0.01 stack=0x7fff4a6e3400 output=0x56265d88e910
+  round  7:   5779.0 ns, within  51.2 %, other cpus +0.03 stack=0x7ffdbe313e50 output=0x558d69c53910
+  round  8:   5847.9 ns, within  66.0 %, other cpus +0.00 stack=0x7ffe236156e0 output=0x55fc6ab55910
+  round  9:   5750.0 ns, within  66.0 %, other cpus +0.01 stack=0x7ffedaf1a2c0 output=0x55e58d90a910
+  round 10:   5740.4 ns, within  68.2 %, other cpus +0.03 stack=0x7fff0492a3e0 output=0x563477e67910
+
+heap.g++-16
+  round  1:   6225.1 ns, within  23.0 %, other cpus +0.02 stack=0x7ffd26e3a83c output=0x5587db310910
+  round  2:   6137.1 ns, within  34.1 %, other cpus +0.02 stack=0x7ffdde27077c output=0x55ffd0334910
+  round  3:   6193.1 ns, within   9.7 %, other cpus +0.03 stack=0x7ffe1677005c output=0x562f37255910
+  round  4:   6336.7 ns, within  43.6 %, other cpus +0.01 stack=0x7ffe1eaca15c output=0x55c69f957910
+  round  5:   6107.9 ns, within   2.6 %, other cpus +0.02 stack=0x7ffd3d8e0f9c output=0x563ea6565910
+  round  6:   6120.2 ns, within  30.4 %, other cpus +0.02 stack=0x7fffc171649c output=0x5640bd23b910
+  round  7:   6135.5 ns, within  55.4 %, other cpus +0.01 stack=0x7ffcd28c0d5c output=0x564652681910
+  round  8:   6133.2 ns, within  75.1 %, other cpus +0.02 stack=0x7ffdc246a05c output=0x55bf04e35910
+  round  9:   6159.7 ns, within  11.5 %, other cpus +0.03 stack=0x7fffd0d8a47c output=0x562671c42910
+  round 10:   6146.1 ns, within  23.2 %, other cpus +0.02 stack=0x7fff3c66763c output=0x556f45eb8910
+
+heapNR.clang++-23
+  round  1:   5749.2 ns, within  85.1 %, other cpus +0.02 stack=0x7fffffffe3a0 output=0x555555598910
+  round  2:   5811.6 ns, within  19.9 %, other cpus +0.02 stack=0x7fffffffe3a0 output=0x555555598910
+  round  3:   5667.0 ns, within  21.6 %, other cpus -0.00 stack=0x7fffffffe3a0 output=0x555555598910
+  round  4:   5763.4 ns, within  77.0 %, other cpus +0.02 stack=0x7fffffffe3a0 output=0x555555598910
+  round  5:   5853.8 ns, within  70.2 %, other cpus +0.03 stack=0x7fffffffe3a0 output=0x555555598910
+  round  6:   5808.1 ns, within  36.2 %, other cpus +0.01 stack=0x7fffffffe3a0 output=0x555555598910
+  round  7:   5718.6 ns, within  70.3 %, other cpus +0.02 stack=0x7fffffffe3a0 output=0x555555598910
+  round  8:   5839.4 ns, within  56.4 %, other cpus +0.01 stack=0x7fffffffe3a0 output=0x555555598910
+  round  9:   5829.2 ns, within  14.7 %, other cpus +0.01 stack=0x7fffffffe3a0 output=0x555555598910
+  round 10:   5730.4 ns, within  11.4 %, other cpus +0.02 stack=0x7fffffffe3a0 output=0x555555598910
+
+ramhorns
+  round  1:   3989.0 ns, within  86.6 %, other cpus +0.01
+  round  2:   3944.2 ns, within  61.4 %, other cpus +0.02
+  round  3:   3931.8 ns, within  68.7 %, other cpus +0.03
+  round  4:   4029.3 ns, within  59.8 %, other cpus +0.02
+  round  5:   3993.0 ns, within  17.1 %, other cpus +0.01
+  round  6:   5006.1 ns, within 162.0 %, other cpus +0.02
+  round  7:   3936.8 ns, within  44.5 %, other cpus +0.01
+  round  8:   3990.4 ns, within   8.2 %, other cpus +0.01
+  round  9:   3979.6 ns, within  26.3 %, other cpus +0.01
+  round 10:   3918.8 ns, within  46.6 %, other cpus +0.02
+
+typed.clang++-23
+  round  1:   3914.7 ns, within   4.7 %, other cpus +0.01 stack=0x7ffe4fb46038 output=0x55685ea1d170
+  round  2:   3900.1 ns, within  62.9 %, other cpus +0.02 stack=0x7fff8ce2c028 output=0x55cd874c2170
+  round  3:   3883.9 ns, within   6.4 %, other cpus +0.03 stack=0x7ffff44dbc08 output=0x55e5d98aa170
+  round  4:   3882.5 ns, within   3.0 %, other cpus +0.03 stack=0x7ffd563dd258 output=0x5598845bf170
+  round  5:   3921.0 ns, within  42.9 %, other cpus +0.02 stack=0x7ffca3f919c8 output=0x5621dd701170
+  round  6:   3919.9 ns, within  39.8 %, other cpus +0.03 stack=0x7ffc23005158 output=0x55e96066a170
+  round  7:   3922.1 ns, within  37.6 %, other cpus +0.02 stack=0x7ffd0132e648 output=0x562ded945170
+  round  8:   3876.1 ns, within  45.8 %, other cpus +0.01 stack=0x7ffddb4e1568 output=0x55ef7f4da170
+  round  9:   3913.3 ns, within   4.4 %, other cpus +0.03 stack=0x7ffc5d8ad0e8 output=0x5555796cd170
+  round 10:   3913.2 ns, within  40.1 %, other cpus +0.01 stack=0x7ffe74ec7b78 output=0x55db74bbf170

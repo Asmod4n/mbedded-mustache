@@ -1,0 +1,2 @@
+user=nobody nice=0 threads=1 not pinned; nobody owns no other process, so the run has the default priority
+executables=heap.clang++-23 cap.clang++-23 heap.g++-16 cap.g++-16 typed.clang++-23 heapNR.clang++-23 ramhorns repetitions=30

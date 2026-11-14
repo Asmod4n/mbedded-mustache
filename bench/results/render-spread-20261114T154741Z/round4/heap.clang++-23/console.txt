@@ -1,0 +1,37 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+run_time                5827 ns         5822 ns        12020
+run_time                5798 ns         5795 ns        12020
+run_time                5674 ns         5671 ns        12020
+run_time                5711 ns         5697 ns        12020
+run_time                5688 ns         5684 ns        12020
+run_time                5824 ns         5822 ns        12020
+run_time                5839 ns         5780 ns        12020
+run_time                5824 ns         5816 ns        12020
+run_time                5728 ns         5728 ns        12020
+run_time                5685 ns         5685 ns        12020
+run_time                5664 ns         5664 ns        12020
+run_time                5814 ns         5814 ns        12020
+run_time                5800 ns         5800 ns        12020
+run_time                5748 ns         5747 ns        12020
+run_time                5775 ns         5772 ns        12020
+run_time                5812 ns         5805 ns        12020
+run_time                5921 ns         5920 ns        12020
+run_time                6161 ns         6144 ns        12020
+run_time                6526 ns         6460 ns        12020
+run_time                6346 ns         6338 ns        12020
+run_time                6216 ns         6210 ns        12020
+run_time                7425 ns         7401 ns        12020
+run_time                6041 ns         6037 ns        12020
+run_time                5855 ns         5845 ns        12020
+run_time                5865 ns         5863 ns        12020
+run_time                5829 ns         5829 ns        12020
+run_time                5809 ns         5802 ns        12020
+run_time                6092 ns         6009 ns        12020
+run_time                5885 ns         5873 ns        12020
+run_time                5856 ns         5843 ns        12020
+run_time_mean           5935 ns         5923 ns           30
+run_time_median         5826 ns         5819 ns           30
+run_time_stddev          346 ns          339 ns           30
+run_time_cv             5.84 %          5.73 %            30

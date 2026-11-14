@@ -1,0 +1,37 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+run_time                5953 ns         5949 ns        11679
+run_time                5986 ns         5985 ns        11679
+run_time                5911 ns         5912 ns        11679
+run_time                5931 ns         5900 ns        11679
+run_time                5905 ns         5885 ns        11679
+run_time                5842 ns         5841 ns        11679
+run_time                6131 ns         5929 ns        11679
+run_time                8585 ns         8439 ns        11679
+run_time                5880 ns         5880 ns        11679
+run_time                5952 ns         5952 ns        11679
+run_time                5985 ns         5967 ns        11679
+run_time                5988 ns         5976 ns        11679
+run_time                5962 ns         5941 ns        11679
+run_time                5928 ns         5928 ns        11679
+run_time                5956 ns         5947 ns        11679
+run_time                5973 ns         5954 ns        11679
+run_time                5946 ns         5928 ns        11679
+run_time                6501 ns         6146 ns        11679
+run_time                5935 ns         5926 ns        11679
+run_time                5865 ns         5865 ns        11679
+run_time                5739 ns         5736 ns        11679
+run_time                5951 ns         5951 ns        11679
+run_time                5947 ns         5947 ns        11679
+run_time                5922 ns         5923 ns        11679
+run_time                5951 ns         5951 ns        11679
+run_time                5944 ns         5943 ns        11679
+run_time                5900 ns         5900 ns        11679
+run_time                5939 ns         5940 ns        11679
+run_time                5937 ns         5911 ns        11679
+run_time                5977 ns         5975 ns        11679
+run_time_mean           6044 ns         6014 ns           30
+run_time_median         5946 ns         5940 ns           30
+run_time_stddev          495 ns          462 ns           30
+run_time_cv             8.18 %          7.69 %            30
