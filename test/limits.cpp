@@ -4,7 +4,11 @@
 
 #include <gtest/gtest.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/mman.h>
+#endif
 
 #include <cstddef>
 #include <expected>
@@ -23,15 +27,25 @@ rendered(const std::string_view source, const Node &data, const mustache::Partia
 
 // A template over kSourceMax is refused before a byte of it is read. The
 // source is a mapping of zero pages that the kernel gives only when a
-// page is read, so the test costs no memory.
+// page is read, so the test costs no memory. Windows has no mmap; its
+// VirtualAlloc gives committed pages the same way, on first read.
 TEST(Limits, RefusesASourceOverTheLimit)
 {
   const size_t size = mustache::kSourceMax + 1;
+#ifdef _WIN32
+  void *const pages = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READONLY);
+  ASSERT_NE(pages, nullptr);
+#else
   void *const pages = mmap(nullptr, size, PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
   ASSERT_NE(pages, MAP_FAILED);
+#endif
   const std::expected<mustache::Template, mustache::Error> t =
       mustache::compile(std::string_view(static_cast<const char *>(pages), size));
+#ifdef _WIN32
+  VirtualFree(pages, 0, MEM_RELEASE);
+#else
   munmap(pages, size);
+#endif
   ASSERT_FALSE(t);
   EXPECT_EQ(t.error().fault, mustache::Fault::over_limit);
   EXPECT_EQ(t.error().asked, size);
