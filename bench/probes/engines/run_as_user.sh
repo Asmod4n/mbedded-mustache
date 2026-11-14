@@ -79,7 +79,7 @@ while read -r b; do
   case $b in
     rust:*)
       crate=${b#rust:}
-      { cat context-common.txt; echo "binary=$b"; echo "build=cargo bench --no-run as root, executable run as nobody with CRITERION_HOME=/w/out/criterion/$crate"; } > context-$b.txt
+      { cat context-common.txt; echo "binary=$b"; echo "build=cargo bench --no-run as root, executable run as nobody with CRITERION_HOME=/w/out/criterion/$crate"; } > context-rust-$crate.txt
       mkdir -p /w/out/criterion/$crate
       CRITERION_HOME=/w/out/criterion/$crate /w/rbin/$crate/render --bench w2 $criterion_extra > json/$crate.console 2> json/$crate.err < /dev/null ||
         echo "binary $b exit $?" >> failed.txt
