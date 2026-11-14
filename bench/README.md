@@ -141,6 +141,6 @@ No result file stands for them.
 | table-size-20261114T091231Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables and f331cd1+class-fields, with the size of each table |
 | scalar-writers-20261114T093713Z.json | scalar-writers, arms 2, 6 and 7, x86-64-v3 |
 | table-size-20261114T093644Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables, f331cd1+class-fields and f331cd1+half-tables, with the size of each table |
-| readme-render-20261114T111409Z.json | readme-render, 6 binaries at -O2, x86-64-v4 |
+| readme-render-20261114T112518Z/ | readme-render, 6 JSON files of Google Benchmark, one for each binary at -O2, x86-64-v4, 30 repetitions in random interleaving, run as nobody |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
