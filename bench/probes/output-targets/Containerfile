@@ -1,0 +1,6 @@
+# The image of the build with the tools of a comparison: scipy of the distribution and tools/compare.py of the
+# Google Benchmark release that the distribution ships.
+FROM localhost/mbedded-cbor-docs
+RUN apt-get update -q && apt-get install -y -q python3-scipy python3-numpy git ca-certificates \
+ && git clone -q --depth 1 --branch v1.9.1 https://github.com/google/benchmark /opt/gb \
+ && git -C /opt/gb rev-parse HEAD > /opt/gb-commit.txt
