@@ -56,9 +56,21 @@ for arm in fresh reused twin; do
 done
 stamp timed-end
 for arm in twin reused; do
-  python3 /opt/gb/tools/compare.py --no-color benchmarks json/fresh.json json/$arm.json > compare/$arm.txt 2> compare/$arm.err ||
+  python3 /opt/gb/tools/compare.py --no-color -d compare/$arm.json benchmarks json/fresh.json json/$arm.json > compare/$arm.txt 2> compare/$arm.err ||
     echo "compare $arm failed" >> failed.txt
 done
 stamp compare-end
+jq -n --arg commit "$PROBE_COMMIT" --rawfile steps steps.txt --rawfile check check.log \
+  --slurpfile fresh json/fresh.json --slurpfile twin json/twin.json --slurpfile reused json/reused.json \
+  --slurpfile ctwin compare/twin.json --slurpfile creused compare/reused.json '{
+  name: "output-targets",
+  what: "the stocks page, rendered at run time from std::unordered_map data: render_to into a kept std::string (reused) against render into a new std::string (fresh); twin is fresh built again, the A/A arm",
+  method: "one container: one build (g++-16, the flags in context.flags), three binaries built in parallel, a byte check, each binary run once as nobody with 30 repetitions of at least 0.05 s in the order fresh, reused, twin, then tools/compare.py of Google Benchmark (Mann-Whitney U) against fresh",
+  commit: $commit,
+  steps_utc: ($steps | split("\n") | map(select(length > 0))),
+  byte_check: ($check | split("\n") | map(select(length > 0))),
+  google_benchmark: {fresh: $fresh[0], twin: $twin[0], reused: $reused[0]},
+  compare_against_fresh: {twin: $ctwin[0], reused: $creused[0]}
+}' > result.json || echo "join of the result failed" >> failed.txt
 cat steps.txt check.log failed.txt
 for arm in twin reused; do echo "== $arm against fresh"; grep -E "_(mean|median|stddev|cv)|U Test" compare/$arm.txt; done

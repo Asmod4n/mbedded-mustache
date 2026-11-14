@@ -12,3 +12,6 @@ podman run --rm --network none \
   -e PROBE_COMMIT="$(git -C "$root" rev-parse HEAD)" -e DIRTY="$(git -C "$root" status --porcelain | wc -l)" \
   -e PODMAN_VERSION="$(podman --version | tr ' ' '_')" -e IMAGE_ID="$(podman image inspect localhost/mustache-bench --format '{{.Id}}')" \
   -v "$work":/w localhost/mustache-bench sh /w/src/bench/probes/output-targets/inside.sh
+result="$root/bench/results/output-targets-$(date -u +%Y%m%dT%H%M%SZ).json"
+cp "$work/out/result.json" "$result"
+echo "result $result"
