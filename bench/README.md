@@ -144,6 +144,6 @@ No result file stands for them.
 | table-size-20261114T093644Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables, f331cd1+class-fields and f331cd1+half-tables, with the size of each table |
 | readme-render-20261114T112518Z/ | readme-render, 6 JSON files of Google Benchmark, one for each binary at -O2, x86-64-v4, 30 repetitions in random interleaving, run as nobody |
 | runtime-speed-20261114T130319Z/ | runtime-speed, commit 27c3824: 80 JSON files of Google Benchmark (16 binaries, 5 rounds of 6 repetitions, new rotation each round, random interleaving, min time 0.05 s, run as nobody), the check log, the compare.py output of each arm against H (Google Benchmark v1.9.1), the context and summary.txt. |
+| readme-render-20261114T133248Z/ | readme-render at commit 0dc9ce2, 6 JSON files of Google Benchmark, one for each binary at -O2, x86-64-v4, 30 repetitions, run as nobody. It renders from std::unordered_map and replaces readme-render-20261114T112518Z/ for the README table. |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
-| readme-render-20261114T133248Z/ | readme-render at commit 0dc9ce2, 6 JSON files of Google Benchmark, one for each binary at -O2, x86-64-v4, 30 repetitions, run as nobody. It renders from std::unordered_map and replaces readme-render-20261114T112518Z/ for the README table. |
