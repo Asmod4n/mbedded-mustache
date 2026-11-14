@@ -23,20 +23,6 @@ escaped_size_of(const std::string_view s)
   return size;
 }
 
-constexpr bool
-escaped_fits(const std::string_view s, const size_t room)
-{
-  if (s.size() > room / kEntityMax) [[unlikely]] return escaped_size_of(s) <= room;
-  return true;
-}
-
-constexpr char *
-escaped_into(char *const w, const std::string_view s)
-{
-  if (std::is_constant_evaluated()) return escape_bytes(w, s);
-  return escape_into(w, s);
-}
-
 constexpr size_t
 escaped_size_max_in(const Context c, const size_t n)
 {
@@ -45,6 +31,15 @@ escaped_size_max_in(const Context c, const size_t n)
     case Context::js_string:      return 4 * n;
     default:                      return kEntityMax * n;
   }
+}
+
+namespace detail {
+
+constexpr char *
+escaped_into(char *const w, const std::string_view s)
+{
+  if (std::is_constant_evaluated()) return escape_bytes(w, s);
+  return escape_into(w, s);
 }
 
 constexpr char *
@@ -58,6 +53,8 @@ escaped_into_in(const Context c, char *const w, const std::string_view s)
     case Context::troff_text:     return troff_text_escaped_into(w, s);
     default:                      return escaped_into(w, s);
   }
+}
+
 }
 
 constexpr bool
@@ -93,7 +90,7 @@ struct Out {
 
   constexpr void raw(const std::string_view s)
   {
-    if (room() < s.size()) [[unlikely]] {
+    if (!room_holds_the_copied_value(s, room())) [[unlikely]] {
       full = true;
       return;
     }
@@ -102,20 +99,20 @@ struct Out {
 
   constexpr void escaped_in(const Context c, const std::string_view s)
   {
-    if (escaped_size_max_in(c, s.size()) > room()) [[unlikely]] {
+    if (!room_holds_the_escaped_value(c, s, room())) [[unlikely]] {
       full = true;
       return;
     }
-    w = escaped_into_in(c, w, s);
+    w = detail::escaped_into_in(c, w, s);
   }
 
   constexpr void escaped(const std::string_view s)
   {
-    if (!escaped_fits(s, room())) [[unlikely]] {
+    if (!room_holds_the_escaped_value(Context::html_text, s, room())) [[unlikely]] {
       full = true;
       return;
     }
-    w = escaped_into(w, s);
+    w = detail::escaped_into(w, s);
   }
 };
 

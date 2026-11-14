@@ -215,6 +215,40 @@ TEST(ReflectMap, KnownAtCompileTimeIsFilledIn)
   EXPECT_EQ(std::string_view(page.data()), "Hello/en");
 }
 
+struct Title {
+  std::string_view title;
+};
+
+constexpr Title
+marked_title()
+{
+  return Title{"a<b & \"c\""};
+}
+
+constexpr Title
+long_title()
+{
+  return Title{"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\""};
+}
+
+// The page of static_page has the exact length of the output, and its
+// room ends at the end of the whole buffer. A room that ended at the
+// exact length would refuse every escaped value, because the check
+// counts the bytes past the written count, and the page would lose the
+// values without a fault. The escaped value must stand whole in the
+// page, also where its escape is longer than the bytes past the count.
+// The html escape writes whole words past the count, so the test reads
+// the page up to the length that static_length gives, not up to a NUL.
+TEST(ReflectPage, StaticPageHoldsTheEscapedValue)
+{
+  constexpr auto marked = mustache::static_page_of<"[{{title}}]", marked_title>;
+  constexpr size_t marked_length = mustache::static_length<"[{{title}}]", marked_title>();
+  EXPECT_EQ(std::string_view(marked.data(), marked_length), "[" + escaped_by_rule(marked_title().title) + "]");
+  constexpr auto long_page = mustache::static_page_of<"[{{title}}]", long_title>;
+  constexpr size_t long_length = mustache::static_length<"[{{title}}]", long_title>();
+  EXPECT_EQ(std::string_view(long_page.data(), long_length), "[" + escaped_by_rule(long_title().title) + "]");
+}
+
 struct Cell {
   std::variant<std::string, int64_t, std::monostate> value;
   std::optional<int>                                 count;

@@ -103,4 +103,20 @@ TEST(Output, StopsOverTheLimit)
   EXPECT_EQ(rendered("{{{a}}}", m, mustache::kInitialCapacity, 4096).fault, mustache::Fault::over_limit);
 }
 
+// The check of the room counts the bytes past the written count on
+// top of the escaped size, and the growth asks for the escaped size
+// alone. An output that needs exactly max_capacity bytes must pass, and
+// one byte less of max_capacity must stop with over_limit. A growth
+// that also asked for the bytes past the count would refuse the first.
+TEST(Output, PassesAnEscapedOutputOfExactlyMaxCapacity)
+{
+  Map m;
+  m.insert_or_assign("a", Node{std::string(100, '"')});
+  const std::string expected = repeated("&quot;", 100);
+  const Rendered exact = rendered("{{a}}", m, 16, expected.size());
+  EXPECT_EQ(exact.fault, mustache::Fault::none);
+  EXPECT_EQ(exact.answer, expected);
+  EXPECT_EQ(rendered("{{a}}", m, 16, expected.size() - 1).fault, mustache::Fault::over_limit);
+}
+
 }

@@ -447,7 +447,7 @@ struct Renderer {
     for (uint32_t q = from; q < stop; q++) {
       const Op op = P.ops.at(q);
       if (op.tag == Tag::text) bound += op.b;
-      else if (op.tag == Tag::var || op.tag == Tag::raw) bound += 32;
+      else if (op.tag == Tag::var || op.tag == Tag::raw) bound += kCopiedStringMax;
       else return 0;
     }
     return bound;
@@ -748,7 +748,7 @@ static_length()
   if constexpr (static_program_of<Src>.refused) detail::does_not_compile<Src>();
   for (size_t capacity = 4096;; capacity *= 2) {
     char *buffer = new char[capacity + kSlack];
-    Out out{buffer, buffer + capacity};
+    Out out{buffer, buffer + capacity + kSlack};
     bool pending = false;
     Renderer<Src, static_partial_list<Partials...>>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(out, pending,
                                                                                                              Make());
@@ -765,7 +765,7 @@ static_page()
 {
   constexpr size_t n = static_length<Src, Make, Partials...>();
   std::array<char, n + kSlack> page{};
-  Out out{page.data(), page.data() + n};
+  Out out{page.data(), page.data() + n + kSlack};
   bool pending = false;
   Renderer<Src, static_partial_list<Partials...>>::template run<0, (uint32_t)static_program_of<Src>.ops.size()>(out, pending,
                                                                                                            Make());

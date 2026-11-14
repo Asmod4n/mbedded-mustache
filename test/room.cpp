@@ -165,7 +165,7 @@ expect_the_escape_stays_in_its_room(const Context c, const std::string &s)
   }
 
   const Written w = written_in_room(required, [c, &s](const std::span<char> room) {
-    return mustache::escaped_into_in(c, room.data(), s);
+    return mustache::detail::escaped_into_in(c, room.data(), s);
   });
   EXPECT_TRUE(w.inside) << described(c, s);
   if (!w.inside) return;

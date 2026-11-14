@@ -113,7 +113,7 @@ struct Answer {
 
   [[gnu::always_inline]] void raw(const std::string_view s)
   {
-    if (size + s.size() > capacity() && !grown(size + s.size())) [[unlikely]] return;
+    if (s.size() + kBytesPastTheWrittenCount > rest().size() && !grown(size + s.size())) [[unlikely]] return;
     std::ranges::copy(s, rest().begin());
     size += s.size();
   }
@@ -125,7 +125,9 @@ struct Answer {
 
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
-    if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
+    if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
+        !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
+      return;
     const std::span<char> room = rest();
     size += (size_t)std::distance(room.data(), escape_string_into(room, s));
   }
@@ -140,17 +142,20 @@ struct Answer {
       fault = Fault::illegal_control_character;
       return;
     }
-    const size_t needed = escaped_size_max_in(c, s.size());
-    if (size + needed > capacity() && !grown(size + needed)) [[unlikely]] return;
+    if (!room_holds_the_escaped_value(c, s, rest().size()) && !grown(size + room_needed_for_the_escaped_value(c, s)))
+        [[unlikely]]
+      return;
     char *const w = rest().data();
-    size += (size_t)std::distance(w, escaped_into_in(c, w, s));
+    size += (size_t)std::distance(w, detail::escaped_into_in(c, w, s));
   }
 
   [[gnu::always_inline]] void escaped(const std::string_view s)
   {
-    if (!escaped_fits(s, capacity() - size) && !grown(size + escaped_size_of(s))) [[unlikely]] return;
+    if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
+        !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
+      return;
     char *const w = rest().data();
-    size += (size_t)std::distance(w, escaped_into(w, s));
+    size += (size_t)std::distance(w, detail::escaped_into(w, s));
   }
 };
 
@@ -167,7 +172,7 @@ struct Batch {
 
   [[gnu::always_inline]] void raw(const std::string_view s)
   {
-    if (s.size() > kCopiedStringMax || s.size() > room.size() - size) [[unlikely]] {
+    if (!room_holds_the_copied_value(s, kCopiedStringMax)) [[unlikely]] {
       dirty = true;
       return;
     }
@@ -181,6 +186,10 @@ struct Batch {
 
   [[gnu::always_inline]] void escaped_string(const std::string &s)
   {
+    if (!room_holds_the_copied_value(s, kCopiedStringMax)) [[unlikely]] {
+      dirty = true;
+      return;
+    }
     const Copied c = copied_string(room.subspan(size), s);
     if (c.w == nullptr) [[unlikely]] {
       dirty = true;
