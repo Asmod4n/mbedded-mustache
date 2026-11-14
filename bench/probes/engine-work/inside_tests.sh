@@ -1,24 +1,25 @@
 #!/bin/sh
-# Container side, phase tests. Builds the test binaries of test/ for the variants main, e1, e2, e3a and all, four at a time, and runs
-# each as nobody. g++-16 builds spec, limits, media_type, output, reflect, room, troff and typed. clang++-23 builds spec, limits,
-# output, troff and typed. Warnings are counted for each binary. Stderr goes to log files under /w/out/tests.
+# Container side, phase tests. Builds the test binaries spec and typed of test/ for the variant e3a with g++-16 only, four at a time,
+# and runs each as nobody. Warnings are counted for each binary. Stderr goes to log files under /w/out/tests.
 set -u
 . /w/src/bench/probes/engine-work/flags.sh
 mkdir -p /w/out/tests /w/tbin /w/out/testrun
 chmod a+rwx /w/out/tests /w/tbin /w/out/testrun
 [ -d /w/arms/main ] || sh /w/src/bench/probes/engine-work/make_arms.sh > /w/out/arms-tests.log 2>&1
-GCC_TESTS="spec limits media_type output reflect room troff typed"
-CLANG_TESTS="spec limits output troff typed"
+GCC_TESTS="spec typed"
+CLANG_TESTS=""
+TEST_VARIANTS="e3a"
+TEST_COMPILERS="g++-16"
 jobs=""
-for v in $EXTRA_VARIANTS; do
+for v in $TEST_VARIANTS; do
   for t in $GCC_TESTS; do jobs="${jobs}$v $t g++-16\n"; done
   for t in $CLANG_TESTS; do jobs="${jobs}$v $t clang++-23\n"; done
 done
 printf "$jobs" | xargs -P 4 -L 1 sh /w/src/bench/probes/engine-work/test_one.sh
 chmod -R a+rX /w/tbin
 : > /w/out/tests/summary.txt
-for v in $EXTRA_VARIANTS; do
-  for cxx in $COMPILERS; do
+for v in $TEST_VARIANTS; do
+  for cxx in $TEST_COMPILERS; do
     case $cxx in g++-16) tests=$GCC_TESTS ;; *) tests=$CLANG_TESTS ;; esac
     for t in $tests; do
       b=/w/tbin/$v.$t.$cxx

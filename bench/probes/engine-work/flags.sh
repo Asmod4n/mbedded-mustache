@@ -9,11 +9,12 @@ flags_for() {
 # Arms. main is include/ of 5d3c154. twin is a second copy of it (A/A). main8192 is main with 8192 as the initial_capacity argument
 # of render. e1, e2 and e3a are the patch files of this directory. e3a1024 and e3a8192 are e3a with 1024 and 8192 as the argument.
 # all is e1, e2 and e3a with 1024.
-# One run measures one change: this run has main, twin and e1. The other arms are defined in include_of and capacity_of and have their
-# patch files here; each gets its own run, with ARMS set to main, twin and that arm.
-ARMS="main twin e1"
-VARIANTS="main twin e1"
-EXTRA_VARIANTS="main e1"
+# One run measures one change: this run has main, twin and e3a1024. main is include/ of ac4de90 (5d3c154 with E1 and the colon fix),
+# and e3a-on-e1.patch is e3a.patch moved onto it. The other arms are defined in include_of and capacity_of; each gets its own run,
+# with ARMS set to main, twin and that arm.
+ARMS="main twin e3a1024"
+VARIANTS="main twin e3a"
+EXTRA_VARIANTS="main e3a"
 COMPILERS="g++-16 clang++-23"
 PAGES="p20"
 include_of() {

@@ -9,6 +9,6 @@ for v in $VARIANTS; do
   cp -r /w/src/include "/w/arms/$v/include"
   case $v in
     main|twin) ;;
-    *) (cd "/w/arms/$v" && git apply -p1 "$here/$v.patch") || { echo "patch $v failed"; exit 1; } ;;
+    *) (cd "/w/arms/$v" && git apply -p1 "$here/$v-on-e1.patch") || { echo "patch $v failed"; exit 1; } ;;
   esac
 done

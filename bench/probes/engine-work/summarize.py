@@ -14,8 +14,8 @@ import statistics
 import sys
 
 TITLES = {
-    "main": "main 5d3c154",
-    "twin": "main twin (A/A)",
+    "main": "head ac4de90 (main 5d3c154 with E1 and the colon fix)",
+    "twin": "head twin (A/A)",
     "main8192": "main with initial_capacity 8192 (the argument of render)",
     "e1": "E1 Test the kept first part inside run",
     "e2": "E2 Run a text op and the tag op after it in one dispatch",

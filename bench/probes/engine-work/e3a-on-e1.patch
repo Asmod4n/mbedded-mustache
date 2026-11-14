@@ -1,0 +1,188 @@
+diff --git a/include/mustache/reflect.hpp b/include/mustache/reflect.hpp
+index ed20040..f8ef25a 100644
+--- a/include/mustache/reflect.hpp
++++ b/include/mustache/reflect.hpp
+@@ -598,14 +598,17 @@ struct Renderer {
+     }
+     else if constexpr (detail::list_like<V>) {
+       constexpr size_t bound = batch_bound(pc + 1, op.c);
+-      if constexpr (bound != 0 && !kIndented && requires { out.reserved(bound); }) {
++      if constexpr (bound != 0 && !kIndented && requires { out.written(bound, [](const std::span<char>) { return size_t{0}; }); }) {
+         for (const auto &e : v) {
+-          if (!out.reserved(bound)) [[unlikely]] return;
+-          Batch b{out.rest()};
+-          detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(b, pending, ctx..., x); });
+-          if (!b.dirty) [[likely]]
+-            out.size += b.size;
+-          else
++          bool dirty = false;
++          if (!out.written(bound, [&](const std::span<char> room) {
++                Batch b{room};
++                detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(b, pending, ctx..., x); });
++                dirty = b.dirty;
++                return dirty ? size_t{0} : b.size;
++              })) [[unlikely]]
++            return;
++          if (dirty) [[unlikely]]
+             detail::with_held(e, [&](const auto &x) { run<pc + 1, op.c>(out, pending, ctx..., x); });
+         }
+       }
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index f78c16d..76de68e 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -52,14 +52,11 @@ inline constexpr size_t kMaxCapacity = (size_t)std::numeric_limits<std::ptrdiff_
+ 
+ struct Answer {
+   std::string bytes;
+-  size_t      size = 0;
+   size_t      max_capacity = kMaxCapacity;
+   Fault       fault = Fault::none;
+   size_t      asked = 0;
+   size_t      allowed = 0;
+ 
+-  size_t capacity() const { return bytes.size() - kEscapeSlack; }
+-
+   Error error() const
+   {
+     if (fault == Fault::not_text) return Error{fault, "a value is not text", 0, 0};
+@@ -67,70 +64,84 @@ struct Answer {
+     return Error{fault, "render output", asked, allowed};
+   }
+ 
+-  bool resized(const size_t capacity)
++  size_t room() const
++  {
++    return std::min(bytes.capacity() - kEscapeSlack, max_capacity) - bytes.size() + kEscapeSlack;
++  }
++
++  size_t bound_of_the_escaped_value(const Context c, const std::string_view s) const
++  {
++    const size_t usable = room() - kBytesPastTheWrittenCount;
++    if (s.size() <= usable / escaped_size_max_in(c, 1)) [[likely]] return escaped_size_max_in(c, s.size());
++    return room_needed_for_the_escaped_value(c, s);
++  }
++
++  void failed(const Fault f, const size_t what_was_asked)
++  {
++    if (fault != Fault::none) return;
++    fault = f;
++    asked = what_was_asked;
++    allowed = f == Fault::over_limit ? max_capacity : 0;
++  }
++
++  bool reserved(const size_t capacity)
+   {
+     try {
+-      bytes.resize(capacity + kEscapeSlack);
++      bytes.reserve(capacity + kEscapeSlack);
+       return true;
+     }
+     catch (const std::bad_alloc &) {
+     }
+     catch (const std::length_error &) {
+     }
+-    fault = Fault::no_memory;
+-    asked = capacity;
++    failed(Fault::no_memory, capacity);
+     return false;
+   }
+ 
+   bool opened(const size_t initial_capacity)
+   {
+     if (initial_capacity > max_capacity) [[unlikely]] {
+-      fault = Fault::over_limit;
+-      asked = initial_capacity;
+-      allowed = max_capacity;
++      failed(Fault::over_limit, initial_capacity);
+       return false;
+     }
+-    return resized(initial_capacity);
++    return reserved(initial_capacity);
+   }
+ 
+   bool grown(const size_t needed)
++  {
++    return reserved(std::min(std::max((bytes.capacity() - kEscapeSlack) * 2, needed), max_capacity));
++  }
++
++  template <class Write>
++  MUSTACHE_ALWAYS_INLINE bool written(const size_t bound, const Write &write)
+   {
+     if (fault != Fault::none) [[unlikely]] return false;
+-    if (needed > max_capacity) [[unlikely]] {
+-      fault = Fault::over_limit;
+-      asked = needed;
+-      allowed = max_capacity;
++    const size_t size = bytes.size();
++    if (bound > max_capacity - size) [[unlikely]] {
++      failed(Fault::over_limit, size + bound);
+       return false;
+     }
+-    return resized(std::min(std::max(capacity() * 2, needed), max_capacity));
++    if (size + bound + kEscapeSlack > bytes.capacity() && !grown(size + bound)) [[unlikely]] return false;
++    bytes.resize_and_overwrite(size + bound + kEscapeSlack, [&](char *const p, const size_t n) {
++      return size + write(std::span<char>(p + size, n - size));
++    });
++    return true;
+   }
+ 
+-  std::span<char> rest() { return std::span<char>(bytes).subspan(size); }
+-
+-  std::string closed()
+-  {
+-    bytes.resize(size);
+-    return std::move(bytes);
+-  }
++  std::string closed() { return std::move(bytes); }
+ 
+   MUSTACHE_ALWAYS_INLINE void raw(const std::string_view s)
+   {
+-    if (s.size() + kBytesPastTheWrittenCount > rest().size() && !grown(size + s.size())) [[unlikely]] return;
+-    std::ranges::copy(s, rest().begin());
+-    size += s.size();
+-  }
+-
+-  MUSTACHE_ALWAYS_INLINE bool reserved(const size_t bound)
+-  {
+-    return size + bound <= capacity() || grown(size + bound);
++    written(s.size(), [&](const std::span<char> room) {
++      std::ranges::copy(s, room.begin());
++      return s.size();
++    });
+   }
+ 
+   MUSTACHE_ALWAYS_INLINE void escaped_string(const std::string &s)
+   {
+-    if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
+-        !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
+-      return;
+-    size += escape_string_into(rest(), s);
++    const size_t bound = bound_of_the_escaped_value(Context::html_text, s);
++    written(bound, [&](const std::span<char> room) { return escape_string_into(room, s); });
+   }
+ 
+   void escaped_in(const Context c, const std::string_view s)
+@@ -143,18 +154,14 @@ struct Answer {
+       fault = Fault::illegal_control_character;
+       return;
+     }
+-    if (!room_holds_the_escaped_value(c, s, rest().size()) && !grown(size + room_needed_for_the_escaped_value(c, s)))
+-        [[unlikely]]
+-      return;
+-    size += detail::escaped_into_in(c, rest(), s);
++    const size_t bound = bound_of_the_escaped_value(c, s);
++    written(bound, [&](const std::span<char> room) { return detail::escaped_into_in(c, room, s); });
+   }
+ 
+   MUSTACHE_ALWAYS_INLINE void escaped(const std::string_view s)
+   {
+-    if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
+-        !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
+-      return;
+-    size += detail::escaped_into(rest(), s);
++    const size_t bound = bound_of_the_escaped_value(Context::html_text, s);
++    written(bound, [&](const std::span<char> room) { return detail::escaped_into(room, s); });
+   }
+ };
+ 
