@@ -144,8 +144,7 @@ struct Answer {
     if (!room_holds_the_escaped_value(c, s, rest().size()) && !grown(size + room_needed_for_the_escaped_value(c, s)))
         [[unlikely]]
       return;
-    char *const w = rest().data();
-    size += (size_t)std::distance(w, detail::escaped_into_in(c, w, s));
+    size += detail::escaped_into_in(c, rest(), s);
   }
 
   [[gnu::always_inline]] void escaped(const std::string_view s)

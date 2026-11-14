@@ -19,7 +19,7 @@ constexpr size_t
 escaped_size_of(const std::string_view s)
 {
   size_t size = 0;
-  for (const char c : s) size += entity_length(kEntities.word.at((unsigned char)c));
+  for (const char c : s) size += entity_length(entity_word_of(kEntities, static_cast<unsigned char>(c)));
   return size;
 }
 
@@ -42,16 +42,16 @@ escaped_into(char *const w, const std::string_view s)
   return escape_into(w, s);
 }
 
-constexpr char *
-escaped_into_in(const Context c, char *const w, const std::string_view s)
+constexpr size_t
+escaped_into_in(const Context c, const std::span<char> room, const std::string_view s)
 {
   switch (c) {
-    case Context::xml_text:       return xml_escaped_into(w, s);
-    case Context::json_string:    return json_string_escaped_into(w, s);
-    case Context::js_string:      return js_string_escaped_into(w, s);
-    case Context::css_string:     return css_string_escaped_into(w, s);
-    case Context::troff_text:     return troff_text_escaped_into(w, s);
-    default:                      return escaped_into(w, s);
+    case Context::xml_text:       return xml_escaped_into(room, s);
+    case Context::json_string:    return json_string_escaped_into(room, s);
+    case Context::js_string:      return js_string_escaped_into(room, s);
+    case Context::css_string:     return css_string_escaped_into(room, s);
+    case Context::troff_text:     return troff_text_escaped_into(room, s);
+    default:                      return static_cast<size_t>(std::distance(room.data(), escaped_into(room.data(), s)));
   }
 }
 
@@ -103,7 +103,8 @@ struct Out {
       full = true;
       return;
     }
-    w = detail::escaped_into_in(c, w, s);
+    const std::span<char> room(w, end);
+    w = room.subspan(detail::escaped_into_in(c, room, s)).data();
   }
 
   constexpr void escaped(const std::string_view s)

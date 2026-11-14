@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <span>
 #include <string>
 #include <string_view>
@@ -21,20 +22,40 @@
 
 namespace mustache {
 
+inline constexpr size_t kEntityMax = 6;
+
+inline constexpr size_t kEntityWordBytes = sizeof(uint64_t);
+
+inline constexpr size_t kEntityLengthShift = (kEntityWordBytes - 1) * std::numeric_limits<unsigned char>::digits;
+
+inline constexpr size_t kCopiedStringMax = 32;
+
+inline constexpr size_t kEscapeSlack = kCopiedStringMax;
+
+inline constexpr size_t kBytesPastTheWrittenCount = kEscapeSlack;
+
 struct Entities {
   std::array<uint64_t, 256> word;
 };
+
+consteval uint64_t
+word_of(const std::string_view piece)
+{
+  uint64_t word = uint64_t{piece.size()} << kEntityLengthShift;
+  size_t shift = 0;
+  for (const char c : piece) {
+    word |= uint64_t{static_cast<unsigned char>(c)} << shift;
+    shift += std::numeric_limits<unsigned char>::digits;
+  }
+  return word;
+}
 
 consteval Entities
 entities_of()
 {
   Entities e{};
   for (size_t c = 0; c < 256; c++) e.word.at(c) = (uint64_t)c | (uint64_t{1} << 56);
-  auto put = [&e](const unsigned char c, const std::string_view s) {
-    uint64_t v = (uint64_t)s.size() << 56;
-    for (size_t i = 0; i < s.size(); i++) v |= (uint64_t)(unsigned char)s.at(i) << (8 * i);
-    e.word.at(c) = v;
-  };
+  auto put = [&e](const unsigned char c, const std::string_view s) consteval { e.word.at(c) = word_of(s); };
   put('&', "&amp;");
   put('<', "&lt;");
   put('>', "&gt;");
@@ -45,26 +66,24 @@ entities_of()
 
 inline constexpr Entities kEntities = entities_of();
 
-inline constexpr size_t kEntityMax = 6;
-
-inline constexpr size_t kEntityWordBytes = sizeof(uint64_t);
-
-inline constexpr size_t kCopiedStringMax = 32;
-
-inline constexpr size_t kEscapeSlack = kCopiedStringMax;
-
-inline constexpr size_t kBytesPastTheWrittenCount = kEscapeSlack;
+constexpr uint64_t
+entity_word_of(const Entities &table, const unsigned char c)
+{
+  static_assert(std::cmp_less(std::numeric_limits<unsigned char>::max(), std::tuple_size_v<decltype(Entities::word)>),
+                "every value of unsigned char indexes a word of the table");
+  return table.word[c];
+}
 
 constexpr size_t
 entity_length(const uint64_t word)
 {
-  return (size_t)(word >> 56);
+  return static_cast<size_t>(word >> kEntityLengthShift);
 }
 
 constexpr bool
 is_marked(const char c)
 {
-  return entity_length(kEntities.word.at((unsigned char)c)) != 1;
+  return entity_length(entity_word_of(kEntities, static_cast<unsigned char>(c))) != 1;
 }
 
 constexpr char *
@@ -79,52 +98,89 @@ constexpr char *
 escape_bytes(char *const out, const std::string_view s)
 {
   char *w = out;
-  for (const char c : s) w = entity_into(w, kEntities.word.at((unsigned char)c));
+  for (const char c : s) w = entity_into(w, entity_word_of(kEntities, static_cast<unsigned char>(c)));
   return w;
 }
 
-constexpr char *
-bytes_into(char *w, const std::string_view s)
+[[gnu::always_inline, gnu::flatten]] constexpr void
+stored_word(const std::span<char, kEntityWordBytes> o, const uint64_t word)
 {
-  return std::ranges::copy(s, w).out;
+  const auto bytes = std::bit_cast<std::array<char, kEntityWordBytes>>(word);
+  std::copy_n(bytes.begin(), bytes.size(), o.begin());
 }
 
-constexpr char *
-xml_escaped_into(char *w, const std::string_view s)
+[[gnu::always_inline, gnu::flatten]] constexpr size_t
+word_appended(const std::span<char> room, const size_t count, const uint64_t word)
 {
-  for (const char c : s) {
-    if (c == '&') w = bytes_into(w, "&amp;");
-    else if (c == '<') w = bytes_into(w, "&lt;");
-    else if (c == '>') w = bytes_into(w, "&gt;");
-    else if (c == '"') w = bytes_into(w, "&quot;");
-    else if (c == '\'') w = bytes_into(w, "&apos;");
-    else *w++ = c;
-  }
-  return w;
+  static_assert(kBytesPastTheWrittenCount >= kEntityWordBytes,
+                "a word stored at the written count stays in the bytes that the caller proved past the count");
+  stored_word(room.subspan(count).first<kEntityWordBytes>(), word);
+  return count + entity_length(word);
+}
+
+[[gnu::always_inline, gnu::flatten]] constexpr size_t
+table_escaped_into(const std::span<char> room, const size_t count, const std::string_view s, const Entities &table)
+{
+  size_t at = count;
+  for (const char c : s) at = word_appended(room, at, entity_word_of(table, static_cast<unsigned char>(c)));
+  return at;
+}
+
+template <class WordOf>
+consteval Entities
+entities_by(const WordOf &word_of_byte)
+{
+  Entities e{};
+  for (size_t c = 0; c < e.word.size(); c++) e.word.at(c) = word_of_byte(static_cast<char>(static_cast<unsigned char>(c)));
+  return e;
+}
+
+consteval uint64_t
+byte_word_of(const char c)
+{
+  return uint64_t{static_cast<unsigned char>(c)} | (uint64_t{1} << kEntityLengthShift);
 }
 
 inline constexpr std::string_view kHexDigits = "0123456789abcdef";
 
-constexpr char *
-json_string_escaped_into(char *w, const std::string_view s)
+consteval uint64_t
+with_hex_digits_at(const uint64_t word, const size_t at, const unsigned char u)
 {
-  for (const char c : s) {
-    const unsigned char u = (unsigned char)c;
-    if (c == '"') w = bytes_into(w, "\\\"");
-    else if (c == '\\') w = bytes_into(w, "\\\\");
-    else if (c == '\b') w = bytes_into(w, "\\b");
-    else if (c == '\f') w = bytes_into(w, "\\f");
-    else if (c == '\n') w = bytes_into(w, "\\n");
-    else if (c == '\r') w = bytes_into(w, "\\r");
-    else if (c == '\t') w = bytes_into(w, "\\t");
-    else if (u < 0x20) {
-      w = bytes_into(w, "\\u00");
-      *w++ = kHexDigits.at(u >> 4);
-      *w++ = kHexDigits.at(u & 15);
-    }
-    else *w++ = c;
+  const size_t shift = at * std::numeric_limits<unsigned char>::digits;
+  return word | uint64_t{static_cast<unsigned char>(kHexDigits.at(u >> 4))} << shift |
+         uint64_t{static_cast<unsigned char>(kHexDigits.at(u & 15))} << (shift + std::numeric_limits<unsigned char>::digits);
+}
+
+consteval uint64_t
+xml_word_of(const char c)
+{
+  switch (c) {
+    case '&':  return word_of("&amp;");
+    case '<':  return word_of("&lt;");
+    case '>':  return word_of("&gt;");
+    case '"':  return word_of("&quot;");
+    case '\'': return word_of("&apos;");
+    default:   return byte_word_of(c);
   }
-  return w;
+}
+
+consteval uint64_t
+json_word_of(const char c)
+{
+  using namespace std::string_view_literals;
+  switch (c) {
+    case '"':  return word_of("\\\"");
+    case '\\': return word_of("\\\\");
+    case '\b': return word_of("\\b");
+    case '\f': return word_of("\\f");
+    case '\n': return word_of("\\n");
+    case '\r': return word_of("\\r");
+    case '\t': return word_of("\\t");
+    default:   break;
+  }
+  const unsigned char u = static_cast<unsigned char>(c);
+  if (u < 0x20) return with_hex_digits_at(word_of("\\u00\0\0"sv), 4, u);
+  return byte_word_of(c);
 }
 
 constexpr bool
@@ -134,24 +190,12 @@ is_js_plain(const char c)
          c == ',' || c == '.' || (unsigned char)c >= 0x80;
 }
 
-constexpr char *
-js_string_escaped_into(char *w, const std::string_view s)
+consteval uint64_t
+js_word_of(const char c)
 {
-  for (size_t i = 0; i < s.size(); i++) {
-    const unsigned char u = (unsigned char)s.at(i);
-    if (u == 0xe2 && i + 2 < s.size() && (unsigned char)s.at(i + 1) == 0x80 &&
-        ((unsigned char)s.at(i + 2) == 0xa8 || (unsigned char)s.at(i + 2) == 0xa9)) {
-      w = bytes_into(w, (unsigned char)s.at(i + 2) == 0xa8 ? "\\u2028" : "\\u2029");
-      i += 2;
-    }
-    else if (is_js_plain(s.at(i))) *w++ = s.at(i);
-    else {
-      w = bytes_into(w, "\\x");
-      *w++ = kHexDigits.at(u >> 4);
-      *w++ = kHexDigits.at(u & 15);
-    }
-  }
-  return w;
+  using namespace std::string_view_literals;
+  if (is_js_plain(c)) return byte_word_of(c);
+  return with_hex_digits_at(word_of("\\x\0\0"sv), 2, static_cast<unsigned char>(c));
 }
 
 constexpr bool
@@ -161,20 +205,78 @@ is_css_plain(const char c)
          c == '-' || c == ',' || c == '.' || (unsigned char)c >= 0x80;
 }
 
-constexpr char *
-css_string_escaped_into(char *w, const std::string_view s)
+consteval uint64_t
+css_word_of(const char c)
 {
-  for (const char c : s) {
-    const unsigned char u = (unsigned char)c;
-    if (is_css_plain(c)) *w++ = c;
-    else {
-      *w++ = '\\';
-      *w++ = kHexDigits.at(u >> 4);
-      *w++ = kHexDigits.at(u & 15);
-      *w++ = ' ';
-    }
+  using namespace std::string_view_literals;
+  if (is_css_plain(c)) return byte_word_of(c);
+  return with_hex_digits_at(word_of("\\\0\0 "sv), 1, static_cast<unsigned char>(c));
+}
+
+consteval uint64_t
+troff_word_of(const char c)
+{
+  switch (c) {
+    case '\\': return word_of("\\e");
+    case '"':  return word_of("\\(dq");
+    case '\'': return word_of("\\(aq");
+    case '`':  return word_of("\\(ga");
+    case '~':  return word_of("\\(ti");
+    case '^':  return word_of("\\(ha");
+    default:   return byte_word_of(c);
   }
-  return w;
+}
+
+inline constexpr Entities kXmlEntities = entities_by(xml_word_of);
+
+inline constexpr Entities kJsonEntities = entities_by(json_word_of);
+
+inline constexpr Entities kJsEntities = entities_by(js_word_of);
+
+inline constexpr Entities kCssEntities = entities_by(css_word_of);
+
+inline constexpr Entities kTroffEntities = entities_by(troff_word_of);
+
+inline constexpr std::string_view kLineSeparator = "\xe2\x80\xa8";
+
+inline constexpr std::string_view kParagraphSeparator = "\xe2\x80\xa9";
+
+constexpr size_t
+xml_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  return table_escaped_into(room, 0, s, kXmlEntities);
+}
+
+constexpr size_t
+json_string_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  return table_escaped_into(room, 0, s, kJsonEntities);
+}
+
+constexpr size_t
+js_string_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  size_t count = 0;
+  for (auto at = s.begin(); at != s.end(); ++at) {
+    const std::string_view rest(at, s.end());
+    if (*at != kLineSeparator.front()) count = word_appended(room, count, entity_word_of(kJsEntities, static_cast<unsigned char>(*at)));
+    else if (rest.starts_with(kLineSeparator)) {
+      count = word_appended(room, count, word_of("\\u2028"));
+      at = std::next(at, kLineSeparator.size() - 1);
+    }
+    else if (rest.starts_with(kParagraphSeparator)) {
+      count = word_appended(room, count, word_of("\\u2029"));
+      at = std::next(at, kParagraphSeparator.size() - 1);
+    }
+    else count = word_appended(room, count, entity_word_of(kJsEntities, static_cast<unsigned char>(*at)));
+  }
+  return count;
+}
+
+constexpr size_t
+css_string_escaped_into(const std::span<char> room, const std::string_view s)
+{
+  return table_escaped_into(room, 0, s, kCssEntities);
 }
 
 constexpr bool
@@ -206,45 +308,31 @@ has_troff_control_character(const std::string_view s)
   return std::ranges::any_of(s, is_troff_control_character);
 }
 
-constexpr char *
-troff_line_escaped_into(char *w, const std::string_view line)
+constexpr size_t
+troff_line_escaped_into(const std::span<char> room, const std::string_view line)
 {
-  for (size_t j = 0; j < line.size(); j++) {
-    const char c = line.at(j);
-    const bool first = j == 0;
-    const bool last = j + 1 == line.size();
-    if (c == ' ') {
-      if (first) w = bytes_into(w, "\\&");
-      w = bytes_into(w, last ? "\\ " : " ");
-    }
-    else if (c == '.' && first) w = bytes_into(w, "\\&.");
-    else if (c == '\\') w = bytes_into(w, "\\e");
-    else if (c == '"') w = bytes_into(w, "\\(dq");
-    else if (c == '\'') w = bytes_into(w, "\\(aq");
-    else if (c == '`') w = bytes_into(w, "\\(ga");
-    else if (c == '~') w = bytes_into(w, "\\(ti");
-    else if (c == '^') w = bytes_into(w, "\\(ha");
-    else *w++ = c;
-  }
-  size_t core = line.size();
-  while (core > 0 && is_closing_delimiter(line.at(core - 1))) core--;
-  const bool ends_in_space = !line.empty() && line.back() == ' ';
-  const bool ends_a_sentence = core > 0 && is_sentence_mark(line.at(core - 1));
-  if (ends_in_space || ends_a_sentence) w = bytes_into(w, "\\&");
-  return w;
+  size_t count = 0;
+  if (line.starts_with(' ') || line.starts_with('.')) count = word_appended(room, count, word_of("\\&"));
+  const bool ends_in_space = line.ends_with(' ');
+  count = table_escaped_into(room, count, ends_in_space ? line.substr(0, line.size() - 1) : line, kTroffEntities);
+  if (ends_in_space) count = word_appended(room, count, word_of("\\ "));
+  const auto core = std::find_if_not(line.rbegin(), line.rend(), is_closing_delimiter);
+  const bool ends_a_sentence = core != line.rend() && is_sentence_mark(*core);
+  if (ends_in_space || ends_a_sentence) count = word_appended(room, count, word_of("\\&"));
+  return count;
 }
 
-constexpr char *
-troff_text_escaped_into(char *w, const std::string_view s)
+constexpr size_t
+troff_text_escaped_into(const std::span<char> room, const std::string_view s)
 {
-  size_t from = 0;
+  size_t count = 0;
+  std::string_view rest = s;
   for (;;) {
-    const size_t nl = s.find('\n', from);
-    const std::string_view line = s.substr(from, nl == std::string_view::npos ? std::string_view::npos : nl - from);
-    w = troff_line_escaped_into(w, line);
-    if (nl == std::string_view::npos) return w;
-    *w++ = '\n';
-    from = nl + 1;
+    const size_t nl = rest.find('\n');
+    count += troff_line_escaped_into(room.subspan(count), rest.substr(0, nl));
+    if (nl == std::string_view::npos) return count;
+    count = word_appended(room, count, word_of("\n"));
+    rest.remove_prefix(nl + 1);
   }
 }
 
@@ -334,7 +422,7 @@ escape_into(char *const out, const std::string_view s)
     while (mask != 0) {
       const size_t i = static_cast<size_t>(std::countr_zero(mask));
       w += i - done;
-      w = entity_into(w, kEntities.word.at(from[i]));
+      w = entity_into(w, entity_word_of(kEntities, from[i]));
       done = i + 1;
       _mm256_storeu_si256((__m256i *)w, _mm256_loadu_si256((const __m256i *)(from + done)));
       mask &= mask - 1;
@@ -446,7 +534,7 @@ escape_into(char *const out, const std::string_view s)
     while (mask != 0) {
       const size_t i = static_cast<size_t>(std::countr_zero(mask)) / kBitsPerLane;
       w += i - done;
-      w = entity_into(w, kEntities.word.at(from[i]));
+      w = entity_into(w, entity_word_of(kEntities, from[i]));
       done = i + 1;
       vst1q_u8((uint8_t *)w, vld1q_u8(from + done));
       mask &= mask - 1;

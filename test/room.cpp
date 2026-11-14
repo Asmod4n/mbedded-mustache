@@ -96,38 +96,39 @@ constexpr std::array<char, 2> kFills = {'\x5a', '\xa5'};
 
 struct Written {
   bool        inside;
-  bool        tail_untouched;
+  size_t      reach;
   std::string text;
 };
 
-// Runs write on a room of exactly room_bytes inside a larger arena. inside
-// says that no byte before or behind the room changed and that the count
-// lies in the room. tail_untouched says that no byte of the room past the
-// count changed.
+// Runs write on a room of exactly room_bytes inside a larger arena. write
+// gives the count of the bytes it wrote. inside says that no byte before
+// or behind the room changed and that the count lies in the room. reach is
+// the count of the bytes of the room past the written count up to the last
+// byte that changed.
 template <class Write>
 Written
 written_in_room(const size_t room_bytes, const Write &write)
 {
   if (room_bytes > kRoomMax) {
     ADD_FAILURE() << "the arena holds no room of " << room_bytes << " bytes";
-    return {false, false, {}};
+    return {false, 0, {}};
   }
-  Written result{true, true, {}};
+  Written result{true, 0, {}};
   for (const char fill : kFills) {
     std::array<char, kArenaBytes> arena;
     arena.fill(fill);
     const std::span<char> whole(arena);
     const std::span<char> room = whole.subspan(kGuardBytes, room_bytes);
-    const char *const end = write(room);
-    const std::ptrdiff_t count = end - room.data();
+    const size_t written = write(room);
     const auto untouched = [fill](const char b) { return b == fill; };
     const bool inside = std::ranges::all_of(whole.first(kGuardBytes), untouched) &&
-                        std::ranges::all_of(whole.subspan(kGuardBytes + room_bytes), untouched) && count >= 0 &&
-                        std::cmp_less_equal(count, room_bytes);
+                        std::ranges::all_of(whole.subspan(kGuardBytes + room_bytes), untouched) &&
+                        written <= room_bytes;
     result.inside = result.inside && inside;
     if (!inside) return result;
-    const size_t written = static_cast<size_t>(count);
-    result.tail_untouched = result.tail_untouched && std::ranges::all_of(room.subspan(written), untouched);
+    const std::span<char> past = room.subspan(written);
+    const auto last_changed = std::ranges::find_if_not(past.rbegin(), past.rend(), untouched);
+    result.reach = std::max(result.reach, static_cast<size_t>(std::distance(last_changed, past.rend())));
     result.text.assign(room.data(), written);
   }
   return result;
@@ -165,14 +166,14 @@ expect_the_escape_stays_in_its_room(const Context c, const std::string &s)
   }
 
   const Written w = written_in_room(required, [c, &s](const std::span<char> room) {
-    return mustache::detail::escaped_into_in(c, room.data(), s);
+    return mustache::detail::escaped_into_in(c, room, s);
   });
   EXPECT_TRUE(w.inside) << described(c, s);
   if (!w.inside) return;
   if (c == Context::html_text) {
     EXPECT_EQ(w.text, escaped_by_rule(s)) << described(c, s);
     const Written e = written_in_room(required, [&s](const std::span<char> room) {
-      return room.subspan(mustache::escape_string_into(room, s)).data();
+      return mustache::escape_string_into(room, s);
     });
     EXPECT_TRUE(e.inside) << described(c, s);
     if (e.inside) {
@@ -180,9 +181,11 @@ expect_the_escape_stays_in_its_room(const Context c, const std::string &s)
     }
     return;
   }
-  // The five writers other than html write each piece byte by byte, so
-  // they write nothing past their count.
-  EXPECT_TRUE(w.tail_untouched) << described(c, s);
+  // The five writers other than html store each piece as one word of
+  // kEntityWordBytes bytes, so they change fewer than kEntityWordBytes
+  // bytes past their count. Their room holds kBytesPastTheWrittenCount
+  // bytes past the count, and the store needs no more than that.
+  EXPECT_LT(w.reach, mustache::kEntityWordBytes) << described(c, s);
   EXPECT_LE(w.text.size(), longest_piece_of(c).size() * s.size()) << described(c, s);
 }
 
@@ -205,7 +208,7 @@ expect_the_copy_stays_in_its_room(const std::string &s)
   const size_t proven = s.empty() ? 0 : mustache::kCopiedStringMax;
   const Written w = written_in_room(proven, [&s, &count](const std::span<char> room) {
     count = mustache::copied_string(room, s).count;
-    return room.subspan(count).data();
+    return count;
   });
   EXPECT_TRUE(w.inside) << described(s);
   const bool copied = s.size() <= mustache::kCopiedStringMax;
@@ -214,7 +217,7 @@ expect_the_copy_stays_in_its_room(const std::string &s)
     EXPECT_EQ(w.text, s) << described(s);
   }
   else {
-    EXPECT_TRUE(w.tail_untouched) << described(s);
+    EXPECT_EQ(w.reach, size_t{0}) << described(s);
   }
 }
 
@@ -244,7 +247,7 @@ expect_the_bytes_behind_the_size_change_nothing(const size_t n, const size_t mar
     const mustache::Copied c = mustache::copied_string(room, s);
     count = c.count;
     found = c.marks != 0;
-    return room.subspan(count).data();
+    return count;
   });
   EXPECT_TRUE(w.inside) << described(s);
   EXPECT_EQ(count, n) << described(s);
@@ -365,6 +368,37 @@ TEST(Room, CopiedStringIgnoresTheBytesBehindTheSize)
       for (size_t mark_at = 0; mark_at <= n; mark_at++) expect_the_bytes_behind_the_size_change_nothing(n, mark_at, reserved);
     }
   }
+}
+
+// A template that is rendered at compile time escapes its values in a
+// constant evaluation, so each of the five writers must run there too.
+// Each writer gets the room that room_holds_the_escaped_value accepts; a
+// store outside it does not compile. The expected bytes are written from
+// the rule of each context, as in test/media_type.cpp and test/troff.cpp.
+constexpr size_t kConstantInputMax = 16;
+
+constexpr bool
+escapes_at_compile_time(const Context c, const std::string_view s, const std::string_view want)
+{
+  std::array<char, kLongestPiece * kConstantInputMax + mustache::kBytesPastTheWrittenCount> buffer{};
+  const size_t proven = mustache::room_needed_for_the_escaped_value(c, s) + mustache::kBytesPastTheWrittenCount;
+  if (s.size() > kConstantInputMax || !mustache::room_holds_the_escaped_value(c, s, proven)) return false;
+  const std::span<char> room = std::span<char>(buffer).first(proven);
+  return std::ranges::equal(room.first(mustache::detail::escaped_into_in(c, room, s)), want);
+}
+
+TEST(Room, TheFiveWritersRunInAConstantEvaluation)
+{
+  constexpr bool kXml = escapes_at_compile_time(Context::xml_text, "<'&\">", "&lt;&apos;&amp;&quot;&gt;");
+  constexpr bool kJson = escapes_at_compile_time(Context::json_string, "\"\\\n\x01", "\\\"\\\\\\n\\u0001");
+  constexpr bool kJs = escapes_at_compile_time(Context::js_string, "'</\xe2\x80\xa8", "\\x27\\x3c\\x2f\\u2028");
+  constexpr bool kCss = escapes_at_compile_time(Context::css_string, "'}", "\\27 \\7d ");
+  constexpr bool kTroff = escapes_at_compile_time(Context::troff_text, " a.\n.b ", "\\& a.\\&\n\\&.b\\ \\&");
+  EXPECT_TRUE(kXml);
+  EXPECT_TRUE(kJson);
+  EXPECT_TRUE(kJs);
+  EXPECT_TRUE(kCss);
+  EXPECT_TRUE(kTroff);
 }
 
 // Random strings find the mixes that the cases above do not list. The seed
