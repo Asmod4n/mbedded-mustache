@@ -1,0 +1,50 @@
+name: windows
+
+on:
+  push:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/windows.yml"
+      - "!test/arm_none_eabi.cpp"
+      - "!include/mustache/reflect.hpp"
+      - "!test/reflect.cpp"
+  pull_request:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/windows.yml"
+      - "!test/arm_none_eabi.cpp"
+      - "!include/mustache/reflect.hpp"
+      - "!test/reflect.cpp"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: x64 Windows Visual Studio C++23
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - run: git clone --depth 1 --branch v1.17.0 https://github.com/google/googletest.git "$RUNNER_TEMP/googletest"
+      - run: >
+          cmake -S . -B build
+          -DCMAKE_CXX_STANDARD=23
+          -DCMAKE_DISABLE_FIND_PACKAGE_GTest=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_simdjson=ON
+          -Dgtest_force_shared_crt=ON
+          -DMUSTACHE_GOOGLETEST_SOURCE_DIR="$RUNNER_TEMP/googletest"
+          "-DCMAKE_CXX_FLAGS=/W4 /WX /EHsc /permissive- /Zc:__cplusplus /utf-8"
+      - run: cmake --build build --config Release
+      - run: ctest --test-dir build -C Release --output-on-failure
