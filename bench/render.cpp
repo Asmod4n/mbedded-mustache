@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -57,7 +58,8 @@ value_of(const Data &d)
 
 // mbosecke/template-benchmark, stocks.mustache.html and Stock.java:
 // twenty stocks, the row class and the minus class computed the way
-// its StockView computes them.
+// its StockView computes them: the index starts at 1, an even index
+// gives "even", and a change that is not above zero gives the minus class.
 #define SOURCE                                                                                                         \
   "<!DOCTYPE html>\n<html>\n<head>\n\t<title>Stock Prices</title>\n\t<meta http-equiv=\"Content-Type\" "              \
   "content=\"text/html; charset=UTF-8\" />\n\t<meta http-equiv=\"Content-Style-Type\" content=\"text/css\" />\n\t"    \
@@ -126,7 +128,7 @@ data()
   Data d;
   for (size_t i = 0; i < stocks.size(); i++) {
     const bool up = stocks.at(i).change.front() != '-' && stocks.at(i).change != "0";
-    d.items.push_back(Item{i % 2 == 0 ? "even" : "odd", std::to_string(i + 1), up ? "" : "class=\"minus\"", stocks.at(i)});
+    d.items.push_back(Item{(i + 1) % 2 == 0 ? "even" : "odd", std::to_string(i + 1), up ? "" : "class=\"minus\"", stocks.at(i)});
   }
   return d;
 }
@@ -288,6 +290,7 @@ BENCHMARK(reflection);
 #endif
 
 // Every arm must give the same bytes before one of them is timed.
+// --output_file=PATH writes the run-time render to PATH and ends without timing.
 int
 main(int argc, char **argv)
 {
@@ -298,6 +301,15 @@ main(int argc, char **argv)
     return 1;
   }
 #endif
+  constexpr std::string_view output_flag = "--output_file=";
+  for (int i = 1; i < argc; i++) {
+    const std::string_view argument = argv[i];
+    if (argument.starts_with(output_flag)) {
+      std::ofstream out(std::string(argument.substr(output_flag.size())), std::ios::binary);
+      out << expected;
+      return out ? 0 : 1;
+    }
+  }
   std::fprintf(stderr, "output: %zu bytes\n", expected.size());
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
