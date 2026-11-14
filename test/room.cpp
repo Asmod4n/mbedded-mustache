@@ -186,8 +186,13 @@ expect_the_escape_stays_in_its_room(const Context c, const std::string &s)
   EXPECT_LE(w.text.size(), longest_piece_of(c).size() * s.size()) << described(c, s);
 }
 
-// copied_string stays inside a room of exactly the size of the value. The
-// room one byte smaller is refused by the copy rule.
+// The copy rule refuses a room one byte smaller than the value. Each
+// caller of copied_string proves kCopiedStringMax bytes of room: Batch
+// counts them for each value in batch_bound, and Answer keeps
+// kBytesPastTheWrittenCount bytes behind its size. copied_string may store
+// a whole block in that room, so the test gives it that room and holds it
+// to the guard bytes around it. An empty value writes nothing, so it gets
+// no room. A value that is not copied leaves the room as it was.
 void
 expect_the_copy_stays_in_its_room(const std::string &s)
 {
@@ -197,17 +202,54 @@ expect_the_copy_stays_in_its_room(const std::string &s)
     EXPECT_FALSE(mustache::room_holds_the_copied_value(s, required - 1)) << described(s);
   }
   size_t count = 0;
-  const Written w = written_in_room(required, [&s, &count](const std::span<char> room) {
+  const size_t proven = s.empty() ? 0 : mustache::kCopiedStringMax;
+  const Written w = written_in_room(proven, [&s, &count](const std::span<char> room) {
     count = mustache::copied_string(room, s).count;
     return room.subspan(count).data();
   });
   EXPECT_TRUE(w.inside) << described(s);
-  EXPECT_TRUE(w.tail_untouched) << described(s);
   const bool copied = s.size() <= mustache::kCopiedStringMax;
   EXPECT_EQ(count, copied ? s.size() : 0) << described(s);
   if (copied) {
     EXPECT_EQ(w.text, s) << described(s);
   }
+  else {
+    EXPECT_TRUE(w.tail_untouched) << described(s);
+  }
+}
+
+// copied_string may read a value in the capacity of its string. The bytes
+// between size() and capacity() are written with a mark through
+// resize_and_overwrite, which lets the operation write every byte of the
+// count that it is given; that count is the capacity of the string. The
+// string holds its value in its own buffer, or on the heap when reserved
+// says so. The bytes behind the size must not change the mark of the
+// value, and the copy stays in the proven room.
+void
+expect_the_bytes_behind_the_size_change_nothing(const size_t n, const size_t mark_at, const size_t reserved)
+{
+  std::string s;
+  s.reserve(reserved);
+  s.resize_and_overwrite(std::max(n, s.capacity()), [n, mark_at](char *const p, const size_t capacity) {
+    const std::span<char> all(p, capacity);
+    std::ranges::fill(all, '<');
+    std::ranges::fill(all.first(n), 'x');
+    if (mark_at < n) all.subspan(mark_at).front() = '&';
+    return n;
+  });
+  const bool marked = mark_at < n;
+  size_t count = 0;
+  bool found = false;
+  const Written w = written_in_room(n == 0 ? 0 : mustache::kCopiedStringMax, [&s, &count, &found](const std::span<char> room) {
+    const mustache::Copied c = mustache::copied_string(room, s);
+    count = c.count;
+    found = c.marks != 0;
+    return room.subspan(count).data();
+  });
+  EXPECT_TRUE(w.inside) << described(s);
+  EXPECT_EQ(count, n) << described(s);
+  EXPECT_EQ(found, marked) << described(s);
+  EXPECT_EQ(w.text, s) << described(s);
 }
 
 void
@@ -311,6 +353,17 @@ TEST(Room, CopiedStringAtEveryLength)
     expect_the_copy_stays_in_its_room(plain);
     if (n > 0) plain.back() = '<';
     expect_the_copy_stays_in_its_room(plain);
+  }
+}
+
+// Each length to kCopiedStringMax, with no mark and with a mark at each
+// position, in a string with its own buffer and in a string on the heap.
+TEST(Room, CopiedStringIgnoresTheBytesBehindTheSize)
+{
+  for (const size_t reserved : {size_t{0}, 2 * mustache::kCopiedStringMax}) {
+    for (size_t n = 0; n <= mustache::kCopiedStringMax; n++) {
+      for (size_t mark_at = 0; mark_at <= n; mark_at++) expect_the_bytes_behind_the_size_change_nothing(n, mark_at, reserved);
+    }
   }
 }
 

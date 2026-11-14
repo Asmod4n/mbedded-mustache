@@ -251,6 +251,12 @@ struct Copied {
   uint64_t marks;
 };
 
+inline std::span<const char>
+owned_chars_of(const std::string &s)
+{
+  return {s.data(), s.capacity() + 1};
+}
+
 inline Copied
 copied_string_scalar(const std::span<char> out, const std::string &s)
 {
@@ -347,7 +353,15 @@ stored(const std::span<char, sizeof(__m128i)> o, const __m128i v)
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
-  if (n < sizeof(__m128i) || n > kCopiedStringMax) return copied_string_scalar(out, s);
+  if (n < sizeof(__m128i)) {
+    if (n == 0) return {0, 0};
+    const std::span<const char> owned = owned_chars_of(s);
+    if (owned.size() < sizeof(__m128i)) [[unlikely]] return copied_string_scalar(out, s);
+    const __m128i v = loaded(owned.first<sizeof(__m128i)>());
+    stored(out.first<sizeof(__m128i)>(), v);
+    return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
+  }
+  if (n > kCopiedStringMax) return copied_string_scalar(out, s);
   const std::span<const char> in(s);
   const __m128i a = loaded(in.first<sizeof(__m128i)>());
   const __m128i b = loaded(in.subspan(n - sizeof(__m128i)).first<sizeof(__m128i)>());
@@ -437,7 +451,15 @@ stored(const std::span<char, kVectorBytes> o, const uint8x16_t v)
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
-  if (n < kVectorBytes || n > kCopiedStringMax) return copied_string_scalar(out, s);
+  if (n < kVectorBytes) {
+    if (n == 0) return {0, 0};
+    const std::span<const char> owned = owned_chars_of(s);
+    if (owned.size() < kVectorBytes) [[unlikely]] return copied_string_scalar(out, s);
+    const uint8x16_t v = loaded(owned.first<kVectorBytes>());
+    stored(out.first<kVectorBytes>(), v);
+    return {n, marks_of(v) & kLaneMarkBits & ((uint64_t{1} << (kBitsPerLane * n)) - 1)};
+  }
+  if (n > kCopiedStringMax) return copied_string_scalar(out, s);
   const std::span<const char> in(s);
   const uint8x16_t a = loaded(in.first<kVectorBytes>());
   const uint8x16_t b = loaded(in.subspan(n - kVectorBytes).first<kVectorBytes>());
