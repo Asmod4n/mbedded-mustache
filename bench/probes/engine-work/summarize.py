@@ -56,14 +56,17 @@ def pvalue(directory, compiler, page, arm):
 def main():
     directory = sys.argv[1]
     values = cells(directory)
+    arms_here = [a for a in ARMS if any(k[2] == a for k in values)]
     for compiler in COMPILERS:
         for page, page_title in PAGES.items():
+            if not any(k[1] == page for k in values):
+                continue
             base = values.get((compiler, page, "main"))
             print("### %s, %s: median ns per render, cv, change against main, p-value" % (compiler, page_title))
             print()
             print("| arm | median ns | cv % | change | p |")
             print("|---|---|---|---|---|")
-            for arm in ARMS:
+            for arm in arms_here:
                 v = values.get((compiler, page, arm))
                 if not v:
                     print("| %s | error cell: not built | | | |" % TITLES[arm])
@@ -77,7 +80,7 @@ def main():
                 print("| %s | %.0f | %.2f | %+.2f %% | %s |" % (TITLES[arm], med, cv, (med / statistics.median(base) - 1) * 100,
                                                               "n/a" if p is None else "%.4f" % p))
             print()
-            print("rows per arm: %s" % ", ".join("%s %d" % (a, len(values.get((compiler, page, a), []))) for a in ARMS))
+            print("rows per arm: %s" % ", ".join("%s %d" % (a, len(values.get((compiler, page, a), []))) for a in arms_here))
             print()
     with open(os.path.join(directory, "context-common.txt")) as handle:
         for line in handle:
