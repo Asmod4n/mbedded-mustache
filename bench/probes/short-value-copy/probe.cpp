@@ -4,7 +4,7 @@
 // 3 a block built in a zeroed std::array from overlapping pieces inside the length,
 // 4 a block built from 64-bit words in registers inside the length, 5 the pieces stored one by one,
 // 6 one 16-byte read through a span over capacity() + 1 chars, 7 the same read through a span over
-// capacity() chars (a short string of libstdc++ then takes arm 4).
+// capacity() chars (a short string of libstdc++ then takes arm 5).
 // Each arm stores into a room of at least 32 bytes, as the callers in render.hpp prove.
 #include <immintrin.h>
 
@@ -232,57 +232,63 @@ word_of_up_to_3(const std::span<const char> in)
          uint64_t{static_cast<unsigned char>(in.subspan(n - 1).front())} << (kBitsPerByte * (n - 1));
 }
 
-// Arm 4: one block from 64-bit words in registers, inside the length.
+[[gnu::always_inline]] inline __m128i
+block_of(const uint64_t low, const uint64_t high)
+{
+  return std::bit_cast<__m128i>(std::array<uint64_t, 2>{low, high});
+}
+
+[[gnu::always_inline]] inline Copied
+copied_block(const std::span<char> out, const size_t n, const __m128i v)
+{
+  stored(out.first<kBlock>(), v);
+  return {n, marks16_of(v)};
+}
+
+// Arm 4: one block from 64-bit words in registers, inside the length. Each branch makes its own
+// vector, so that no branch joins the words in memory.
 [[gnu::always_inline]] inline Copied
 copied_short_in_words(const std::span<char> out, const std::span<const char> in)
 {
   const size_t n = in.size();
   if (n == 0) return {0, 0};
-  std::array<uint64_t, 2> words{};
   if (n >= kWord) {
-    words.front() = word_of(in.first<kWord>());
-    words.back() = (word_of(in.subspan(n - kWord).first<kWord>()) >> (kBitsPerByte * (2 * kWord - 1 - n))) >> kBitsPerByte;
+    const uint64_t high = (word_of(in.subspan(n - kWord).first<kWord>()) >> (kBitsPerByte * (2 * kWord - 1 - n))) >> kBitsPerByte;
+    return copied_block(out, n, block_of(word_of(in.first<kWord>()), high));
   }
-  else if (n >= kHalfWord) {
+  if (n >= kHalfWord) {
     const uint64_t high = (half_word_of(in.subspan(n - kHalfWord).first<kHalfWord>()) >> (kBitsPerByte * (kWord - 1 - n))) >>
                           kBitsPerByte;
-    words.front() = half_word_of(in.first<kHalfWord>()) | high << (kBitsPerByte * kHalfWord);
+    return copied_block(out, n, block_of(half_word_of(in.first<kHalfWord>()) | high << (kBitsPerByte * kHalfWord), 0));
   }
-  else {
-    words.front() = word_of_up_to_3(in);
-  }
-  const __m128i v = std::bit_cast<__m128i>(words);
-  stored(out.first<kBlock>(), v);
-  return {n, marks16_of(v)};
+  return copied_block(out, n, block_of(word_of_up_to_3(in), 0));
 }
 
-// Arm 5: the pieces stored one by one; nothing is stored past the length.
+// Arm 5: the pieces stored one by one; nothing is stored past the length. The marks come from the
+// words of the pieces; each branch makes its own vector.
 [[gnu::always_inline]] inline Copied
 copied_short_in_pieces(const std::span<char> out, const std::span<const char> in)
 {
   const size_t n = in.size();
   if (n == 0) return {0, 0};
-  std::array<uint64_t, 2> words{};
   if (n >= kWord) {
-    words.front() = word_of(in.first<kWord>());
-    words.back() = word_of(in.subspan(n - kWord).first<kWord>());
-    word_stored(out.first<kWord>(), words.front());
-    word_stored(out.subspan(n - kWord).first<kWord>(), words.back());
+    const uint64_t low = word_of(in.first<kWord>());
+    const uint64_t high = word_of(in.subspan(n - kWord).first<kWord>());
+    word_stored(out.first<kWord>(), low);
+    word_stored(out.subspan(n - kWord).first<kWord>(), high);
+    return {n, marks16_of(block_of(low, high))};
   }
-  else if (n >= kHalfWord) {
+  if (n >= kHalfWord) {
     const uint32_t low = half_word_of(in.first<kHalfWord>());
     const uint32_t high = half_word_of(in.subspan(n - kHalfWord).first<kHalfWord>());
     half_word_stored(out.first<kHalfWord>(), low);
     half_word_stored(out.subspan(n - kHalfWord).first<kHalfWord>(), high);
-    words.front() = low | uint64_t{high} << (kBitsPerByte * kHalfWord);
+    return {n, marks16_of(block_of(low | uint64_t{high} << (kBitsPerByte * kHalfWord), 0))};
   }
-  else {
-    out.front() = in.front();
-    out.subspan(n / 2).front() = in.subspan(n / 2).front();
-    out.subspan(n - 1).front() = in.subspan(n - 1).front();
-    words.front() = word_of_up_to_3(in);
-  }
-  return {n, marks16_of(std::bit_cast<__m128i>(words))};
+  out.front() = in.front();
+  out.subspan(n / 2).front() = in.subspan(n / 2).front();
+  out.subspan(n - 1).front() = in.subspan(n - 1).front();
+  return {n, marks16_of(block_of(word_of_up_to_3(in), 0))};
 }
 
 // Arms 6 and 7: the chars that the string owns, as one span. Arm 6 counts the terminator.
@@ -306,7 +312,7 @@ copied_in_capacity(const std::span<char> out, const std::string &s)
   if (n >= kBlock) return copied_long(out, s);
   if (n == 0) return {0, 0};
   const std::span<const char> owned = owned_chars_of(s);
-  if (owned.size() < kBlock) return copied_short_in_words(out, s);
+  if (owned.size() < kBlock) return copied_short_in_pieces(out, s);
   const __m128i v = loaded(owned.first<kBlock>());
   stored(out.first<kBlock>(), v);
   return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
