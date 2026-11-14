@@ -113,5 +113,6 @@ No result file stands for them.
 | plan-review-4-20261113T050436Z.json | plan-review-4, run 2 |
 | plan-review-5-cost-20261113T064347Z.json | plan-review-5, cost.cpp |
 | compare-20261114T063020Z.json | compare.sh, 93683bc against fee69a6 |
+| compare-20261114T064610Z.json | compare.sh, dbd4cac against d13b6ca |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
