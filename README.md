@@ -236,6 +236,56 @@ auto out = mustache::render(*tpl, page);
 
 This works with C++26 reflection, or on C++23 with [Boost.PFR](https://github.com/boostorg/pfr) 1.84 or newer. With Boost.PFR the struct must be an aggregate (no constructors, no base classes, no private members).
 
+### Output
+
+`render` returns a new `std::string`. `render_to` writes into something you already own:
+
+```cpp
+#include <mustache/mustache.hpp>
+#include <cstddef>
+#include <iostream>
+#include <print>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+int main() {
+  std::unordered_map<std::string, std::string> data{{"name", "Ada <admin>"}};
+  auto tpl = mustache::compile("<p>Hello, {{name}}!</p>\n");
+
+  std::string fresh = *mustache::render(*tpl, data);               // a new string
+  std::print("new string: {}", fresh);
+
+  std::string text = "appended: ";
+  if (!mustache::render_to(text, *tpl, data)) return 1;            // appends to your string
+  std::print("{}", text);
+
+  std::vector<std::byte> bytes;                                    // or std::vector<char>
+  if (!mustache::render_to(bytes, *tpl, data)) return 1;
+  std::println("vector: {} bytes", bytes.size());
+
+  std::print("stream: ");
+  if (!mustache::render_to(std::cout, *tpl, data)) return 1;       // writes to a std::ostream
+}
+```
+
+```
+new string: <p>Hello, Ada &lt;admin&gt;!</p>
+appended: <p>Hello, Ada &lt;admin&gt;!</p>
+vector: 33 bytes
+stream: <p>Hello, Ada &lt;admin&gt;!</p>
+```
+
+| target | what happens |
+|---|---|
+| `std::basic_string<char, Traits, Allocator>&` | The render is appended. A `std::string` keeps its capacity, so a string that you `clear()` and reuse does not allocate again. Other string types, such as `std::pmr::string`, take one copy. |
+| `std::vector<char>&`, `std::vector<std::byte>&` | The render is appended with one copy. Any other element type does not compile. |
+| `std::ostream&` | The render is written with one call of `write`, as `std::print` does it. |
+
+The arguments after the target are the same as for `render`: the template, the data, the partials and the initial capacity. The reflection render has the same forms, for example `mustache::render_to<"Hello, {{name}}!">(out, person)`.
+
+If the render fails, `render_to` returns the same `mustache::Error` as `render`. A string or a vector then holds what it held before the call, and a stream gets no bytes. A write error of the stream is not a `mustache::Error`: it stays in the state of the stream, as with any `std::ostream`, and `exceptions()` of the stream decides whether it throws.
+
 ## Errors
 
 `compile` and `render` return `std::expected`. On failure you get a `mustache::Error`:
