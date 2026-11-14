@@ -1,0 +1,2317 @@
+{
+  "name": "output-targets",
+  "what": "the stocks page, rendered at run time from std::unordered_map data: render_to into a kept std::string (reused) against render into a new std::string (fresh); twin is fresh built again, the A/A arm",
+  "method": "one container: one build (g++-16, the flags in context.flags), three binaries built in parallel, a byte check, each binary run once as nobody with 30 repetitions of at least 0.05 s in the order fresh, reused, twin, then tools/compare.py of Google Benchmark (Mann-Whitney U) against fresh",
+  "commit": "aa2168ea8a5dde5d23834f55f81cf2029e942568",
+  "context": {
+    "commit": "aa2168ea8a5dde5d23834f55f81cf2029e942568",
+    "dirty_files": "0",
+    "image": "9c3cd191216e461bb3dfdb0cde485cd81fa4a2fe5fcb3b31b493a402ea63a28e",
+    "podman": "podman_version_4.9.3",
+    "flags": "g++-16 -std=c++26 -freflection -O3 -DNDEBUG -march=x86-64-v4",
+    "compiler": "GCC: (Debian 16.2.0-4) 16.2.0",
+    "instruction_set": "__AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ ",
+    "libstdcxx": "libstdc++.so.6.0.36",
+    "libc": "ldd (Debian GLIBC 2.43-7) 2.43",
+    "kernel": "Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0",
+    "machine": "Hypervisor vendor: KVM;Virtualization type: full;",
+    "container": "podman, cpus visible 4",
+    "processor": " Intel(R) Xeon(R) Processor @ 2.30GHz",
+    "processor_flags_digest": "sha256:0750228a0e310f80",
+    "user": "nobody",
+    "priority": "nobody cannot lower nice; default priority, not pinned",
+    "threads": "1",
+    "google_benchmark": "one process per binary; 30 repetitions; --benchmark_min_time=0.05s; order fresh reused twin",
+    "compare": "tools/compare.py of google/benchmark c58e6d0710581e3a08d65c349664128a8d9a2461"
+  },
+  "steps_utc": [
+    "build-start 18:20:42.308",
+    "build-end 18:20:50.498",
+    "check-end 18:20:50.515",
+    "timed-end 18:20:57.080",
+    "compare-end 18:20:58.401"
+  ],
+  "byte_check": [
+    "same fresh against fresh, 7737 bytes",
+    "same twin against fresh, 7737 bytes",
+    "same reused against fresh, 7737 bytes"
+  ],
+  "google_benchmark": {
+    "fresh": {
+      "context": {
+        "date": "2026-11-14T18:20:50+00:00",
+        "host_name": "aaed8b2bff99",
+        "executable": "bin/fresh",
+        "num_cpus": 4,
+        "mhz_per_cpu": 2300,
+        "cpu_scaling_enabled": false,
+        "caches": [
+          {
+            "type": "Data",
+            "level": 1,
+            "size": 49152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Instruction",
+            "level": 1,
+            "size": 65536,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 2,
+            "size": 2097152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 3,
+            "size": 528482304,
+            "num_sharing": 4
+          }
+        ],
+        "load_avg": [
+          1.00391,
+          0.614746,
+          0.739746
+        ],
+        "library_version": "1.9.1",
+        "library_build_type": "debug",
+        "json_schema_version": 1
+      },
+      "benchmarks": [
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 0,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5803.3942721818830,
+          "cpu_time": 5800.6438593595258,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 1,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5826.1636679619623,
+          "cpu_time": 5818.7187190491923,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 2,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5845.0179103442697,
+          "cpu_time": 5813.7309343017496,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 3,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5805.9378506696621,
+          "cpu_time": 5781.8958402112894,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 4,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5881.4503962617146,
+          "cpu_time": 5819.1876857048528,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 5,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5920.1342852687940,
+          "cpu_time": 5897.9169692967989,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 6,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5901.7880488238652,
+          "cpu_time": 5889.3554803565512,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 7,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6097.1395676241027,
+          "cpu_time": 5895.1597061736575,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 8,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5849.1737372386524,
+          "cpu_time": 5846.1756355232828,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 9,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5837.6500494765096,
+          "cpu_time": 5832.0122152525528,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 10,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6067.5371410020971,
+          "cpu_time": 5952.5349125123812,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 11,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6119.8757841126517,
+          "cpu_time": 6105.6114229118548,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 12,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6076.6096896484914,
+          "cpu_time": 6046.7348960052850,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 13,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6011.1989929887905,
+          "cpu_time": 6009.7305216242912,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 14,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6239.5239351835371,
+          "cpu_time": 6064.6058104985214,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 15,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6276.6378342587868,
+          "cpu_time": 6255.7842522284727,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 16,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6205.5386265700754,
+          "cpu_time": 6191.7540442390155,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 17,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6203.8215583736328,
+          "cpu_time": 6196.0845163420390,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 18,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6277.6267744787692,
+          "cpu_time": 6258.7716242984507,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 19,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6218.8415318837633,
+          "cpu_time": 6217.3917959722557,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 20,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5840.3276658344121,
+          "cpu_time": 5836.1701881809358,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 21,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5871.2814460473473,
+          "cpu_time": 5849.6682073291622,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 22,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5865.7438098002831,
+          "cpu_time": 5857.6627599867979,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 23,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 6204.6240509787031,
+          "cpu_time": 5973.6243809838288,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 24,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5919.4161438684441,
+          "cpu_time": 5874.2234235721362,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 25,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5887.6927203536288,
+          "cpu_time": 5883.3189171343520,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 26,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5899.5978045237907,
+          "cpu_time": 5893.1477385275684,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 27,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 7453.4858864688831,
+          "cpu_time": 7450.6781115879940,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 28,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5922.5954935328018,
+          "cpu_time": 5913.0443215582836,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 29,
+          "threads": 1,
+          "iterations": 12116,
+          "real_time": 5932.3707494934924,
+          "cpu_time": 5927.2105480356577,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_mean",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "mean",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 6042.0732475084596,
+          "cpu_time": 6005.0849812919587,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_median",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "median",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 5921.3648894007974,
+          "cpu_time": 5896.5383377352273,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_stddev",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "stddev",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 310.06033097960000,
+          "cpu_time": 309.37225511451533,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_cv",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "cv",
+          "aggregate_unit": "percentage",
+          "iterations": 30,
+          "real_time": 0.051316877217180056,
+          "cpu_time": 0.051518380851948528,
+          "time_unit": "ns"
+        }
+      ]
+    },
+    "twin": {
+      "context": {
+        "date": "2026-11-14T18:20:54+00:00",
+        "host_name": "aaed8b2bff99",
+        "executable": "bin/twin",
+        "num_cpus": 4,
+        "mhz_per_cpu": 2300,
+        "cpu_scaling_enabled": false,
+        "caches": [
+          {
+            "type": "Data",
+            "level": 1,
+            "size": 49152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Instruction",
+            "level": 1,
+            "size": 65536,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 2,
+            "size": 2097152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 3,
+            "size": 528482304,
+            "num_sharing": 4
+          }
+        ],
+        "load_avg": [
+          1.00342,
+          0.621582,
+          0.741211
+        ],
+        "library_version": "1.9.1",
+        "library_build_type": "debug",
+        "json_schema_version": 1
+      },
+      "benchmarks": [
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 0,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5860.4704405014827,
+          "cpu_time": 5860.5898509462404,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 1,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5856.0260425510896,
+          "cpu_time": 5846.6359068832689,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 2,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 6052.5901021216205,
+          "cpu_time": 6052.7229944732862,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 3,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5828.4490035913977,
+          "cpu_time": 5827.6015742756645,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 4,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5837.4553675616062,
+          "cpu_time": 5832.0123094958981,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 5,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5872.5285546153737,
+          "cpu_time": 5855.8547981912579,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 6,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5888.8120917026508,
+          "cpu_time": 5868.1428571428596,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 7,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5892.2232456384199,
+          "cpu_time": 5880.2373974208704,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 8,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5874.9208674841038,
+          "cpu_time": 5855.7333779936398,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 9,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5807.6721654303046,
+          "cpu_time": 5805.7172165466454,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 10,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5869.6602747313127,
+          "cpu_time": 5853.2002177189797,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 11,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5861.5427064236019,
+          "cpu_time": 5854.5703399765580,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 12,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5749.4047898151302,
+          "cpu_time": 5737.5856640428792,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 13,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5784.9392899154991,
+          "cpu_time": 5762.9049572935883,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 14,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5830.1848937237173,
+          "cpu_time": 5825.2039859319893,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 15,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5792.8419026309284,
+          "cpu_time": 5793.0144029475687,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 16,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5776.2313683074617,
+          "cpu_time": 5771.3273321051784,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 17,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5882.7215709450174,
+          "cpu_time": 5881.0691676436109,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 18,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5884.2780941300207,
+          "cpu_time": 5881.3273321051902,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 19,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5876.5973036842579,
+          "cpu_time": 5866.2017250041818,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 20,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5985.4125775100720,
+          "cpu_time": 5977.0739407134406,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 21,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5967.4269804165451,
+          "cpu_time": 5963.8091609445682,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 22,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 6000.8846089248118,
+          "cpu_time": 5983.8667727348729,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 23,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5895.3455033268992,
+          "cpu_time": 5884.0404454865184,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 24,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5986.0440461855205,
+          "cpu_time": 5969.3278345335766,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 25,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5952.2632725799031,
+          "cpu_time": 5937.7733210517526,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 26,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5957.2536425911730,
+          "cpu_time": 5947.7022274325755,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 27,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5921.7239993235062,
+          "cpu_time": 5915.0645620498981,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 28,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5949.3024620056858,
+          "cpu_time": 5925.5050242840380,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 29,
+          "threads": 1,
+          "iterations": 11942,
+          "real_time": 5928.2342154056887,
+          "cpu_time": 5923.2582481996114,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_mean",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "mean",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 5887.4480461258263,
+          "cpu_time": 5877.9691648523403,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_median",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "median",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 5879.6594373146372,
+          "cpu_time": 5867.1722910735216,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_stddev",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "stddev",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 72.258858799682315,
+          "cpu_time": 71.759339045123468,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_cv",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "cv",
+          "aggregate_unit": "percentage",
+          "iterations": 30,
+          "real_time": 0.012273375193048457,
+          "cpu_time": 0.012208185690087085,
+          "time_unit": "ns"
+        }
+      ]
+    },
+    "reused": {
+      "context": {
+        "date": "2026-11-14T18:20:52+00:00",
+        "host_name": "aaed8b2bff99",
+        "executable": "bin/reused",
+        "num_cpus": 4,
+        "mhz_per_cpu": 2300,
+        "cpu_scaling_enabled": false,
+        "caches": [
+          {
+            "type": "Data",
+            "level": 1,
+            "size": 49152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Instruction",
+            "level": 1,
+            "size": 65536,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 2,
+            "size": 2097152,
+            "num_sharing": 1
+          },
+          {
+            "type": "Unified",
+            "level": 3,
+            "size": 528482304,
+            "num_sharing": 4
+          }
+        ],
+        "load_avg": [
+          1.00391,
+          0.614746,
+          0.739746
+        ],
+        "library_version": "1.9.1",
+        "library_build_type": "debug",
+        "json_schema_version": 1
+      },
+      "benchmarks": [
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 0,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6386.6948548501932,
+          "cpu_time": 6211.1742411946116,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 1,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5849.6433207778073,
+          "cpu_time": 5839.5163122869662,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 2,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6630.0394416355366,
+          "cpu_time": 6628.1408050641130,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 3,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6033.7951632099503,
+          "cpu_time": 6026.0305145268649,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 4,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6569.3840284464604,
+          "cpu_time": 6498.7389222528818,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 5,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6782.6899854240846,
+          "cpu_time": 6720.4576367472828,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 6,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6694.2290213289762,
+          "cpu_time": 6682.7801493264105,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 7,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5626.5336796394677,
+          "cpu_time": 5610.4758967700081,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 8,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5599.5933290798685,
+          "cpu_time": 5596.5778282746332,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 9,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5672.9067520659755,
+          "cpu_time": 5635.3191040415477,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 10,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5597.8246225840994,
+          "cpu_time": 5589.2575880538870,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 11,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5640.0308390557730,
+          "cpu_time": 5621.4478169128424,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 12,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5627.1066385679060,
+          "cpu_time": 5619.7298328193474,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 13,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5618.6998051147184,
+          "cpu_time": 5608.0315695503878,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 14,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5649.1932317264527,
+          "cpu_time": 5628.5350592436307,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 15,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5727.1608504348105,
+          "cpu_time": 5640.2123031975434,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 16,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5689.9016394453056,
+          "cpu_time": 5681.1608505112717,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 17,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6911.8236486839296,
+          "cpu_time": 5638.4200616783073,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 18,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6645.3392306223532,
+          "cpu_time": 6075.2004544716856,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 19,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5636.6300113243169,
+          "cpu_time": 5625.0729589352495,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 20,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5707.5913001755725,
+          "cpu_time": 5701.6972082454158,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 21,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5773.5632202232728,
+          "cpu_time": 5699.9328842720352,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 22,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5771.0928420341861,
+          "cpu_time": 5695.6167018341212,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 23,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5724.1023372592863,
+          "cpu_time": 5663.1541957474483,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 24,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5779.2389222787397,
+          "cpu_time": 5763.2258561921826,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 25,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5703.7127902084121,
+          "cpu_time": 5704.0121733484884,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 26,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5745.9015582877364,
+          "cpu_time": 5692.3241356922617,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 27,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5691.4961045593409,
+          "cpu_time": 5686.1689660769271,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 28,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 5686.2999512630322,
+          "cpu_time": 5680.3904398636623,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "iteration",
+          "repetitions": 30,
+          "repetition_index": 29,
+          "threads": 1,
+          "iterations": 12322,
+          "real_time": 6242.5055185987458,
+          "cpu_time": 5865.4041551696191,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_mean",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "mean",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 5947.1574879635446,
+          "cpu_time": 5844.2735540767208,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_median",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "median",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 5725.6315938470489,
+          "cpu_time": 5689.2465508845944,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_stddev",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "stddev",
+          "aggregate_unit": "time",
+          "iterations": 30,
+          "real_time": 426.70090185885147,
+          "cpu_time": 348.29975615834678,
+          "time_unit": "ns"
+        },
+        {
+          "name": "stocks_cv",
+          "family_index": 0,
+          "per_family_instance_index": 0,
+          "run_name": "stocks",
+          "run_type": "aggregate",
+          "repetitions": 30,
+          "threads": 1,
+          "aggregate_name": "cv",
+          "aggregate_unit": "percentage",
+          "iterations": 30,
+          "real_time": 0.071748714023876392,
+          "cpu_time": 0.059596757909353398,
+          "time_unit": "ns"
+        }
+      ]
+    }
+  },
+  "compare_against_fresh": {
+    "twin": [
+      {
+        "name": "stocks",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 5803.394272181883,
+            "cpu_time": 5800.643859359526,
+            "real_time_other": 5860.470440501483,
+            "cpu_time_other": 5860.58985094624,
+            "time": 0.009834963065182358,
+            "cpu": 0.01033436857013551
+          },
+          {
+            "real_time": 5826.163667961962,
+            "cpu_time": 5818.718719049192,
+            "real_time_other": 5856.02604255109,
+            "cpu_time_other": 5846.635906883269,
+            "time": 0.005125563971595974,
+            "cpu": 0.004797823916574969
+          },
+          {
+            "real_time": 5845.01791034427,
+            "cpu_time": 5813.73093430175,
+            "real_time_other": 6052.5901021216205,
+            "cpu_time_other": 6052.722994473286,
+            "time": 0.035512669928692286,
+            "cpu": 0.041108207942932684
+          },
+          {
+            "real_time": 5805.937850669662,
+            "cpu_time": 5781.895840211289,
+            "real_time_other": 5828.449003591398,
+            "cpu_time_other": 5827.6015742756645,
+            "time": 0.003877263846208614,
+            "cpu": 0.007904973615488866
+          },
+          {
+            "real_time": 5881.450396261715,
+            "cpu_time": 5819.187685704853,
+            "real_time_other": 5837.455367561606,
+            "cpu_time_other": 5832.012309495898,
+            "time": -0.007480302601560983,
+            "cpu": 0.0022038512046190996
+          },
+          {
+            "real_time": 5920.134285268794,
+            "cpu_time": 5897.916969296799,
+            "real_time_other": 5872.528554615374,
+            "cpu_time_other": 5855.854798191258,
+            "time": -0.00804132615232711,
+            "cpu": -0.00713169943295353
+          },
+          {
+            "real_time": 5901.788048823865,
+            "cpu_time": 5889.355480356551,
+            "real_time_other": 5888.812091702651,
+            "cpu_time_other": 5868.14285714286,
+            "time": -0.0021986484458384244,
+            "cpu": -0.003601858180312685
+          },
+          {
+            "real_time": 6097.139567624103,
+            "cpu_time": 5895.1597061736575,
+            "real_time_other": 5892.22324563842,
+            "cpu_time_other": 5880.23739742087,
+            "time": -0.03360859952653722,
+            "cpu": -0.002531281508312631
+          },
+          {
+            "real_time": 5849.173737238652,
+            "cpu_time": 5846.175635523283,
+            "real_time_other": 5874.920867484104,
+            "cpu_time_other": 5855.73337799364,
+            "time": 0.004401840567930618,
+            "cpu": 0.0016348709081336846
+          },
+          {
+            "real_time": 5837.65004947651,
+            "cpu_time": 5832.012215252553,
+            "real_time_other": 5807.672165430305,
+            "cpu_time_other": 5805.717216546645,
+            "time": -0.005135265696321284,
+            "cpu": -0.004508735190426664
+          },
+          {
+            "real_time": 6067.537141002097,
+            "cpu_time": 5952.534912512381,
+            "real_time_other": 5869.660274731313,
+            "cpu_time_other": 5853.20021771898,
+            "time": -0.03261238648769171,
+            "cpu": -0.016687797090378653
+          },
+          {
+            "real_time": 6119.875784112652,
+            "cpu_time": 6105.611422911855,
+            "real_time_other": 5861.542706423602,
+            "cpu_time_other": 5854.570339976558,
+            "time": -0.04221214397189054,
+            "cpu": -0.04111645264440554
+          },
+          {
+            "real_time": 6076.609689648491,
+            "cpu_time": 6046.734896005285,
+            "real_time_other": 5749.40478981513,
+            "cpu_time_other": 5737.585664042879,
+            "time": -0.05384662114974324,
+            "cpu": -0.051126638967857206
+          },
+          {
+            "real_time": 6011.19899298879,
+            "cpu_time": 6009.730521624291,
+            "real_time_other": 5784.939289915499,
+            "cpu_time_other": 5762.904957293588,
+            "time": -0.03763969606349601,
+            "cpu": -0.041070987033873144
+          },
+          {
+            "real_time": 6239.523935183537,
+            "cpu_time": 6064.605810498521,
+            "real_time_other": 5830.184893723717,
+            "cpu_time_other": 5825.203985931989,
+            "time": -0.06560421046734537,
+            "cpu": -0.03947524901818025
+          },
+          {
+            "real_time": 6276.637834258787,
+            "cpu_time": 6255.784252228473,
+            "real_time_other": 5792.841902630928,
+            "cpu_time_other": 5793.014402947569,
+            "time": -0.07707883494364308,
+            "cpu": -0.073974713740496
+          },
+          {
+            "real_time": 6205.538626570075,
+            "cpu_time": 6191.7540442390155,
+            "real_time_other": 5776.231368307462,
+            "cpu_time_other": 5771.327332105178,
+            "time": -0.06918130465330781,
+            "cpu": -0.06790106795747387
+          },
+          {
+            "real_time": 6203.821558373633,
+            "cpu_time": 6196.084516342039,
+            "real_time_other": 5882.721570945017,
+            "cpu_time_other": 5881.069167643611,
+            "time": -0.05175841767969767,
+            "cpu": -0.05084103482894431
+          },
+          {
+            "real_time": 6277.626774478769,
+            "cpu_time": 6258.771624298451,
+            "real_time_other": 5884.278094130021,
+            "cpu_time_other": 5881.32733210519,
+            "time": -0.0626588190855625,
+            "cpu": -0.06030644906868102
+          },
+          {
+            "real_time": 6218.841531883763,
+            "cpu_time": 6217.391795972256,
+            "real_time_other": 5876.597303684258,
+            "cpu_time_other": 5866.201725004182,
+            "time": -0.05503343773029628,
+            "cpu": -0.056485111843133574
+          },
+          {
+            "real_time": 5840.327665834412,
+            "cpu_time": 5836.170188180936,
+            "real_time_other": 5985.412577510072,
+            "cpu_time_other": 5977.073940713441,
+            "time": 0.024841912984505724,
+            "cpu": 0.024143187739427932
+          },
+          {
+            "real_time": 5871.281446047347,
+            "cpu_time": 5849.668207329162,
+            "real_time_other": 5967.426980416545,
+            "cpu_time_other": 5963.809160944568,
+            "time": 0.01637556217543015,
+            "cpu": 0.01951238080005916
+          },
+          {
+            "real_time": 5865.743809800283,
+            "cpu_time": 5857.662759986798,
+            "real_time_other": 6000.884608924812,
+            "cpu_time_other": 5983.866772734873,
+            "time": 0.023038987638488422,
+            "cpu": 0.02154511413838366
+          },
+          {
+            "real_time": 6204.624050978703,
+            "cpu_time": 5973.624380983829,
+            "real_time_other": 5895.345503326899,
+            "cpu_time_other": 5884.040445486518,
+            "time": -0.04984646049634851,
+            "cpu": -0.014996579929345404
+          },
+          {
+            "real_time": 5919.416143868444,
+            "cpu_time": 5874.223423572136,
+            "real_time_other": 5986.0440461855205,
+            "cpu_time_other": 5969.327834533577,
+            "time": 0.011255823327456393,
+            "cpu": 0.016190124907371515
+          },
+          {
+            "real_time": 5887.692720353629,
+            "cpu_time": 5883.318917134352,
+            "real_time_other": 5952.263272579903,
+            "cpu_time_other": 5937.773321051753,
+            "time": 0.010967038412696913,
+            "cpu": 0.009255728728016045
+          },
+          {
+            "real_time": 5899.597804523791,
+            "cpu_time": 5893.147738527568,
+            "real_time_other": 5957.253642591173,
+            "cpu_time_other": 5947.7022274325755,
+            "time": 0.00977284214581069,
+            "cpu": 0.009257274944652538
+          },
+          {
+            "real_time": 7453.485886468883,
+            "cpu_time": 7450.678111587994,
+            "real_time_other": 5921.723999323506,
+            "cpu_time_other": 5915.064562049898,
+            "time": -0.2055094636894865,
+            "cpu": -0.20610386417710966
+          },
+          {
+            "real_time": 5922.595493532802,
+            "cpu_time": 5913.044321558284,
+            "real_time_other": 5949.302462005686,
+            "cpu_time_other": 5925.505024284038,
+            "time": 0.004509335223390955,
+            "cpu": 0.0021073244251398637
+          },
+          {
+            "real_time": 5932.370749493492,
+            "cpu_time": 5927.210548035658,
+            "real_time_other": 5928.234215405689,
+            "cpu_time_other": 5923.258248199611,
+            "time": -0.000697281788761587,
+            "cpu": -0.0006668060471305609
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "iteration",
+        "aggregate_name": "",
+        "utest": {
+          "have_optimal_repetitions": true,
+          "cpu_pvalue": 0.06567125768912659,
+          "time_pvalue": 0.016954880587293254,
+          "nr_of_repetitions": 30,
+          "nr_of_repetitions_other": 30
+        }
+      },
+      {
+        "name": "stocks_mean",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 6042.07324750846,
+            "cpu_time": 6005.084981291959,
+            "real_time_other": 5887.448046125826,
+            "cpu_time_other": 5877.96916485234,
+            "time": -0.025591414577172726,
+            "cpu": -0.021168029567546626
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "mean",
+        "utest": {}
+      },
+      {
+        "name": "stocks_median",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 5921.364889400797,
+            "cpu_time": 5896.538337735227,
+            "real_time_other": 5879.659437314637,
+            "cpu_time_other": 5867.172291073522,
+            "time": -0.007043216026226097,
+            "cpu": -0.004980218049932116
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "median",
+        "utest": {}
+      },
+      {
+        "name": "stocks_stddev",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 310.0603309796,
+            "cpu_time": 309.3722551145153,
+            "real_time_other": 72.25885879968232,
+            "cpu_time_other": 71.75933904512347,
+            "time": -0.7669522619311256,
+            "cpu": -0.7680485633123065
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "stddev",
+        "utest": {}
+      },
+      {
+        "name": "stocks_cv",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 0.051316877217180056,
+            "cpu_time": 0.05151838085194853,
+            "real_time_other": 0.012273375193048457,
+            "cpu_time_other": 0.012208185690087085,
+            "time": -0.7608316043646645,
+            "cpu": -0.7630324267144482
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "cv",
+        "utest": {}
+      },
+      {
+        "name": "OVERALL_GEOMEAN",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 0.000006035100858040345,
+            "cpu_time": 0.000005998169526130342,
+            "real_time_other": 0.0000058870200681006725,
+            "cpu_time_other": 0.000005877546551281126,
+            "time": -0.024536589101471315,
+            "cpu": -0.020109964268888263
+          }
+        ],
+        "time_unit": "s",
+        "run_type": "aggregate",
+        "aggregate_name": "geomean",
+        "utest": {}
+      }
+    ],
+    "reused": [
+      {
+        "name": "stocks",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 5803.394272181883,
+            "cpu_time": 5800.643859359526,
+            "real_time_other": 6386.694854850193,
+            "cpu_time_other": 6211.174241194612,
+            "time": 0.10051024543762535,
+            "cpu": 0.07077324376201476
+          },
+          {
+            "real_time": 5826.163667961962,
+            "cpu_time": 5818.718719049192,
+            "real_time_other": 5849.643320777807,
+            "cpu_time_other": 5839.516312286966,
+            "time": 0.0040300365993766,
+            "cpu": 0.0035742565059361407
+          },
+          {
+            "real_time": 5845.01791034427,
+            "cpu_time": 5813.73093430175,
+            "real_time_other": 6630.039441635537,
+            "cpu_time_other": 6628.140805064113,
+            "time": 0.13430609509373245,
+            "cpu": 0.14008386008324566
+          },
+          {
+            "real_time": 5805.937850669662,
+            "cpu_time": 5781.895840211289,
+            "real_time_other": 6033.79516320995,
+            "cpu_time_other": 6026.030514526865,
+            "time": 0.03924556521286339,
+            "cpu": 0.04222398345845227
+          },
+          {
+            "real_time": 5881.450396261715,
+            "cpu_time": 5819.187685704853,
+            "real_time_other": 6569.38402844646,
+            "cpu_time_other": 6498.738922252882,
+            "time": 0.11696666397492711,
+            "cpu": 0.1167776798499528
+          },
+          {
+            "real_time": 5920.134285268794,
+            "cpu_time": 5897.916969296799,
+            "real_time_other": 6782.689985424085,
+            "cpu_time_other": 6720.457636747283,
+            "time": 0.1456986714476406,
+            "cpu": 0.1394629106737924
+          },
+          {
+            "real_time": 5901.788048823865,
+            "cpu_time": 5889.355480356551,
+            "real_time_other": 6694.229021328976,
+            "cpu_time_other": 6682.7801493264105,
+            "time": 0.13427133708453529,
+            "cpu": 0.13472181660900934
+          },
+          {
+            "real_time": 6097.139567624103,
+            "cpu_time": 5895.1597061736575,
+            "real_time_other": 5626.533679639468,
+            "cpu_time_other": 5610.475896770008,
+            "time": -0.07718469993430345,
+            "cpu": -0.048291110604775735
+          },
+          {
+            "real_time": 5849.173737238652,
+            "cpu_time": 5846.175635523283,
+            "real_time_other": 5599.593329079868,
+            "cpu_time_other": 5596.577828274633,
+            "time": -0.0426693443160758,
+            "cpu": -0.04269420263941633
+          },
+          {
+            "real_time": 5837.65004947651,
+            "cpu_time": 5832.012215252553,
+            "real_time_other": 5672.9067520659755,
+            "cpu_time_other": 5635.319104041548,
+            "time": -0.02822082447804616,
+            "cpu": -0.03372645734461779
+          },
+          {
+            "real_time": 6067.537141002097,
+            "cpu_time": 5952.534912512381,
+            "real_time_other": 5597.824622584099,
+            "cpu_time_other": 5589.257588053887,
+            "time": -0.0774140326630817,
+            "cpu": -0.06102901197519663
+          },
+          {
+            "real_time": 6119.875784112652,
+            "cpu_time": 6105.611422911855,
+            "real_time_other": 5640.030839055773,
+            "cpu_time_other": 5621.447816912842,
+            "time": -0.07840762819117474,
+            "cpu": -0.07929813616735336
+          },
+          {
+            "real_time": 6076.609689648491,
+            "cpu_time": 6046.734896005285,
+            "real_time_other": 5627.106638567906,
+            "cpu_time_other": 5619.729832819347,
+            "time": -0.0739726712818686,
+            "cpu": -0.0706174605848909
+          },
+          {
+            "real_time": 6011.19899298879,
+            "cpu_time": 6009.730521624291,
+            "real_time_other": 5618.699805114718,
+            "cpu_time_other": 5608.031569550388,
+            "time": -0.06529465890779304,
+            "cpu": -0.06684142502371862
+          },
+          {
+            "real_time": 6239.523935183537,
+            "cpu_time": 6064.605810498521,
+            "real_time_other": 5649.193231726453,
+            "cpu_time_other": 5628.535059243631,
+            "time": -0.09461149754203478,
+            "cpu": -0.0719042201390901
+          },
+          {
+            "real_time": 6276.637834258787,
+            "cpu_time": 6255.784252228473,
+            "real_time_other": 5727.1608504348105,
+            "cpu_time_other": 5640.212303197543,
+            "time": -0.0875432035961757,
+            "cpu": -0.09840044416679597
+          },
+          {
+            "real_time": 6205.538626570075,
+            "cpu_time": 6191.7540442390155,
+            "real_time_other": 5689.901639445306,
+            "cpu_time_other": 5681.160850511272,
+            "time": -0.08309302675467715,
+            "cpu": -0.08246341667961023
+          },
+          {
+            "real_time": 6203.821558373633,
+            "cpu_time": 6196.084516342039,
+            "real_time_other": 6911.82364868393,
+            "cpu_time_other": 5638.420061678307,
+            "time": 0.11412354202139618,
+            "cpu": -0.09000271916771047
+          },
+          {
+            "real_time": 6277.626774478769,
+            "cpu_time": 6258.771624298451,
+            "real_time_other": 6645.339230622353,
+            "cpu_time_other": 6075.200454471686,
+            "time": 0.05857507452314495,
+            "cpu": -0.029330223380269395
+          },
+          {
+            "real_time": 6218.841531883763,
+            "cpu_time": 6217.391795972256,
+            "real_time_other": 5636.630011324317,
+            "cpu_time_other": 5625.0729589352495,
+            "time": -0.09362057508210656,
+            "cpu": -0.09526805716518004
+          },
+          {
+            "real_time": 5840.327665834412,
+            "cpu_time": 5836.170188180936,
+            "real_time_other": 5707.5913001755725,
+            "cpu_time_other": 5701.697208245416,
+            "time": -0.022727554557484812,
+            "cpu": -0.023041305445109652
+          },
+          {
+            "real_time": 5871.281446047347,
+            "cpu_time": 5849.668207329162,
+            "real_time_other": 5773.563220223273,
+            "cpu_time_other": 5699.932884272035,
+            "time": -0.016643423879783563,
+            "cpu": -0.025597233509675094
+          },
+          {
+            "real_time": 5865.743809800283,
+            "cpu_time": 5857.662759986798,
+            "real_time_other": 5771.092842034186,
+            "cpu_time_other": 5695.616701834121,
+            "time": -0.01613622599881662,
+            "cpu": -0.027663944612789898
+          },
+          {
+            "real_time": 6204.624050978703,
+            "cpu_time": 5973.624380983829,
+            "real_time_other": 5724.102337259286,
+            "cpu_time_other": 5663.154195747448,
+            "time": -0.07744574204195666,
+            "cpu": -0.051973503092145795
+          },
+          {
+            "real_time": 5919.416143868444,
+            "cpu_time": 5874.223423572136,
+            "real_time_other": 5779.23892227874,
+            "cpu_time_other": 5763.225856192183,
+            "time": -0.023680920243275234,
+            "cpu": -0.01889570065287976
+          },
+          {
+            "real_time": 5887.692720353629,
+            "cpu_time": 5883.318917134352,
+            "real_time_other": 5703.712790208412,
+            "cpu_time_other": 5704.012173348488,
+            "time": -0.031248222161663092,
+            "cpu": -0.030477141611966244
+          },
+          {
+            "real_time": 5899.597804523791,
+            "cpu_time": 5893.147738527568,
+            "real_time_other": 5745.901558287736,
+            "cpu_time_other": 5692.324135692262,
+            "time": -0.026051987157192407,
+            "cpu": -0.034077476375211906
+          },
+          {
+            "real_time": 7453.485886468883,
+            "cpu_time": 7450.678111587994,
+            "real_time_other": 5691.496104559341,
+            "cpu_time_other": 5686.168966076927,
+            "time": -0.23639808389632458,
+            "cpu": -0.23682530892949685
+          },
+          {
+            "real_time": 5922.595493532802,
+            "cpu_time": 5913.044321558284,
+            "real_time_other": 5686.299951263032,
+            "cpu_time_other": 5680.390439863662,
+            "time": -0.039897295455648345,
+            "cpu": -0.03934587143992678
+          },
+          {
+            "real_time": 5932.370749493492,
+            "cpu_time": 5927.210548035658,
+            "real_time_other": 6242.505518598746,
+            "cpu_time_other": 5865.404155169619,
+            "time": 0.05227838619690665,
+            "cpu": -0.010427568308084122
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "iteration",
+        "aggregate_name": "",
+        "utest": {
+          "have_optimal_repetitions": true,
+          "cpu_pvalue": 0.0002680570968049172,
+          "time_pvalue": 0.004032977591300897,
+          "nr_of_repetitions": 30,
+          "nr_of_repetitions_other": 30
+        }
+      },
+      {
+        "name": "stocks_mean",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 6042.07324750846,
+            "cpu_time": 6005.084981291959,
+            "real_time_other": 5947.157487963545,
+            "cpu_time_other": 5844.273554076721,
+            "time": -0.01570913751898904,
+            "cpu": -0.026779209239540237
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "mean",
+        "utest": {}
+      },
+      {
+        "name": "stocks_median",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 5921.364889400797,
+            "cpu_time": 5896.538337735227,
+            "real_time_other": 5725.631593847049,
+            "cpu_time_other": 5689.246550884594,
+            "time": -0.033055435564207473,
+            "cpu": -0.035154827286385554
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "median",
+        "utest": {}
+      },
+      {
+        "name": "stocks_stddev",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 310.0603309796,
+            "cpu_time": 309.3722551145153,
+            "real_time_other": 426.70090185885147,
+            "cpu_time_other": 348.2997561583468,
+            "time": 0.37618669408866007,
+            "cpu": 0.12582738238573557
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "stddev",
+        "utest": {}
+      },
+      {
+        "name": "stocks_cv",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 0.051316877217180056,
+            "cpu_time": 0.05151838085194853,
+            "real_time_other": 0.07174871402387639,
+            "cpu_time_other": 0.0595967579093534,
+            "time": 0.39815043148915713,
+            "cpu": 0.15680572494349518
+          }
+        ],
+        "time_unit": "ns",
+        "run_type": "aggregate",
+        "aggregate_name": "cv",
+        "utest": {}
+      },
+      {
+        "name": "OVERALL_GEOMEAN",
+        "label": "",
+        "measurements": [
+          {
+            "real_time": 0.000006035100858040345,
+            "cpu_time": 0.000005998169526130342,
+            "real_time_other": 0.0000059330717338219945,
+            "cpu_time_other": 0.000005834812192109216,
+            "time": -0.01690595180069298,
+            "cpu": -0.02723453101975158
+          }
+        ],
+        "time_unit": "s",
+        "run_type": "aggregate",
+        "aggregate_name": "geomean",
+        "utest": {}
+      }
+    ]
+  }
+}
