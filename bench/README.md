@@ -117,5 +117,6 @@ No result file stands for them.
 | compare-20261114T064610Z.json | compare.sh, dbd4cac against d13b6ca |
 | short-value-copy-20261114T070339Z.json | short-value-copy, arms 0 to 7 |
 | short-value-copy-20261114T071115Z.json | short-value-copy, arms 0 to 9 |
+| compare-20261114T072127Z.json | compare.sh, dbd4cac against 5385275 |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
