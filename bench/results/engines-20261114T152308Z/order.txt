@@ -1,0 +1,10 @@
+rust:markup
+rust:sailfish
+inja.2.g++-16
+kainjow.2.g++-16
+mbedded-twin.2.g++-16
+mbedded.2.clang++-23
+mbedded.2.g++-16
+mstch.2.g++-16
+rust:maud
+rust:ramhorns

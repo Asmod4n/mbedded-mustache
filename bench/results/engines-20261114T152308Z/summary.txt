@@ -1,0 +1,30 @@
+Workload 2, the stocks page of mbosecke/template-benchmark. Median time per render, ns.
+
+### Run time: the template is compiled at run time
+
+| arm | median ns/render | tool | cv of 30 repetitions or confidence interval of the median |
+|---|---|---|---|
+| ramhorns (rustc) | 3945.2 | Criterion | CI 3938.9 to 3950.8 ns |
+| mbedded run_time (clang++-23) | 5833.5 | Google Benchmark | 8.26 % |
+| mbedded-twin run_time (g++-16) | 6070.2 | Google Benchmark | 11.97 % |
+| mbedded run_time (g++-16) | 6106.0 | Google Benchmark | 5.66 % |
+| kainjow render (g++-16) | 55793.4 | Google Benchmark | 9.24 % |
+| inja render (g++-16) | 75225.3 | Google Benchmark | 8.50 % |
+| mstch render (g++-16) | 88464.7 | Google Benchmark | 16.90 % |
+
+### Compile time: the template is compiled at build time
+
+| arm | median ns/render | tool | cv of 30 repetitions or confidence interval of the median |
+|---|---|---|---|
+| mbedded-twin reflection (g++-16) | 887.3 | Google Benchmark | 14.54 % |
+| mbedded reflection (g++-16) | 910.3 | Google Benchmark | 10.02 % |
+| sailfish (rustc) | 1145.7 | Criterion | CI 1141.8 to 1157.2 ns |
+| maud (rustc) | 1580.2 | Criterion | CI 1550.3 to 1610.0 ns |
+| markup (rustc) | 2713.8 | Criterion | CI 2697.6 to 2788.3 ns |
+
+A/A, run_time of g++-16 built twice: 6106.0 ns and 6070.2 ns, second over first minus 1: -0.59 %
+
+A/A, reflection of g++-16 built twice: 910.3 ns and 887.3 ns, second over first minus 1: -2.53 %
+
+noise floor, sysbench cpu events/s, 10 runs of 1 s: min 2974.5 max 3047.9 spread 2.47 %
+timed part: 2026-11-14T15:25:16Z to 2026-11-14T15:25:39Z
