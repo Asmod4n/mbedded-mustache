@@ -10,8 +10,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$work/out"
 before=${BEFORE:-738ff29}
 cp "$here/probe.cpp" "$here/escape_span.hpp" "$here/inside.sh" "$work/"
-rm -rf "$work/old"
-mkdir -p "$work/old"
+if [ -e "$work/old" ]; then echo "$work/old exists; give a new WORK_DIR" >&2; exit 1; fi
+mkdir "$work/old"
 git -C "$(git -C "$here" rev-parse --show-toplevel)" archive "$before" include | tar -x -C "$work/old"
 commit=$(git -C "$here" rev-parse HEAD)
 dirty=$(git -C "$here" status --porcelain | wc -l)
