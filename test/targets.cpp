@@ -422,7 +422,10 @@ TEST(RenderToStream, WritesNothingOnAnErrorOfTheRender)
 }
 
 // A stream with failbit set takes no bytes, as with std::print. The
-// call returns a value, and the state stays set.
+// call returns a value, and the state stays set. Whether a failed
+// sentry adds badbit is up to the standard library: the one of MSVC
+// sets it in ostream::write, libstdc++ and libc++ do not. So the test
+// does not read badbit.
 TEST(RenderToStream, WritesNothingToAStreamWithFailbitSet)
 {
   const mustache::Template t = compiled(kSource);
@@ -434,7 +437,6 @@ TEST(RenderToStream, WritesNothingToAStreamWithFailbitSet)
   EXPECT_EQ(buffer.writes, 0);
   EXPECT_TRUE(buffer.bytes.empty());
   EXPECT_TRUE(out.fail());
-  EXPECT_FALSE(out.bad());
 }
 
 // A buffer that takes too few bytes sets badbit. Without an exceptions
