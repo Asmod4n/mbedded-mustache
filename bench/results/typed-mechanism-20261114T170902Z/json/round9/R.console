@@ -1,0 +1,37 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+render                  6236 ns         6230 ns        10569
+render                  4391 ns         4392 ns        10569
+render                  4552 ns         4460 ns        10569
+render                  4389 ns         4390 ns        10569
+render                  4388 ns         4387 ns        10569
+render                  4446 ns         4442 ns        10569
+render                  4450 ns         4442 ns        10569
+render                  4545 ns         4544 ns        10569
+render                  4491 ns         4487 ns        10569
+render                  5518 ns         5252 ns        10569
+render                  5469 ns         5446 ns        10569
+render                  5494 ns         5494 ns        10569
+render                  5252 ns         5253 ns        10569
+render                  5315 ns         5314 ns        10569
+render                  6280 ns         6047 ns        10569
+render                  4395 ns         4368 ns        10569
+render                  4730 ns         4652 ns        10569
+render                  4520 ns         4426 ns        10569
+render                  4442 ns         4441 ns        10569
+render                  4425 ns         4424 ns        10569
+render                  4449 ns         4449 ns        10569
+render                  4447 ns         4447 ns        10569
+render                  4494 ns         4489 ns        10569
+render                  4522 ns         4497 ns        10569
+render                  4842 ns         4739 ns        10569
+render                  4410 ns         4397 ns        10569
+render                  4457 ns         4457 ns        10569
+render                  4405 ns         4405 ns        10569
+render                  4409 ns         4409 ns        10569
+render                  4406 ns         4402 ns        10569
+render_mean             4752 ns         4719 ns           30
+render_median           4474 ns         4453 ns           30
+render_stddev            549 ns          519 ns           30
+render_cv              11.55 %         11.01 %            30

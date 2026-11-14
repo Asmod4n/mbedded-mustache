@@ -1,0 +1,11 @@
+Stocks page (workload 2), typed render, g++-16 -O2, real time in ns per render.
+
+| arm | median ns | cv % (all rows) | median of 10 process medians ns | cv % of process medians | change against R | p |
+|---|---|---|---|---|---|---|
+| R typed, members from C++26 reflection (head) | 4504 | 10.59 | 4508 | 1.27 | | |
+| R2 twin of R (A/A) | 4474 | 11.13 | 4457 | 2.03 | -0.66 % | 0.0006 |
+| P typed, members from Boost.PFR | 4446 | 12.02 | 4437 | 11.64 | -1.30 % | 0.0000 |
+
+rows per arm: R 300, R2 300, P 300
+noise floor, sysbench cpu events/s, 10 runs of 1 s: min 2972.1 max 3028.2 spread 1.89 % (max/min - 1)
+P against R2 is not computed; R2 is the A/A of R.

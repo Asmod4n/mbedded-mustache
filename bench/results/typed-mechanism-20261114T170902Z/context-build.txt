@@ -1,0 +1,18 @@
+commit=3d3abee70b067db77f75c0fd27ff30a30cb3b077
+dirty_files=0
+podman=podman_version_4.9.3
+g++=g++-16 (Debian 16.2.0-4) 16.2.0
+boost=1.92.0.1
+google_benchmark=1.9.1-1+b2
+libstdcxx=libstdc++.so.6.0.36
+libc=ldd (Debian GLIBC 2.43-7) 2.43
+flags_reflection=g++-16 -std=c++26 -freflection -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -falign-jumps=64 -DNDEBUG -Wall -Wextra -Werror
+flags_pfr=g++-16 -std=c++23 -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -falign-jumps=64 -DNDEBUG -Wall -Wextra -Werror
+instruction_set=__AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ 
+kernel=Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+scheduler=sched_autogroup_enabled 1
+machine=Hypervisor vendor: KVM;Virtualization type: full;
+container=podman, cpus visible 4
+processor= Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest=sha256:0750228a0e310f80
+google_benchmark_arguments=--benchmark_repetitions=30 --benchmark_min_time=0.05s, 10 processes per binary, a new random order per round

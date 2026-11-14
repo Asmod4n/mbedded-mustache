@@ -1,0 +1,18 @@
+warning: refs/tags/v1.9.1 96afad55c79e02f5dfca1374e772c2be72ba631b is not a commit!
+Note: switching to 'c58e6d0710581e3a08d65c349664128a8d9a2461'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+

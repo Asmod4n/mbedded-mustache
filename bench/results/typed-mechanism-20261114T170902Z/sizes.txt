@@ -1,0 +1,4 @@
+   text	   data	    bss	    dec	    hex	filename
+ 137092	   1832	    248	 139172	  21fa4	/w/bin/R
+ 137092	   1832	    248	 139172	  21fa4	/w/bin/R2
+ 136008	   1840	    248	 138096	  21b70	/w/bin/P
