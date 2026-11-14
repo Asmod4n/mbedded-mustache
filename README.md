@@ -1,42 +1,40 @@
 # mustache
 
-Mustache templates for C++.
+Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 
-The library compiles a template once and renders it many times. It
-reads your data as standard C++ types, and it escapes HTML by default. It passes 163 cases of the Mustache specification. It
-never runs code of the data it renders.
+```cpp
+#include <mustache/mustache.hpp>
+#include <map>
+#include <print>
+#include <string>
 
-- C++23, header only: `include/mustache/mustache.hpp`.
-- A reflection render for C++26 compilers with reflection: the
-  template is compiled at compile time, and a key that names no member
-  is a compile error.
+int main() {
+  auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new messages.");
+  std::map<std::string, std::string> data{{"name", "Ada <admin>"}, {"count", "3"}};
+  std::println("{}", *mustache::render(*tpl, data));
+}
+```
 
-## Contents
+```
+Hello, Ada &lt;admin&gt;! You have 3 new messages.
+```
 
-1. [Install](#install)
-2. [A first render](#a-first-render)
-3. [What the render reads](#what-the-render-reads)
-4. [Sections, lists, partials](#sections-lists-partials)
-5. [Escaping by media type](#escaping-by-media-type)
-6. [Render a C++ struct with reflection](#render-a-c-struct-with-reflection)
-7. [Compile a template for one struct type](#compile-a-template-for-one-struct-type)
-8. [Errors](#errors)
-9. [What the library does not do](#what-the-library-does-not-do)
-10. [Tests and benchmarks](#tests-and-benchmarks)
+## Features
 
-## Install
+- **Header-only C++23.** One include, one CMake target.
+- **Compile once, render many times.** Parsing happens once; rendering is a tight loop over the compiled template.
+- **Your data, as it is.** Renders straight from `std::map`, `std::unordered_map`, `std::vector`, `std::variant`, `std::optional`, strings and numbers. No wrapper types to fill in.
+- **Escaping for the format you produce.** HTML by default, plus XML, JSON, JavaScript, CSS and troff (man pages). SIMD-accelerated on x86-64 (AVX2) and ARM (NEON).
+- **Compile-time templates with C++26 reflection.** Render a plain struct; a typo in a key is a compile error.
+- **Safe by design.** No lambdas, no dynamic partial names: data never runs code or picks a template. Every limit (nesting, partial depth, output size, work) is checked, and errors come back as `std::expected`.
+- **Spec compliant.** Passes all 163 cases of the core [Mustache specification](https://github.com/mustache/spec).
+- **Tested on** g++, clang, Apple clang and MSVC, on Linux, macOS and Windows.
 
-The library needs a C++23 compiler and CMake 3.25 or later. The
-reflection render needs a compiler with C++26 reflection, for example
-g++ 16 with `-std=c++26 -freflection`.
+## Installation
 
-CMake exports one target:
+You need a C++23 compiler and CMake 3.25 or newer.
 
-| target | what it is |
-|---|---|
-| `mustache::mustache` | the C++ headers, an INTERFACE library |
-
-### With FetchContent
+### CMake FetchContent
 
 ```cmake
 include(FetchContent)
@@ -48,12 +46,11 @@ FetchContent_MakeAvailable(mustache)
 target_link_libraries(app PRIVATE mustache::mustache)
 ```
 
-### As an installed package
+### Installed package
 
 ```sh
-git clone --recursive https://github.com/Asmod4n/mbedded-mustache.git mustache
-cmake -S mustache -B build -DBUILD_TESTING=OFF
-cmake --build build
+git clone https://github.com/Asmod4n/mbedded-mustache.git
+cmake -S mbedded-mustache -B build -DBUILD_TESTING=OFF
 cmake --install build --prefix /usr/local
 ```
 
@@ -62,311 +59,176 @@ find_package(mustache REQUIRED)
 target_link_libraries(app PRIVATE mustache::mustache)
 ```
 
-## A first render
+## Usage
 
-```cpp
-#include <mustache/mustache.hpp>
+### Data
 
-#include <cstdio>
-#include <map>
-#include <string>
+`render` accepts any of these types, nested as deep as you like:
 
-int main()
-{
-  const auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new {{what}}.");
-  if (!tpl) {
-    std::printf("the template does not compile: %.*s\n", (int)tpl.error().what.size(), tpl.error().what.data());
-    return 1;
-  }
-
-  const std::map<std::string, std::string> data{{"name", "Ada <admin>"}, {"count", "3"}, {"what", "messages"}};
-
-  const auto answer = mustache::render(*tpl, data);
-  if (!answer) {
-    std::printf("the render failed: %.*s\n", (int)answer.error().what.size(), answer.error().what.data());
-    return 1;
-  }
-  std::printf("%s\n", answer->c_str());
-}
-```
-
-Output:
-
-```
-Hello, Ada &lt;admin&gt;! You have 3 new messages.
-```
-
-- `compile` compiles the template once. Keep the template and render it
-  as often as you need.
-- `render` reads your data where it is, as standard C++ types, and gives
-  back a `std::string`.
-- `{{name}}` escapes `&`, `<`, `>`, `"` and `'`. `{{{name}}}` and
-  `{{&name}}` write the value as it is.
-
-## What the render reads
-
-The render reads standard C++ types and asks each type with its own
-interface. There is no type of this library to fill in.
-
-| your data | what Mustache sees |
+| C++ type | in the template |
 |---|---|
-| `std::string`, `std::string_view`, anything that converts to `std::string_view` | text |
-| `int`, `double` and the other arithmetic types | text, written with `std::to_chars` |
-| `bool` | a condition |
+| `std::string`, `std::string_view`, anything convertible to `std::string_view` | text |
+| `int`, `double`, other arithmetic types | text (via `std::to_chars`) |
+| `bool` | true / false |
 | `std::nullptr_t`, `std::monostate` | false |
-| `std::optional<T>` | false when empty, else the `T` |
-| `std::variant<…>`, or a type derived from one | the active alternative |
-| a map with string keys, e.g. `std::map`, `std::unordered_map` | a map; `{{a.b}}` looks keys up with `find` |
-| a random-access range, e.g. `std::vector` | a list |
+| `std::optional<T>` | false when empty, otherwise the `T` |
+| `std::variant<...>` (or a type derived from one) | the active alternative |
+| a map with string keys (`std::map`, `std::unordered_map`, ...) | a map, so `{{a.b}}` works |
+| a random-access range (`std::vector`, ...) | a list |
 
-The map is yours to choose, and the render finds a key with the `find`
-of that map. A `std::unordered_map` compares a key once after its hash;
-a `std::map` compares it with several keys of its tree. On the stocks
-page of `bench/`, with g++ 16 at `-O2`, the same data rendered in
-8.9 µs from `std::unordered_map` and in 9.8 µs from `std::map`.
+A key that isn't in the data renders as nothing, as the specification says.
 
-A value that holds itself needs a named type. Derive it from the
-variant:
+For data that contains itself, such as a JSON tree, derive a type from the variant:
 
 ```cpp
-struct Node : std::variant<std::nullptr_t, bool, double, std::string, std::vector<Node>, std::map<std::string, Node>> {
+struct Node : std::variant<std::nullptr_t, bool, double, std::string,
+                           std::vector<Node>, std::map<std::string, Node>> {
   using variant::variant;
 };
 ```
 
-## Sections, lists, partials
+### Sections, lists and partials
 
 ```cpp
 #include <mustache/mustache.hpp>
-
-#include <cstdio>
 #include <map>
+#include <print>
 #include <string>
 #include <variant>
 #include <vector>
 
-struct Item {
-  std::string name;
-  double      price;
-};
+using Item  = std::map<std::string, std::variant<std::string, double>>;
+using Value = std::variant<std::string, bool, std::vector<Item>>;
 
-using Field = std::variant<std::string, double, bool, std::vector<std::map<std::string, std::variant<std::string, double>>>>;
+int main() {
+  auto page = mustache::compile(
+      "<h1>{{title}}</h1>\n"
+      "{{#items}}{{> item}}{{/items}}"
+      "{{^items}}<p>Your cart is empty.</p>\n{{/items}}"
+      "{{#member}}<p>Free shipping for members.</p>\n{{/member}}");
+  auto item = mustache::compile("<li>{{name}}: {{price}} EUR</li>\n");
 
-int main()
-{
-  const auto page = mustache::compile("<h1>{{title}}</h1>\n"
-                                      "{{#items}}{{> item}}{{/items}}"
-                                      "{{^items}}<p>The cart is empty.</p>{{/items}}"
-                                      "{{#member}}<p>Members pay no shipping.</p>\n{{/member}}");
-  const auto item = mustache::compile("<li>{{name}}: {{price}} EUR</li>\n");
-  if (!page || !item) return 1;
+  mustache::Partials partials{{"item", *item}};
 
-  mustache::Partials partials;
-  partials.emplace("item", *item);
-
-  const std::map<std::string, Field> data{
+  std::map<std::string, Value> data{
       {"title", std::string("Cart")},
-      {"items", std::vector<std::map<std::string, std::variant<std::string, double>>>{
-                    {{"name", std::string("Tea")}, {"price", 4.5}}, {{"name", std::string("Mug")}, {"price", 12.0}}}},
+      {"items", std::vector<Item>{{{"name", std::string("Tea")}, {"price", 4.5}},
+                                  {{"name", std::string("Mug")}, {"price", 12.0}}}},
       {"member", true}};
 
-  const auto answer = mustache::render(*page, data, partials);
-  if (!answer) return 1;
-  std::printf("%s", answer->c_str());
+  std::print("{}", *mustache::render(*page, data, partials));
 }
 ```
-
-Output:
 
 ```
 <h1>Cart</h1>
 <li>Tea: 4.5 EUR</li>
 <li>Mug: 12 EUR</li>
-<p>Members pay no shipping.</p>
+<p>Free shipping for members.</p>
 ```
 
-- `{{#items}}` repeats its body for each element of a list, enters a
-  map, or shows its body when a condition is true.
-- `{{^items}}` shows its body when the value is false or an empty list.
-- `{{> item}}` renders the partial of that name from `Partials`.
+### Escaping
 
-## Escaping by media type
+`{{name}}` escapes, `{{{name}}}` and `{{&name}}` don't. By default the escaping is HTML. Pass the media type of your output to `compile` to get the right escaping for it:
 
-`compile(source, media_type)` takes the media type the caller
-negotiated and escapes every `{{tag}}` for that format:
+```cpp
+auto tpl = mustache::compile(R"({"greeting": "Hello, {{name}}"})", "application/json");
+```
 
 | media type | escaping |
 |---|---|
-| `text/html`, `application/xhtml+xml` | HTML: `&amp; &lt; &gt; &quot; &#39;` |
-| `application/xml`, `text/xml`, `…+xml` | XML: the five predefined entities |
-| `application/json`, `…+json` | a JSON string (RFC 8259) |
-| `text/javascript` | a JavaScript string: `\xHH`, `\u2028`, `\u2029` |
-| `text/css` | a CSS string: hex escapes |
-| `text/troff` | a text line of a man page: `\e`, `\(dq`, `\(aq`, `\(ga`, `\(ti`, `\(ha`, and `\&` where a period, a space or a sentence mark stands at the edge of a line |
+| `text/html`, `application/xhtml+xml` | HTML entities |
+| `application/xml`, `text/xml`, `*+xml` | the five XML entities |
+| `application/json`, `*+json` | JSON string (RFC 8259) |
+| `text/javascript` | JavaScript string |
+| `text/css` | CSS string |
+| `text/troff` | man page text lines |
 
-The escaping makes a value safe inside a text in HTML and XML, or
-inside a string in JSON, JavaScript and CSS. Where a tag stands in the
-template is the author's choice, as in Mustache. A media type that is
-not in the table does not compile. `image/svg+xml` is refused, because
-SVG carries script that XML escaping does not guard.
+Escaping makes a value safe *inside text or a string literal* of that format. Where you put the tag is up to you. An unknown media type is an error, and so is `image/svg+xml`, because SVG can carry scripts that XML escaping doesn't stop.
 
-For `text/troff` a value is text of one text line or of several. A byte
-from 0x80 on passes unchanged; the caller decides what UTF-8 is. A
-value with a byte under 0x20 other than the newline, or with 0x7F,
-stops the render with `illegal_control_character`. A tag in the argument line
-of a macro gets the same escaping, and a space in its value splits the
-argument.
+### Structs with C++26 reflection
 
-## Render a C++ struct with reflection
-
-With a C++26 compiler with reflection, the template can be compiled at
-compile time and a struct is read by its members:
+With a compiler that supports C++26 reflection (for example g++ 16 with `-std=c++26 -freflection`), you can render a plain struct, and the template is compiled at compile time:
 
 ```cpp
 #include <mustache/mustache.hpp>
-
-#include <cstdio>
 #include <optional>
+#include <print>
 #include <string>
 #include <vector>
 
-struct Item {
-  std::string name;
-  double      price;
-};
-
+struct Item { std::string name; double price; };
 struct Page {
   std::string                title;
   std::vector<Item>          items;
   std::optional<std::string> note;
 };
 
-int main()
-{
-  const Page page{"Cart", {{"Tea", 4.5}, {"Mug", 12}}, std::nullopt};
-  const auto answer = mustache::render<"<h1>{{title}}</h1>\n{{#items}}<li>{{name}}: {{price}} EUR</li>\n{{/items}}"
-                                       "{{#note}}<p>{{note}}</p>\n{{/note}}">(page);
-  if (!answer) return 1;
-  std::printf("%s", answer->c_str());
+int main() {
+  Page page{"Cart", {{"Tea", 4.5}, {"Mug", 12}}, std::nullopt};
 
-  const auto json = mustache::render<"{\"title\":\"{{title}}\"}\n">(page, "application/json");
-  if (json) std::printf("%s", json->c_str());
+  auto html = mustache::render<"<h1>{{title}}</h1>\n"
+                               "{{#items}}<li>{{name}}: {{price}} EUR</li>\n{{/items}}">(page);
+  std::print("{}", *html);
+
+  auto json = mustache::render<"{\"title\": \"{{title}}\"}\n">(page, "application/json");
+  std::print("{}", *json);
 }
 ```
 
-Output:
+A key that names no member, like `{{titel}}`, fails to compile. This is also the fastest way to render.
 
-```
-<h1>Cart</h1>
-<li>Tea: 4.5 EUR</li>
-<li>Mug: 12 EUR</li>
-{"title":"Cart"}
-```
+### Run-time templates for a struct
 
-- Every type of the table above works here too; a struct is read by its
-  members.
-- A key that names no member is a compile error that names the key.
-- This render is the fast one: the text of the template is copied with
-  lengths known at compile time, and a list element is written in one
-  piece.
-
-## Compile a template for one struct type
-
-A template that arrives at run time can be compiled for the type of the
-data it will read. Every key is then resolved to a member once, and the
-render reads the member without a search:
+When the template is only known at run time, compile it for your struct type. Keys are resolved to members once, in `compile`:
 
 ```cpp
-#include <mustache/mustache.hpp>
-
-#include <cstdio>
-#include <string>
-#include <vector>
-
-struct Item {
-  std::string name;
-  double      price;
-};
-
-struct Page {
-  std::string       title;
-  std::vector<Item> items;
-};
-
-int main()
-{
-  const auto t = mustache::compile<Page>("<h1>{{title}}</h1>\n{{#items}}<li>{{name}}: {{price}} EUR</li>\n{{/items}}");
-  if (!t) return 1;
-  const Page page{"Cart", {{"Tea", 4.5}, {"Mug", 12}}};
-  const auto answer = mustache::render(*t, page);
-  if (answer) std::printf("%s", answer->c_str());
-}
+auto tpl = mustache::compile<Page>("<h1>{{title}}</h1>\n{{#items}}<li>{{name}}</li>\n{{/items}}");
+auto out = mustache::render(*tpl, page);
 ```
 
-- `compile<T>` gives a `mustache::TypedTemplate<T>`, and `render` takes
-  it with a `const T &`.
-- A key that names no member is an error of `compile<T>`, with the op
-  where the key stands.
-- A key in a map, in a variant or in a partial is found at render time,
-  as in the run-time render.
-- The members come from reflection where the compiler has it, and from
-  Boost.PFR 1.84 or later where it does not. With Boost.PFR, a struct
-  must be an aggregate: no constructor of its own, no base, no private
-  member.
-- On the stocks page, with clang 22 at `-O2`, a typed template rendered
-  in 4.3 µs, the run-time render with `std::unordered_map` in 6.9 µs.
+This works with C++26 reflection, or on C++23 with [Boost.PFR](https://github.com/boostorg/pfr) 1.84 or newer. With Boost.PFR the struct must be an aggregate (no constructors, no base classes, no private members).
 
 ## Errors
 
-`compile` and `render` give back a `std::expected`. The error holds:
+`compile` and `render` return `std::expected`. On failure you get a `mustache::Error`:
 
-| field | meaning |
-|---|---|
-| `fault` | a `mustache::Fault`, below |
-| `what` | a message, a static string |
-| `asked` | the offset in the source for `parse`; the size asked for otherwise |
-| `allowed` | the limit, for `over_limit` |
+```cpp
+auto tpl = mustache::compile("{{#open}} never closed");
+if (!tpl) {
+  std::println("{} at offset {}", tpl.error().what, tpl.error().asked);
+}
+```
 
-| Fault | when |
+| `Error::fault` | meaning |
 |---|---|
-| `parse` | the template does not compile |
+| `parse` | the template has a syntax error; `asked` is the offset |
 | `not_text` | `{{x}}` names a list or a map |
 | `too_deep` | sections nest deeper than 32, or partials deeper than 64 |
-| `over_work` | the render does more work than its limit |
-| `over_limit` | the answer is larger than its limit |
+| `over_work` | the render did more work than allowed (for example, partials that call each other) |
+| `over_limit` | the template or the output is larger than allowed; `allowed` is the limit |
 | `no_memory` | an allocation failed |
-| `illegal_control_character` | a value for `text/troff` holds a byte under 0x20 other than the newline, or 0x7F |
+| `illegal_control_character` | a `text/troff` value contains a control character |
 
-The work limit counts each run of a template body. It stops a small
-template with partials that call each other before it takes the
-machine.
+## Not supported
 
-## What the library does not do
+- **Lambdas** (optional in the spec). Data never runs code.
+- **Dynamic names** (optional in the spec). Data never chooses which partial to render.
 
-- Lambdas (`~lambdas` in the specification). Data never runs code in a
-  render.
-- Dynamic names (`~dynamic-names`). The data never picks a template:
-  a compiled template fixes what it renders. With reflection, a name
-  that the data gives would also need every partial built at every
-  such tag, and the keys of each one checked against a context it may
-  never see.
+## Performance
 
-The specification is in `refs/mustache-spec/`, byte for byte.
+Measurements, with their sources and the full context of each run, are in [`bench/`](bench/README.md).
 
-## Tests and benchmarks
+## Building the tests
 
 ```sh
-cmake -S . -B build -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined"
+cmake -S . -B build
 cmake --build build
 ctest --test-dir build
 ```
 
-The tests need simdjson and GoogleTest. They run every case of the specification
-through the C++ render.
-
-`bench/build.sh` builds one benchmark binary for each workload and each
-compiler, and `bench/run.sh` runs them. They need Google Benchmark.
+The tests use GoogleTest and simdjson. Without installed packages, point CMake at their sources with `-DMUSTACHE_GOOGLETEST_SOURCE_DIR=...` and `-DMUSTACHE_SIMDJSON_SOURCE_DIR=...`.
 
 ## License
 
-Apache-2.0.
+[Apache-2.0](LICENSE)
