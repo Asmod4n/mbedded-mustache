@@ -288,12 +288,14 @@ kinds_of_a_node()
                          {"e", map_of({})},
                          {"el", Node{NodeList{}}},
                          {"s", text("a&b<c")},
-                         {"l", Node{NodeList{Node{1.0}, text("s&"), Node{nullptr}, Node{true}, map_of({{"x", text("X")}}),
-                                             Node{NodeList{text("in"), text("<2>")}}, Node{std::int64_t{-3}}}}},
+                         {"l", Node{NodeList{Node{1.0}, text("s&"), Node{nullptr}, Node{NodeList{text("in"), text("<2>")}},
+                                             Node{std::int64_t{-3}}, Node{false}}}},
+                         {"lm", Node{NodeList{map_of({{"x", text("X")}}), map_of({}), text("t"), Node{nullptr}, map_of({{"x", Node{2.5}}})}}},
                          {"m", map_of({{"n", map_of({{"o", map_of({{"p", text("deep")}})}})}, {"q", Node{NodeList{text("lq")}}}})}});
   at_run_time("kinds: numbers and text", "{{i}}|{{d}}|{{s}}|{{{s}}}|{{&s}}|{{missing}}|{{z}}|{{f}}", k);
   at_run_time("kinds: sections", "{{#t}}T{{/t}}{{#f}}F{{/f}}{{#z}}Z{{/z}}{{#i}}I{{/i}}{{#d}}D{{/d}}{{#e}}E{{/e}}{{#el}}L{{/el}}{{^el}}noel{{/el}}{{^e}}noe{{/e}}{{^missing}}nm{{/missing}}", k);
-  at_run_time("kinds: list elements", "{{#l}}[{{x}}{{#.}}<{{.}}>{{/.}}]{{/l}}", k);
+  at_run_time("kinds: list elements", "{{#l}}[{{#.}}<{{.}}>{{/.}}{{^.}}-{{/.}}]{{/l}}", k);
+  at_run_time("kinds: list of maps and others", "{{#lm}}[{{x}}{{^x}}-{{/x}}]{{/lm}}", k);
   at_run_time("kinds: dotted names through a list, text and a map", "{{m.n.o.p}}|{{m.q.x}}|{{s.x}}|{{e.x}}|{{l.x}}|{{#m}}{{n.o.p}}{{#q}}{{.}}{{/q}}{{/m}}", k);
   at_run_time("kinds: a boolean as a tag is a fault", "{{t}}", k);
   at_run_time("kinds: a map as a tag is a fault", "{{e}}x{{m}}", k);
