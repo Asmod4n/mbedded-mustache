@@ -9,7 +9,7 @@ Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 #include <string>
 
 int main() {
-  auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new messages.");
+  auto tpl = mustache::compile("Hello, {{name}}! You have {{count}} new messages.", "text/html");
   std::map<std::string, std::string> data{{"name", "Ada <admin>"}, {"count", "3"}};
   std::println("{}", *mustache::render(*tpl, data));
 }
@@ -129,7 +129,7 @@ int main() {
 
 ### Escaping
 
-`{{name}}` escapes, `{{{name}}}` and `{{&name}}` don't. By default the escaping is HTML. Pass the media type of your output to `compile` to get the right escaping for it:
+`{{name}}` escapes, `{{{name}}}` and `{{&name}}` don't. The media type you pass to `compile` picks the escaping. Without one, the escaping is HTML, as the Mustache specification says.
 
 ```cpp
 auto tpl = mustache::compile(R"({"greeting": "Hello, {{name}}"})", "application/json");
