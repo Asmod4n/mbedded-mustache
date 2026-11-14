@@ -1,9 +1,9 @@
 #!/bin/sh
-# Container side: builds 64 binaries (8 arms, 2 compilers, 2 levels, 2 instruction sets) with their assembly,
+# Container side: builds 80 binaries (10 arms, 2 compilers, 2 levels, 2 instruction sets) with their assembly,
 # measures the noise floor, runs the arms alternately as nobody, writes /w/out.
 set -u
 rounds=${ROUNDS:-6}
-arms="0 1 2 3 4 5 6 7"
+arms="0 1 2 3 4 5 6 7 8 9"
 builds="g++-16:-O2:v3 g++-16:-Os:v3 g++-16:-O2:v4 g++-16:-Os:v4 clang++-23:-O2:v3 clang++-23:-Os:v3 clang++-23:-O2:v4 clang++-23:-Os:v4"
 apt-get update -q > /w/out/apt.log 2>&1
 apt-get install -y -q sysbench >> /w/out/apt.log 2>&1

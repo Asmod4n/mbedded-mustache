@@ -4,7 +4,9 @@
 // 3 a block built in a zeroed std::array from overlapping pieces inside the length,
 // 4 a block built from 64-bit words in registers inside the length, 5 the pieces stored one by one,
 // 6 one 16-byte read through a span over capacity() + 1 chars, 7 the same read through a span over
-// capacity() chars (a short string of libstdc++ then takes arm 5).
+// capacity() chars (a short string of libstdc++ then takes arm 5), 8 arm 6 with the test of a value
+// under 16 bytes first, 9 arm 8 without the early return of the empty value (it stores a block also
+// for the empty value).
 // Each arm stores into a room of at least 32 bytes, as the callers in render.hpp prove.
 #include <immintrin.h>
 
@@ -291,8 +293,8 @@ copied_short_in_pieces(const std::span<char> out, const std::span<const char> in
   return {n, marks16_of(block_of(word_of_up_to_3(in), 0))};
 }
 
-// Arms 6 and 7: the chars that the string owns, as one span. Arm 6 counts the terminator.
-#if ARM == 6
+// Arms 6 to 9: the chars that the string owns, as one span. Arms 6, 8 and 9 count the terminator.
+#if ARM == 6 || ARM == 8 || ARM == 9
 inline constexpr size_t kOwnedPastCapacity = 1;
 #else
 inline constexpr size_t kOwnedPastCapacity = 0;
@@ -318,6 +320,24 @@ copied_in_capacity(const std::span<char> out, const std::string &s)
   return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
 }
 
+
+[[gnu::always_inline]] inline Copied
+copied_in_capacity_short_first(const std::span<char> out, const std::string &s)
+{
+  const size_t n = s.size();
+  if (n < kBlock) {
+#if ARM == 8
+    if (n == 0) return {0, 0};
+#endif
+    const std::span<const char> owned = owned_chars_of(s);
+    if (owned.size() < kBlock) return copied_short_in_pieces(out, s);
+    const __m128i v = loaded(owned.first<kBlock>());
+    stored(out.first<kBlock>(), v);
+    return {n, marks16_of(v) & ((uint32_t{1} << n) - 1)};
+  }
+  if (n <= kCopiedStringMax) return copied_long(out, s);
+  return copied_string_scalar(out, s);
+}
 enum class Short { in_array, in_words, in_pieces };
 
 template <Short form>
@@ -348,6 +368,8 @@ copied(const std::span<char> out, const std::string &s)
   return copied_with<Short::in_pieces>(out, s);
 #elif ARM == 6 || ARM == 7
   return copied_in_capacity(out, s);
+#elif ARM == 8 || ARM == 9
+  return copied_in_capacity_short_first(out, s);
 #endif
 }
 
