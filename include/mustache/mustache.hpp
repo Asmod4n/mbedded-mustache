@@ -74,6 +74,19 @@ render_to(std::vector<Element, Allocator> &out, const Template &t, const T &data
   return detail::appended_to(out, detail::RunTimeAppender<T>{t, data, partials, initial_capacity});
 }
 
+/// Provisional name and comment. Writes the rendered bytes to `out` with one call of out.write,
+/// the way std::print(std::ostream&) writes. On a render error nothing is written and the
+/// error is returned. A failed write is not an error value: it stays in the state of the
+/// stream, and the exceptions mask of the stream decides whether it throws. A stream with a
+/// failed state gets no bytes. A write that fails half way leaves the bytes written so far.
+template <class T>
+std::expected<void, Error>
+render_to(std::ostream &out, const Template &t, const T &data, const Partials &partials = {},
+          const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(out, detail::RunTimeAppender<T>{t, data, partials, initial_capacity});
+}
+
 }
 
 #if defined(__cpp_impl_reflection) || __has_include(<boost/pfr/core_name.hpp>)

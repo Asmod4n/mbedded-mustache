@@ -8,6 +8,7 @@
 #include <memory_resource>
 #include <map>
 #include <optional>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
 #include <string>
@@ -157,6 +158,17 @@ TEST(TypedRenderTo, AppendsToAByteVector)
       mustache::render_to(octets, *t, page, {}, std::numeric_limits<size_t>::max());
   ASSERT_FALSE(over);
   EXPECT_EQ(octets.size(), 4U);
+}
+
+// A stream takes the bytes of a typed render.
+TEST(TypedRenderTo, WritesToAStream)
+{
+  const Page page{"a<b", {}, std::nullopt, false};
+  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t = mustache::compile<Page>("<{{single}}>");
+  ASSERT_TRUE(t);
+  std::ostringstream out;
+  ASSERT_TRUE(mustache::render_to(out, *t, page));
+  EXPECT_EQ(out.str(), "<a&lt;b>");
 }
 
 }

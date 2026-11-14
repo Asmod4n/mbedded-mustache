@@ -10,6 +10,7 @@
 #include <memory_resource>
 #include <flat_map>
 #include <optional>
+#include <sstream>
 #include <variant>
 #include <map>
 #include <string>
@@ -364,6 +365,21 @@ TEST(ReflectRenderTo, AppendsToAByteVector)
   const std::expected<void, mustache::Error> refused = mustache::render_to<"{{y}}">(octets, data, "text/plain");
   ASSERT_FALSE(refused);
   EXPECT_EQ(octets.size(), 2U);
+}
+
+// A stream takes the bytes of a reflection render, with the media type
+// and without it. A type with no escaper writes nothing.
+TEST(ReflectRenderTo, WritesToAStream)
+{
+  const Pair data{"a<b", "w"};
+  std::ostringstream out;
+  ASSERT_TRUE(mustache::render_to<"{{x}}|{{y}}">(out, data));
+  ASSERT_TRUE(mustache::render_to<"{{x}}">(out, data, "application/json"));
+  ASSERT_TRUE(mustache::render_to<"{{y}}">(out, data, 0));
+  EXPECT_EQ(out.str(), "a&lt;b|wa<bw");
+  const std::expected<void, mustache::Error> refused = mustache::render_to<"{{y}}">(out, data, "text/plain");
+  ASSERT_FALSE(refused);
+  EXPECT_EQ(out.str(), "a&lt;b|wa<bw");
 }
 
 }

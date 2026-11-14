@@ -5,6 +5,9 @@
 #include <concepts>
 #include <cstddef>
 #include <expected>
+#include <ios>
+#include <limits>
+#include <ostream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -58,6 +61,19 @@ appended_to(std::vector<Element, Allocator> &out, const Appender &appender)
   };
   if (!memory_sufficed(copied)) [[unlikely]]
     return std::unexpected(Error{Fault::no_memory, "render output", out.size() + rendered->size(), 0});
+  return {};
+}
+
+static_assert(kMaxCapacity <= static_cast<size_t>(std::numeric_limits<std::streamsize>::max()),
+              "the bytes of a render fit in a std::streamsize");
+
+template <class Appender>
+std::expected<void, Error>
+appended_to(std::ostream &out, const Appender &appender)
+{
+  const std::expected<std::string, Error> rendered = rendered_through(appender);
+  if (!rendered) [[unlikely]] return std::unexpected(rendered.error());
+  out.write(rendered->data(), static_cast<std::streamsize>(rendered->size()));
   return {};
 }
 

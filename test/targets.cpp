@@ -8,10 +8,14 @@
 #include <cstdint>
 #include <cstddef>
 #include <expected>
+#include <iomanip>
+#include <ios>
 #include <limits>
 #include <map>
 #include <memory_resource>
 #include <span>
+#include <sstream>
+#include <streambuf>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -339,6 +343,140 @@ TEST(RenderToVector, ReturnsNoMemoryForAVectorThatIsFull)
   ASSERT_FALSE(r);
   EXPECT_EQ(r.error().fault, mustache::Fault::no_memory);
   EXPECT_EQ(std::string(out.begin(), out.end()), "keep");
+}
+
+// A stream buffer that counts the calls of the stream and keeps the
+// bytes. With a limit it takes only that many bytes, as a full disk does.
+class CountingBuffer : public std::streambuf {
+public:
+  std::string  bytes;
+  int          writes = 0;
+  std::streamsize limit = std::numeric_limits<std::streamsize>::max();
+
+protected:
+  std::streamsize xsputn(const char *const s, const std::streamsize n) override
+  {
+    writes++;
+    const std::streamsize taken = n < limit ? n : limit;
+    bytes.append(s, static_cast<size_t>(taken));
+    return taken;
+  }
+
+  int_type overflow(const int_type c) override
+  {
+    if (!traits_type::eq_int_type(c, traits_type::eof())) bytes.push_back(traits_type::to_char_type(c));
+    return traits_type::not_eof(c);
+  }
+};
+
+// The render goes to the stream as one write, so a stream buffer sees
+// one call however long the render is.
+TEST(RenderToStream, WritesTheBytesThatRenderReturnsInOneWrite)
+{
+  const Node data{NodeMap{{"a", Node{std::string(50000, 'x')}}}};
+  const mustache::Template t = compiled("<{{{a}}}>{{a}}");
+  CountingBuffer buffer;
+  std::ostream out(&buffer);
+  ASSERT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_EQ(buffer.bytes, "<" + std::string(50000, 'x') + ">" + std::string(50000, 'x'));
+  EXPECT_EQ(buffer.writes, 1);
+  EXPECT_TRUE(out.good());
+}
+
+// std::print does not pad to the width of the stream, and render_to
+// does not either.
+TEST(RenderToStream, IgnoresTheWidthOfTheStream)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  std::ostringstream out;
+  out << std::setw(80) << std::setfill('.');
+  ASSERT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_EQ(out.str(), kRendered);
+}
+
+TEST(RenderToStream, AppendsToTheBytesThatTheStreamHolds)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  std::ostringstream out("head:");
+  out.seekp(0, std::ios_base::end);
+  ASSERT_TRUE(mustache::render_to(out, t, data));
+  ASSERT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_EQ(out.str(), "head:" + std::string(kRendered) + std::string(kRendered));
+}
+
+// An error of the render writes nothing and does not touch the state
+// of the stream.
+TEST(RenderToStream, WritesNothingOnAnErrorOfTheRender)
+{
+  const mustache::Template t = compiled("ab{{a}}");
+  const Node data{NodeMap{{"a", Node{NodeMap{{"x", Node{true}}}}}}};
+  CountingBuffer buffer;
+  std::ostream out(&buffer);
+  const std::expected<void, mustache::Error> r = mustache::render_to(out, t, data);
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::not_text);
+  EXPECT_EQ(buffer.writes, 0);
+  EXPECT_TRUE(out.good());
+}
+
+// A stream with failbit set takes no bytes, as with std::print. The
+// call returns a value, and the state stays set.
+TEST(RenderToStream, WritesNothingToAStreamWithFailbitSet)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  CountingBuffer buffer;
+  std::ostream out(&buffer);
+  out.setstate(std::ios_base::failbit);
+  EXPECT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_EQ(buffer.writes, 0);
+  EXPECT_TRUE(buffer.bytes.empty());
+  EXPECT_TRUE(out.fail());
+  EXPECT_FALSE(out.bad());
+}
+
+// A buffer that takes too few bytes sets badbit. Without an exceptions
+// mask the call returns a value and the caller reads the state.
+TEST(RenderToStream, LeavesAFailedWriteInTheStateOfTheStream)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  CountingBuffer buffer;
+  buffer.limit = 3;
+  std::ostream out(&buffer);
+  EXPECT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_TRUE(out.bad());
+  EXPECT_EQ(buffer.bytes, kRendered.substr(0, 3));
+}
+
+// With badbit in the exceptions mask the failed write throws the
+// exception of the standard library, which is a std::system_error.
+TEST(RenderToStream, ThrowsWhenTheExceptionsMaskHoldsTheFailedBit)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  CountingBuffer buffer;
+  buffer.limit = 3;
+  std::ostream out(&buffer);
+  out.exceptions(std::ios_base::badbit);
+  EXPECT_THROW(static_cast<void>(mustache::render_to(out, t, data)), std::ios_base::failure);
+  EXPECT_TRUE(out.bad());
+}
+
+// An error of the render comes back as a value, and no exception of the
+// mask is thrown, because no write was made.
+TEST(RenderToStream, ReturnsTheErrorOfTheRenderWithAnExceptionsMask)
+{
+  const mustache::Template t = compiled("ab{{a}}");
+  const Node data{NodeMap{{"a", Node{NodeMap{{"x", Node{true}}}}}}};
+  CountingBuffer buffer;
+  std::ostream out(&buffer);
+  out.exceptions(std::ios_base::badbit | std::ios_base::failbit);
+  const std::expected<void, mustache::Error> r = mustache::render_to(out, t, data);
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::not_text);
 }
 
 }
