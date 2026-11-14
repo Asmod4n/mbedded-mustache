@@ -11,7 +11,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <cctype>
+#include <locale>
 
 namespace {
 
@@ -153,7 +153,7 @@ std::string
 name_of(const testing::TestParamInfo<Case> &info)
 {
   std::string name = std::to_string(info.index) + "_";
-  for (const char c : info.param.name) name += std::isalnum((unsigned char)c) != 0 ? c : '_';
+  for (const char c : info.param.name) name += std::isalnum(c, std::locale::classic()) ? c : '_';
   return name;
 }
 
