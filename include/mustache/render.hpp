@@ -189,8 +189,15 @@ struct Batch {
       dirty = true;
       return;
     }
-    dirty |= copied_string(room.subspan(size), s).marks != 0;
-    size += s.size();
+    if (copied_string(room.subspan(size), s).marks == 0) [[likely]] {
+      size += s.size();
+      return;
+    }
+    if (room_needed_for_the_escaped_value(Context::html_text, s) > kCopiedStringMax) [[unlikely]] {
+      dirty = true;
+      return;
+    }
+    size += escape_string_into(room.subspan(size), s);
   }
 };
 

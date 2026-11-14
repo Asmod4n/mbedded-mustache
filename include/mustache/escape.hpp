@@ -384,7 +384,7 @@ marks_of(const __m256i b)
   return (uint32_t)_mm256_movemask_epi8(hit);
 }
 
-inline uint32_t
+MUSTACHE_ALWAYS_INLINE inline uint32_t
 marks16_of(const __m128i b)
 {
   const __m128i hit = _mm_or_si128(
@@ -500,7 +500,7 @@ inline constexpr size_t kMarksPerVectorMax = kVectorBytes / 4;
 
 static_assert(kEscapeSlack >= 2 * kVectorBytes, "a vector store at the end of the output stays in the slack");
 
-inline uint64_t
+MUSTACHE_ALWAYS_INLINE inline uint64_t
 marks_of(const uint8x16_t b)
 {
   const uint8x16_t hit =
