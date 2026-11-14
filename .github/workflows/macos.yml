@@ -42,6 +42,7 @@ jobs:
       - run: echo "CC=$(ls "$(brew --prefix gcc)"/bin/gcc-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - run: git clone --depth 1 --branch v1.17.0 https://github.com/google/googletest.git "$RUNNER_TEMP/googletest"
+      - run: git clone --depth 1 --branch v4.2.4 https://github.com/simdjson/simdjson.git "$RUNNER_TEMP/simdjson"
       - run: uname -m | grep -x arm64
       - run: >
           cmake -S . -B build-clang -G Ninja
@@ -60,6 +61,7 @@ jobs:
           -DCMAKE_DISABLE_FIND_PACKAGE_GTest=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_simdjson=ON
           -DMUSTACHE_GOOGLETEST_SOURCE_DIR="$RUNNER_TEMP/googletest"
+          -DMUSTACHE_SIMDJSON_SOURCE_DIR="$RUNNER_TEMP/simdjson"
           "-DCMAKE_CXX_FLAGS=-freflection -O2 -Wall -Wextra -Werror"
       - run: cmake --build build-gxx
       - run: ctest --test-dir build-gxx --output-on-failure
