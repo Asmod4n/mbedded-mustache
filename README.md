@@ -4,12 +4,12 @@ Fast, safe [Mustache](https://mustache.github.io/) templates for modern C++.
 
 ```cpp
 #include <mustache/mustache.hpp>
-#include <map>
+#include <unordered_map>
 #include <print>
 #include <string>
 
 int main() {
-  std::map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
+  std::unordered_map<std::string, std::string> data{{"name", "Ada <\"admin\">"}};
 
   // One partial, escaped by the media type of the template that includes it.
   mustache::Partials partials{{"greeting", *mustache::compile("Hello, {{name}}!")}};
@@ -51,7 +51,7 @@ Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark
 | [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.4 µs | 1.43 µs |
 | news page (20 articles, 3 tags each) | 8.0 µs | 8.3 µs | 1.52 µs |
 
-*Run time* compiles the template at run time and renders from `std::map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
+*Run time* compiles the template at run time and renders from `std::map` data (see [Data](#data) for faster map types); *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
 
 ## Installation
 
@@ -115,7 +115,7 @@ For data that contains itself, such as a JSON tree, derive a type from the varia
 
 ```cpp
 struct Node : std::variant<std::nullptr_t, bool, double, std::string,
-                           std::vector<Node>, std::map<std::string, Node>> {
+                           std::vector<Node>, std::unordered_map<std::string, Node>> {
   using variant::variant;
 };
 ```
@@ -124,13 +124,13 @@ struct Node : std::variant<std::nullptr_t, bool, double, std::string,
 
 ```cpp
 #include <mustache/mustache.hpp>
-#include <map>
+#include <unordered_map>
 #include <print>
 #include <string>
 #include <variant>
 #include <vector>
 
-using Item  = std::map<std::string, std::variant<std::string, double>>;
+using Item  = std::unordered_map<std::string, std::variant<std::string, double>>;
 using Value = std::variant<std::string, bool, std::vector<Item>>;
 
 int main() {
@@ -143,7 +143,7 @@ int main() {
 
   mustache::Partials partials{{"item", *item}};
 
-  std::map<std::string, Value> data{
+  std::unordered_map<std::string, Value> data{
       {"title", std::string("Cart")},
       {"items", std::vector<Item>{{{"name", std::string("Tea")}, {"price", 4.5}},
                                   {{"name", std::string("Mug")}, {"price", 12.0}}}},
