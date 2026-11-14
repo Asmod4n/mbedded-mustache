@@ -100,8 +100,9 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | scalar-writers, arm 4 | A table of 256 classes of one byte and a table of the words of the classes for each context; the word of a byte is made from its class and the byte with masks. |
 | scalar-writers, arm 5 | Arm 4 with the classes of the five contexts in bit fields of one table of 256 entries of 16 bits. |
 | scalar-writers, arm 6 | The code of arm 2 in a second binary: the noise of the cell. |
+| scalar-writers, arm 7 | Arm 2 with a table of 128 words for each context, for the bytes under 0x80; a byte from 0x80 on is written as the byte itself. |
 | table-size | The size of .text and .rodata of one small program for 32-bit ARM at four states of the headers, in four forms. |
-| table-size, a state with a patch | A state <commit>+<name> applies <name>.patch of the probe directory; class-tables.patch and class-fields.patch put the forms of arms 4 and 5 of scalar-writers into escape.hpp of f331cd1. The probe also gives the size of each escape table. |
+| table-size, a state with a patch | A state <commit>+<name> applies <name>.patch of the probe directory; class-tables.patch, class-fields.patch and half-tables.patch put the forms of arms 4, 5 and 7 of scalar-writers into escape.hpp of f331cd1. The probe also gives the size of each escape table. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
 They find the stores past the written count with guard bytes, and give no time.
@@ -137,5 +138,7 @@ No result file stands for them.
 | html-escape-span-20261114T085638Z.json | html-escape-span, arms 0, 1, 3 and 4, x86-64-v3 |
 | scalar-writers-20261114T090839Z.json | scalar-writers, arms 0, 2, 6, 4 and 5, x86-64-v3 |
 | table-size-20261114T091231Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables and f331cd1+class-fields, with the size of each table |
+| scalar-writers-20261114T093713Z.json | scalar-writers, arms 2, 6 and 7, x86-64-v3 |
+| table-size-20261114T093644Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables, f331cd1+class-fields and f331cd1+half-tables, with the size of each table |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.

@@ -4,7 +4,8 @@
 # container. Prints one line for each state, form and section, and writes the context to WORK_DIR/out.
 # STATES in the environment chooses the commits (default 4dac08e 738ff29 7c3f670 d08686b). A state <commit>+<name>
 # is the commit with <name>.patch of this directory applied to the exported include/ (class-tables.patch and
-# class-fields.patch: escape.hpp of f331cd1 with the class forms of arms 4 and 5 of the probe scalar-writers).
+# class-fields.patch: escape.hpp of f331cd1 with the class forms of arms 4 and 5 of the probe scalar-writers;
+# half-tables.patch: the five tables of 128 words for the bytes under 0x80, as arm 7 of the probe scalar-writers).
 # Usage: bench/probes/table-size/run.sh WORK_DIR [IMAGE]
 set -eu
 work=$1

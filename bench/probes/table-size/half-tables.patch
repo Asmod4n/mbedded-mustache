@@ -1,0 +1,125 @@
+--- a/include/mustache/escape.hpp
++++ b/include/mustache/escape.hpp
+@@ -38,6 +38,12 @@
+   std::array<uint64_t, 256> word;
+ };
+ 
++inline constexpr size_t kHalfTableWords = 128;
++
++struct HalfEntities {
++  std::array<uint64_t, kHalfTableWords> word;
++};
++
+ consteval uint64_t
+ word_of(const std::string_view piece)
+ {
+@@ -117,20 +123,38 @@
+ }
+ 
+ template <class WordOf>
+-consteval Entities
++consteval HalfEntities
+ entities_by(const WordOf &word_of_byte)
+ {
+-  Entities e{};
++  HalfEntities e{};
+   for (size_t c = 0; c < e.word.size(); c++) e.word.at(c) = word_of_byte(static_cast<char>(static_cast<unsigned char>(c)));
+   return e;
+ }
+ 
+-consteval uint64_t
++constexpr uint64_t
+ byte_word_of(const char c)
+ {
+   return uint64_t{static_cast<unsigned char>(c)} | (uint64_t{1} << kEntityLengthShift);
+ }
+ 
++constexpr uint64_t
++entity_word_of(const HalfEntities &table, const unsigned char c)
++{
++  if (c >= kHalfTableWords) return byte_word_of(static_cast<char>(c));
++  return table.word[c];
++}
++
++template <class WordOf>
++consteval bool
++every_byte_past_the_half_table_is_plain(const WordOf &word_of_byte)
++{
++  for (size_t c = kHalfTableWords; c < 256; c++) {
++    const char x = static_cast<char>(static_cast<unsigned char>(c));
++    if (word_of_byte(x) != byte_word_of(x)) return false;
++  }
++  return true;
++}
++
+ inline constexpr std::string_view kHexDigits = "0123456789abcdef";
+ 
+ consteval uint64_t
+@@ -217,15 +241,28 @@
+   }
+ }
+ 
+-inline constexpr Entities kXmlEntities = entities_by(xml_word_of);
++static_assert(every_byte_past_the_half_table_is_plain(xml_word_of) && every_byte_past_the_half_table_is_plain(json_word_of) &&
++                  every_byte_past_the_half_table_is_plain(js_word_of) && every_byte_past_the_half_table_is_plain(css_word_of) &&
++                  every_byte_past_the_half_table_is_plain(troff_word_of),
++              "no context escapes a byte from 0x80 on");
++
++inline constexpr HalfEntities kXmlEntities = entities_by(xml_word_of);
++
++inline constexpr HalfEntities kJsonEntities = entities_by(json_word_of);
+ 
+-inline constexpr Entities kJsonEntities = entities_by(json_word_of);
++inline constexpr HalfEntities kJsEntities = entities_by(js_word_of);
+ 
+-inline constexpr Entities kJsEntities = entities_by(js_word_of);
++inline constexpr HalfEntities kCssEntities = entities_by(css_word_of);
+ 
+-inline constexpr Entities kCssEntities = entities_by(css_word_of);
++inline constexpr HalfEntities kTroffEntities = entities_by(troff_word_of);
+ 
+-inline constexpr Entities kTroffEntities = entities_by(troff_word_of);
++[[gnu::always_inline, gnu::flatten]] constexpr size_t
++half_table_escaped_into(const std::span<char> room, const size_t count, const std::string_view s, const HalfEntities &table)
++{
++  size_t at = count;
++  for (const char c : s) at = word_appended(room, at, entity_word_of(table, static_cast<unsigned char>(c)));
++  return at;
++}
+ 
+ inline constexpr std::string_view kLineSeparator = "\xe2\x80\xa8";
+ 
+@@ -234,13 +271,13 @@
+ constexpr size_t
+ xml_escaped_into(const std::span<char> room, const std::string_view s)
+ {
+-  return table_escaped_into(room, 0, s, kXmlEntities);
++  return half_table_escaped_into(room, 0, s, kXmlEntities);
+ }
+ 
+ constexpr size_t
+ json_string_escaped_into(const std::span<char> room, const std::string_view s)
+ {
+-  return table_escaped_into(room, 0, s, kJsonEntities);
++  return half_table_escaped_into(room, 0, s, kJsonEntities);
+ }
+ 
+ constexpr size_t
+@@ -266,7 +303,7 @@
+ constexpr size_t
+ css_string_escaped_into(const std::span<char> room, const std::string_view s)
+ {
+-  return table_escaped_into(room, 0, s, kCssEntities);
++  return half_table_escaped_into(room, 0, s, kCssEntities);
+ }
+ 
+ constexpr bool
+@@ -304,7 +341,7 @@
+   size_t count = 0;
+   if (line.starts_with(' ') || line.starts_with('.')) count = word_appended(room, count, word_of("\\&"));
+   const bool ends_in_space = line.ends_with(' ');
+-  count = table_escaped_into(room, count, ends_in_space ? line.substr(0, line.size() - 1) : line, kTroffEntities);
++  count = half_table_escaped_into(room, count, ends_in_space ? line.substr(0, line.size() - 1) : line, kTroffEntities);
+   if (ends_in_space) count = word_appended(room, count, word_of("\\ "));
+   const auto core = std::find_if_not(line.rbegin(), line.rend(), is_closing_delimiter);
+   const bool ends_a_sentence = core != line.rend() && is_sentence_mark(*core);
