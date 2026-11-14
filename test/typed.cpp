@@ -10,7 +10,10 @@
 #include <string>
 #include <vector>
 
-namespace {
+// The structs have external linkage: Boost.PFR reads the names of the
+// members through a declaration of each struct, and cl.exe refuses that
+// declaration for a type in an anonymous namespace (C7631).
+namespace typed {
 
 struct Row {
   std::string a;
