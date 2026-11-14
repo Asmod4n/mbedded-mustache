@@ -1,0 +1,54 @@
+C2' output buffer. Against include/ of 8ad6212; apply with patch -p1 in the directory that holds include/.
+Answer holds a std::make_unique_for_overwrite<char[]> buffer. A growth copies the written bytes into the new buffer.
+closed() copies the written bytes into one std::string. Nothing in the buffer is zero filled.
+The owner decides on safety before this form can enter main.
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 8b16ccb..221fab0 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -51,14 +51,15 @@ inline constexpr size_t kInitialCapacity = 1024;
+ inline constexpr size_t kMaxCapacity = (size_t)std::numeric_limits<std::ptrdiff_t>::max() - kEscapeSlack;
+ 
+ struct Answer {
+-  std::string bytes;
++  std::unique_ptr<char[]> buffer;
++  size_t      allocated = 0;
+   size_t      size = 0;
+   size_t      max_capacity = kMaxCapacity;
+   Fault       fault = Fault::none;
+   size_t      asked = 0;
+   size_t      allowed = 0;
+ 
+-  size_t capacity() const { return bytes.size() - kEscapeSlack; }
++  size_t capacity() const { return allocated - kEscapeSlack; }
+ 
+   Error error() const
+   {
+@@ -70,7 +71,10 @@ struct Answer {
+   bool resized(const size_t capacity)
+   {
+     try {
+-      bytes.resize(capacity + kEscapeSlack);
++      std::unique_ptr<char[]> next = std::make_unique_for_overwrite<char[]>(capacity + kEscapeSlack);
++      if (buffer) std::copy_n(buffer.get(), size, next.get());
++      buffer = std::move(next);
++      allocated = capacity + kEscapeSlack;
+       return true;
+     }
+     catch (const std::bad_alloc &) {
+@@ -105,13 +109,9 @@ struct Answer {
+     return resized(std::min(std::max(capacity() * 2, needed), max_capacity));
+   }
+ 
+-  std::span<char> rest() { return std::span<char>(bytes).subspan(size); }
++  std::span<char> rest() { return std::span<char>(buffer.get(), allocated).subspan(size); }
+ 
+-  std::string closed()
+-  {
+-    bytes.resize(size);
+-    return std::move(bytes);
+-  }
++  std::string closed() { return std::string(buffer.get(), size); }
+ 
+   MUSTACHE_ALWAYS_INLINE void raw(const std::string_view s)
+   {

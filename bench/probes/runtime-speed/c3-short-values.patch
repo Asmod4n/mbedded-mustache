@@ -1,0 +1,95 @@
+C3 short values. Against include/ of 8ad6212; apply with patch -p1 in the directory that holds include/.
+Answer::escaped scans a std::string_view of 1 to 32 bytes with copied_view: up to 16 bytes through a zero padded local
+std::array<char, 16> and one 16-byte load; 17 to 32 bytes through two overlapping loads. No mark means one copy.
+AVX2 only (marks16_of); other targets use the scalar form copied_view_scalar. The NEON form is not written: no test has run it.
+PROVISIONAL: the names copied_view and copied_view_scalar.
+diff --git a/include/mustache/escape.hpp b/include/mustache/escape.hpp
+index 66cd3ab..86ad4b9 100644
+--- a/include/mustache/escape.hpp
++++ b/include/mustache/escape.hpp
+@@ -365,6 +365,14 @@ copied_string_scalar(const std::span<char> out, const std::string &s)
+   return {s.size(), std::ranges::any_of(s, is_marked) ? uint64_t{1} : uint64_t{0}};
+ }
+ 
++inline Copied
++copied_view_scalar(const std::span<char> out, const std::string_view s)
++{
++  if (s.size() > kCopiedStringMax) [[unlikely]] return {0, 0};
++  std::copy_n(s.begin(), s.size(), out.first(s.size()).begin());
++  return {s.size(), std::ranges::any_of(s, is_marked) ? uint64_t{1} : uint64_t{0}};
++}
++
+ #if defined(__AVX2__)
+ 
+ inline constexpr size_t kVectorBytes = sizeof(__m256i);
+@@ -488,6 +496,26 @@ copied_string(const std::span<char> out, const std::string &s)
+   return {n, marks16_of(a) | marks16_of(b)};
+ }
+ 
++MUSTACHE_ALWAYS_INLINE inline Copied
++copied_view(const std::span<char> out, const std::string_view s)
++{
++  const size_t n = s.size();
++  if (n > kCopiedStringMax) [[unlikely]] return {0, 0};
++  if (n <= sizeof(__m128i)) {
++    std::array<char, sizeof(__m128i)> padded{};
++    std::copy_n(s.begin(), n, padded.begin());
++    const __m128i v = std::bit_cast<__m128i>(padded);
++    stored(out.first<sizeof(__m128i)>(), v);
++    return {n, marks16_of(v)};
++  }
++  const std::span<const char> in(s);
++  const __m128i a = loaded(in.first<sizeof(__m128i)>());
++  const __m128i b = loaded(in.subspan(n - sizeof(__m128i)).first<sizeof(__m128i)>());
++  stored(out.first<sizeof(__m128i)>(), a);
++  stored(out.subspan(n - sizeof(__m128i)).first<sizeof(__m128i)>(), b);
++  return {n, marks16_of(a) | marks16_of(b)};
++}
++
+ #elif defined(__ARM_NEON)
+ 
+ inline constexpr size_t kVectorBytes = sizeof(uint8x16_t);
+@@ -564,6 +592,12 @@ escape_into(const std::span<char> room, const std::string_view s)
+   return table_escaped_into(room, w, s.substr(at), kEntities);
+ }
+ 
++MUSTACHE_ALWAYS_INLINE inline Copied
++copied_view(const std::span<char> out, const std::string_view s)
++{
++  return copied_view_scalar(out, s);
++}
++
+ MUSTACHE_ALWAYS_INLINE inline Copied
+ copied_string(const std::span<char> out, const std::string &s)
+ {
+@@ -599,6 +633,12 @@ escape_into(const std::span<char> room, const std::string_view s)
+   return escape_bytes(room, s);
+ }
+ 
++inline Copied
++copied_view(const std::span<char> out, const std::string_view s)
++{
++  return copied_view_scalar(out, s);
++}
++
+ inline Copied
+ copied_string(const std::span<char> out, const std::string &s)
+ {
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 8b16ccb..ac87690 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -154,6 +154,13 @@ struct Answer {
+     if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
+         !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
+       return;
++    if (!s.empty() && s.size() <= kCopiedStringMax) {
++      const Copied c = copied_view(rest(), s);
++      if (c.marks == 0) [[likely]] {
++        size += c.count;
++        return;
++      }
++    }
+     size += detail::escaped_into(rest(), s);
+   }
+ };

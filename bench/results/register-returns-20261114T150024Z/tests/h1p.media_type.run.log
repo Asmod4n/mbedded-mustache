@@ -1,0 +1,28 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 8 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from MediaType
+[ RUN      ] MediaType.NamesAGrammar
+[       OK ] MediaType.NamesAGrammar (0 ms)
+[ RUN      ] MediaType.NamesNoGrammar
+[       OK ] MediaType.NamesNoGrammar (0 ms)
+[----------] 2 tests from MediaType (0 ms total)
+
+[----------] 6 tests from Escaper
+[ RUN      ] Escaper.Html
+[       OK ] Escaper.Html (0 ms)
+[ RUN      ] Escaper.Xml
+[       OK ] Escaper.Xml (0 ms)
+[ RUN      ] Escaper.Json
+[       OK ] Escaper.Json (0 ms)
+[ RUN      ] Escaper.JavaScript
+[       OK ] Escaper.JavaScript (0 ms)
+[ RUN      ] Escaper.Css
+[       OK ] Escaper.Css (0 ms)
+[ RUN      ] Escaper.PartialTakesTheMediaTypeOfItsTemplate
+[       OK ] Escaper.PartialTakesTheMediaTypeOfItsTemplate (0 ms)
+[----------] 6 tests from Escaper (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 8 tests from 2 test suites ran. (0 ms total)
+[  PASSED  ] 8 tests.

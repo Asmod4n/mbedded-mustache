@@ -421,6 +421,12 @@ public:
     });
   }
 
+  containers::Scalar scalar_of(const Entry e, const containers::NumberText text) const
+  {
+    const mustache::Kind k = kind_of(e);
+    return {k, k == mustache::Kind::text ? text_of(e, text) : std::string_view()};
+  }
+
   std::string_view text_of(const Entry e, const containers::NumberText text) const
   {
     return Table::with_type(e, [this, text]<class V>(const V &v) -> std::string_view {
@@ -455,37 +461,39 @@ public:
     });
   }
 
-  std::optional<Entry> find(const Entry e, const std::string &key) const
+  static bool value_is_absent(const Entry e) { return e.p == nullptr; }
+
+  Entry find(const Entry e, const std::string &key) const
   {
-    return Table::with_type(e, [this, &key]<class V>(const V &v) -> std::optional<Entry> {
+    return Table::with_type(e, [this, &key]<class V>(const V &v) -> Entry {
       if constexpr (variant_like<V>) return std::visit([this, &key](const auto &x) { return find(Table::entry(x), key); }, variant_base(v));
       else if constexpr (is_optional_v<V>) {
-        if (!v) return std::nullopt;
+        if (!v) return Entry{};
         return find(Table::entry(*v), key);
       }
       else if constexpr (map_like<V>) {
         const auto it = v.find(key);
-        if (it == v.end()) return std::nullopt;
+        if (it == v.end()) return Entry{};
         return Table::entry(it->second);
       }
       else if constexpr (struct_like<V>) {
         const std::optional<Step> s = Table::template member_named<V>(key);
-        if (!s) return std::nullopt;
+        if (!s) return Entry{};
         return Entry{Table::member_at(v, s->member), s->type};
       }
-      else return std::nullopt;
+      else return Entry{};
     });
   }
 
   template <class Stack>
-  std::optional<std::optional<Entry>> bound(const Template &p, const uint32_t pc, const Stack &stack, const int) const
+  std::optional<Entry> bound(const Template &p, const uint32_t pc, const Stack &stack, const int) const
   {
     if (&p != &t_->program) return std::nullopt;
     const Binding &bind = t_->bindings.at(pc);
     if (!bind.fixed) return std::nullopt;
     const void *at = stack.at(bind.level).p;
     for (uint32_t i = 0; i < bind.count; i++) at = Table::followed(t_->steps.at(bind.first + i), at);
-    return std::optional<Entry>(Entry{at, bind.type});
+    return Entry{at, bind.type};
   }
 
 private:

@@ -1,0 +1,35 @@
+C4 op range. Against include/ of 8ad6212; apply with patch -p1 in the directory that holds include/.
+run() takes the span of ops [from, stop), checked at the top of every call (from <= stop <= ops.size(), else std::logic_error),
+and reads each op through the span without .at().
+OPEN QUESTION for the owner: a jump target op.c of a Compiled that the compiler did not make is not checked per op any more.
+PROVISIONAL: the name ops_between.
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 8b16ccb..e35e337 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -396,9 +396,16 @@ private:
+     return found;
+   }
+ 
++  static std::span<const Op> ops_between(const Template &p, const uint32_t from, const uint32_t stop)
++  {
++    if (from > stop || stop > p.ops.size()) [[unlikely]] throw std::logic_error("the range of ops is not inside the template");
++    return std::span<const Op>(p.ops).subspan(from, stop - from);
++  }
++
+   bool run(const Template &p, const uint32_t from, const uint32_t stop, const int pd, Indent *const ind,
+            const Args *const args)
+   {
++    const std::span<const Op> ops = ops_between(p, from, stop);
+     const size_t work = size_t{stop - from} + 1;
+     if (score_max_ - score_ < work) [[unlikely]] {
+       score_ += work;
+@@ -409,7 +416,7 @@ private:
+     uint32_t pc = from;
+     while (pc < stop) {
+       if (fault_ != Fault::none) [[unlikely]] return false;
+-      const Op &op = p.ops.at(pc);
++      const Op &op = ops[pc - from];
+       switch (op.tag) {
+         case Tag::text:
+           text(std::string_view(p.texts).substr(op.a, op.b), ind);

@@ -1,0 +1,10 @@
+head g++-16 text_bytes=140463 compile_seconds_stocks=7.4 compile_seconds_extras=25.8
+twin g++-16 text_bytes=140463 compile_seconds_stocks=7.4 compile_seconds_extras=
+h1p g++-16 text_bytes=142639 compile_seconds_stocks=5.9 compile_seconds_extras=27.4
+h2ap g++-16 text_bytes=139453 compile_seconds_stocks=5.8 compile_seconds_extras=30.1
+bothp g++-16 text_bytes=141053 compile_seconds_stocks=6.4 compile_seconds_extras=26.4
+head clang++-23 text_bytes=89656 compile_seconds_stocks=4.2 compile_seconds_extras=6.8
+twin clang++-23 text_bytes=89656 compile_seconds_stocks=4.5 compile_seconds_extras=
+h1p clang++-23 text_bytes=90680 compile_seconds_stocks=4.9 compile_seconds_extras=7.6
+h2ap clang++-23 text_bytes=87416 compile_seconds_stocks=5.3 compile_seconds_extras=8.8
+bothp clang++-23 text_bytes=88248 compile_seconds_stocks=4.2 compile_seconds_extras=9.0

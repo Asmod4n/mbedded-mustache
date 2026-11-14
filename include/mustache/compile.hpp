@@ -37,6 +37,10 @@ struct Op {
 
 inline constexpr size_t kSourceMax = std::numeric_limits<uint32_t>::max() / 2;
 
+inline constexpr uint32_t kFirstPartIdMax = 8;
+
+inline constexpr uint32_t kNoFirstPartId = std::numeric_limits<uint32_t>::max();
+
 inline constexpr size_t kBlockNestingMax = 64;
 
 inline constexpr size_t kDelimiterMax = 16;
@@ -559,6 +563,7 @@ compile(const std::string_view src)
   std::vector<uint32_t> op_of(ts.size() + 1, 0);
   Compiled out;
   std::vector<std::optional<size_t>> placed(s.indents.size());
+  std::vector<std::string> first_parts;
   auto indent_at = [&](const Token &t) -> size_t {
     if (!t.indented) return 0;
     std::optional<size_t> &line = placed.at(t.indent.line);
@@ -603,9 +608,19 @@ compile(const std::string_view src)
         out.texts += t.key.at(0);
         break;
       }
-      default:
-        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, 0});
+      default: {
+        uint32_t first_part_id = kNoFirstPartId;
+        if (!t.key.empty()) {
+          const auto known = std::ranges::find(first_parts, t.key.front());
+          if (known != first_parts.end()) first_part_id = (uint32_t)(known - first_parts.begin());
+          else if (first_parts.size() < kFirstPartIdMax) {
+            first_part_id = (uint32_t)first_parts.size();
+            first_parts.push_back(t.key.front());
+          }
+        }
+        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, first_part_id});
         for (const std::string &k : t.key) out.keys.push_back(k);
+      }
     }
     i++;
   }

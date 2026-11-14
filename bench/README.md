@@ -105,6 +105,7 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | engines | Workload 2 (the stocks page of mbosecke/template-benchmark) in mbedded-mustache and in inja, mstch and kainjow (Google Benchmark, g++-16), and in ramhorns, sailfish, markup and maud (Criterion). The check decodes entities before it compares. Sources in bench/probes/engines/. |
 | table-size | The size of .text and .rodata of one small program for 32-bit ARM at four states of the headers, in four forms. |
 | table-size, a state with a patch | A state <commit>+<name> applies <name>.patch of the probe directory; class-tables.patch, class-fields.patch and half-tables.patch put the forms of arms 4, 5 and 7 of scalar-writers into escape.hpp of f331cd1. The probe also gives the size of each escape table. |
+| runtime-speed | The stocks page (workload 2) from std::map, std::flat_map and std::unordered_map nodes, in H, an H twin and five patched copies of include/ (C1 output start, C2' buffer for overwrite, C3 short values, C4 op range, C5 one visit) and all five together. g++-16 and clang++-23, -O2, x86-64-v4. Patches and scripts in bench/probes/runtime-speed/. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
 They find the stores past the written count with guard bytes, and give no time.
@@ -144,5 +145,6 @@ No result file stands for them.
 | table-size-20261114T093644Z.json | table-size, 4dac08e, f331cd1, f331cd1+class-tables, f331cd1+class-fields and f331cd1+half-tables, with the size of each table |
 | readme-render-20261114T112518Z/ | readme-render, 6 JSON files of Google Benchmark, one for each binary at -O2, x86-64-v4, 30 repetitions in random interleaving, run as nobody |
 | engines-20261114T121437Z/ | engines, commit 4a45214: 5 JSON files of Google Benchmark, 4 Criterion estimates and samples, the context, the check log and summary.txt. Min time 0.05 s, 30 repetitions, Criterion warm-up 0.1 s and measurement 1.5 s. |
+| runtime-speed-20261114T130319Z/ | runtime-speed, commit 27c3824: 80 JSON files of Google Benchmark (16 binaries, 5 rounds of 6 repetitions, new rotation each round, random interleaving, min time 0.05 s, run as nobody), the check log, the compare.py output of each arm against H (Google Benchmark v1.9.1), the context and summary.txt. |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.

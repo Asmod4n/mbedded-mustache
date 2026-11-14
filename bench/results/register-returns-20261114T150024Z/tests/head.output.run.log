@@ -1,0 +1,19 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from Output
+[ RUN      ] Output.GrowsAroundEachDoubledCapacity
+[       OK ] Output.GrowsAroundEachDoubledCapacity (1 ms)
+[ RUN      ] Output.EscapesNearTheEndOfTheString
+[       OK ] Output.EscapesNearTheEndOfTheString (0 ms)
+[ RUN      ] Output.RefusesAnInitialCapacityOverTheLimit
+[       OK ] Output.RefusesAnInitialCapacityOverTheLimit (0 ms)
+[ RUN      ] Output.StopsOverTheLimit
+[       OK ] Output.StopsOverTheLimit (0 ms)
+[ RUN      ] Output.PassesAnEscapedOutputOfExactlyMaxCapacity
+[       OK ] Output.PassesAnEscapedOutputOfExactlyMaxCapacity (0 ms)
+[----------] 5 tests from Output (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 5 tests.

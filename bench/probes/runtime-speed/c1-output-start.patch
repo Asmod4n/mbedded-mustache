@@ -1,0 +1,73 @@
+C1 output start. Against include/ of 8ad6212; apply with patch -p1 in the directory that holds include/.
+Without a capacity from the caller, the first capacity is the sum of the Tag::text ops of the template, at most max_capacity.
+PROVISIONAL (owner decides): the signature std::optional<size_t> of render() and of the Walk constructor, and the name literal_bytes_of.
+The sum is computed at the start of every render.
+diff --git a/include/mustache/mustache.hpp b/include/mustache/mustache.hpp
+index c1c95e7..6ec3011 100644
+--- a/include/mustache/mustache.hpp
++++ b/include/mustache/mustache.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include <cstddef>
+ #include <expected>
++#include <optional>
+ #include <string>
+ #include <string_view>
+ 
+@@ -28,7 +29,7 @@ compile(const std::string_view source, const std::string_view media_type)
+ 
+ template <class T>
+ std::expected<std::string, Error>
+-render(const Template &t, const T &data, const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
++render(const Template &t, const T &data, const Partials &partials = {}, const std::optional<size_t> initial_capacity = std::nullopt)
+ {
+   return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
+ }
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 8b16ccb..035903e 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -214,6 +214,15 @@ compiled_by(const std::string_view source, const Compile &compile_source)
+   return std::unexpected(Error{Fault::no_memory, "template", source.size(), size_t{0}});
+ }
+ 
++inline size_t
++literal_bytes_of(const Template &p)
++{
++  size_t bytes = 0;
++  for (const Op &op : p.ops)
++    if (op.tag == Tag::text) bytes += op.b;
++  return bytes;
++}
++
+ inline constexpr int kMaxDepth = 32;
+ inline constexpr int kMaxPartialDepth = 64;
+ inline constexpr size_t kMaxRenderScore = size_t{1} << 24;
+@@ -224,7 +233,7 @@ public:
+   using Value = typename Data::Value;
+ 
+   Walk(const Data data, const Partials *const partials, const size_t score_max = kMaxRenderScore,
+-       const size_t initial_capacity = kInitialCapacity, const size_t max_capacity = kMaxCapacity)
++       const std::optional<size_t> initial_capacity = std::nullopt, const size_t max_capacity = kMaxCapacity)
+       : data_(data), partials_(partials), score_max_(score_max), initial_capacity_(initial_capacity)
+   {
+     out_.max_capacity = max_capacity;
+@@ -235,7 +244,8 @@ public:
+     stack_.at(0) = root;
+     depth_ = 1;
+     context_ = p.context;
+-    if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
++    const size_t initial_capacity = initial_capacity_ ? *initial_capacity_ : std::min(literal_bytes_of(p), out_.max_capacity);
++    if (!out_.opened(initial_capacity)) [[unlikely]] return std::unexpected(out_.error());
+     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
+     if (fault_ != Fault::none) [[unlikely]] return std::unexpected(error_of(fault_));
+     return out_.closed();
+@@ -271,7 +281,7 @@ private:
+   int   depth_ = 0;
+   size_t score_ = 0;
+   size_t score_max_;
+-  size_t initial_capacity_;
++  std::optional<size_t> initial_capacity_;
+   Fault fault_ = Fault::none;
+   Context context_ = Context::html_text;
+   std::array<char, detail::containers::kNumberTextMax> number_{};

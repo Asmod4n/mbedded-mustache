@@ -1,0 +1,25 @@
+H6 Render a row of the batch path only once. Against include/ of 4e036ed.
+Batch::escaped_string escapes a marked html value in place when the escaped value is at most kCopiedStringMax bytes. Every other reason that makes a
+row dirty renders the row again, as before.
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index e9e19eb..2a2a9a1 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -189,8 +189,15 @@ struct Batch {
+       dirty = true;
+       return;
+     }
+-    dirty |= copied_string(room.subspan(size), s).marks != 0;
+-    size += s.size();
++    if (copied_string(room.subspan(size), s).marks == 0) [[likely]] {
++      size += s.size();
++      return;
++    }
++    if (room_needed_for_the_escaped_value(Context::html_text, s) > kCopiedStringMax) [[unlikely]] {
++      dirty = true;
++      return;
++    }
++    size += escape_string_into(room.subspan(size), s);
+   }
+ };
+ 

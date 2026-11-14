@@ -1,0 +1,24 @@
+H5 Search the 16 marks inline with one load. Against include/ of 4e036ed.
+marks16_of (AVX2 build) and marks_of (NEON build) carry MUSTACHE_ALWAYS_INLINE. The loads are unchanged.
+diff --git a/include/mustache/escape.hpp b/include/mustache/escape.hpp
+index 66cd3ab..ff7b713 100644
+--- a/include/mustache/escape.hpp
++++ b/include/mustache/escape.hpp
+@@ -384,7 +384,7 @@ marks_of(const __m256i b)
+   return (uint32_t)_mm256_movemask_epi8(hit);
+ }
+ 
+-inline uint32_t
++MUSTACHE_ALWAYS_INLINE inline uint32_t
+ marks16_of(const __m128i b)
+ {
+   const __m128i hit = _mm_or_si128(
+@@ -500,7 +500,7 @@ inline constexpr size_t kMarksPerVectorMax = kVectorBytes / 4;
+ 
+ static_assert(kEscapeSlack >= 2 * kVectorBytes, "a vector store at the end of the output stays in the slack");
+ 
+-inline uint64_t
++MUSTACHE_ALWAYS_INLINE inline uint64_t
+ marks_of(const uint8x16_t b)
+ {
+   const uint8x16_t hit =

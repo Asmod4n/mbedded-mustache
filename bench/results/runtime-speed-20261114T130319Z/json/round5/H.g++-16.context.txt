@@ -1,0 +1,28 @@
+commit=27c382435e4682643ec910492c3f599184cdf620
+dirty_files=0
+image=sha256:333ddac6440e908c9c0a6ba331ceb5929b368a8f96be274f967cad3bfe5406dc_3a18f18efd74d0b7f81fba1af946d34f39196d7519d8524762f3b32f38bf8e7e
+podman=podman_version_4.9.3
+instruction_set=__AVX2__ __AVX512BW__ __AVX512CD__ __AVX512DQ__ __AVX512F__ __AVX512VL__ __AVX__ __SSE4_1__ __SSE4_2__ 
+libstdcxx=libstdc++.so.6.0.36
+libc=ldd (Debian GLIBC 2.43-7) 2.43
+kernel=Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+sched_autogroup_enabled=1
+machine=Hypervisor vendor: KVM;Virtualization type: full;
+container=podman, cpus visible 4
+processor= Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest=sha256:0750228a0e310f80
+avx512_flags=avx512_bf16 avx512_bitalg avx512_fp16 avx512_vbmi2 avx512_vnni avx512_vpopcntdq avx512bw avx512cd avx512dq avx512f avx512ifma avx512vbmi avx512vl 
+user=nobody
+nice=0
+priority=nobody cannot lower nice; the run has the default priority and is not pinned
+threads=1
+sysbench_cpu_events_per_second_10_runs_of_1s_1_thread=2997.70 2931.34 3003.77 3050.07 3043.23 2982.19 3018.47 2932.01 3003.60 3027.42 
+loadavg_before=0.46 0.57 0.25 1/126 15
+order_seed=3181770836
+pilot=0
+google_benchmark=5 rounds of 6 repetitions, --benchmark_min_time=0.05s --benchmark_enable_random_interleaving=true
+round=5
+order=H.g++-16 H.clang++-23 C1.g++-16 C1.clang++-23 C2p.g++-16 C2p.clang++-23 C3.g++-16 C3.clang++-23 Htwin.g++-16 Htwin.clang++-23 C4.g++-16 C4.clang++-23 C5.g++-16 C5.clang++-23 All.g++-16 All.clang++-23 
+binary=H.g++-16
+flags=g++-16 -std=c++26 -freflection -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -falign-jumps=64 -DNDEBUG
+compiler=GCC: (Debian 16.2.0-4) 16.2.0

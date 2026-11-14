@@ -1,0 +1,23 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from Troff
+[ RUN      ] Troff.EscapesTheCharactersThatMeanSomething
+[       OK ] Troff.EscapesTheCharactersThatMeanSomething (0 ms)
+[ RUN      ] Troff.ProtectsTheStartOfALine
+[       OK ] Troff.ProtectsTheStartOfALine (0 ms)
+[ RUN      ] Troff.ProtectsASpaceAtTheEdgeOfALine
+[       OK ] Troff.ProtectsASpaceAtTheEdgeOfALine (0 ms)
+[ RUN      ] Troff.ProtectsAMarkAtTheEndOfALine
+[       OK ] Troff.ProtectsAMarkAtTheEndOfALine (0 ms)
+[ RUN      ] Troff.StopsAtAControlCharacter
+[       OK ] Troff.StopsAtAControlCharacter (0 ms)
+[ RUN      ] Troff.EveryByteAtEachPosition
+[       OK ] Troff.EveryByteAtEachPosition (0 ms)
+[ RUN      ] Troff.OutputStaysWithinTheBound
+[       OK ] Troff.OutputStaysWithinTheBound (4 ms)
+[----------] 7 tests from Troff (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (5 ms total)
+[  PASSED  ] 7 tests.

@@ -1,0 +1,592 @@
+H1' and H2a' together. Against include/ of c5864bf; apply with git apply -p1 in the directory that holds include/. The two changes above in one tree.
+diff --git a/include/mustache/compile.hpp b/include/mustache/compile.hpp
+index 9bd1cae..a483d5b 100644
+--- a/include/mustache/compile.hpp
++++ b/include/mustache/compile.hpp
+@@ -37,6 +37,10 @@ struct Op {
+ 
+ inline constexpr size_t kSourceMax = std::numeric_limits<uint32_t>::max() / 2;
+ 
++inline constexpr uint32_t kFirstPartIdMax = 8;
++
++inline constexpr uint32_t kNoFirstPartId = std::numeric_limits<uint32_t>::max();
++
+ inline constexpr size_t kBlockNestingMax = 64;
+ 
+ inline constexpr size_t kDelimiterMax = 16;
+@@ -559,6 +563,7 @@ compile(const std::string_view src)
+   std::vector<uint32_t> op_of(ts.size() + 1, 0);
+   Compiled out;
+   std::vector<std::optional<size_t>> placed(s.indents.size());
++  std::vector<std::string> first_parts;
+   auto indent_at = [&](const Token &t) -> size_t {
+     if (!t.indented) return 0;
+     std::optional<size_t> &line = placed.at(t.indent.line);
+@@ -603,9 +608,19 @@ compile(const std::string_view src)
+         out.texts += t.key.at(0);
+         break;
+       }
+-      default:
+-        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, 0});
++      default: {
++        uint32_t first_part_id = kNoFirstPartId;
++        if (!t.key.empty()) {
++          const auto known = std::ranges::find(first_parts, t.key.front());
++          if (known != first_parts.end()) first_part_id = (uint32_t)(known - first_parts.begin());
++          else if (first_parts.size() < kFirstPartIdMax) {
++            first_part_id = (uint32_t)first_parts.size();
++            first_parts.push_back(t.key.front());
++          }
++        }
++        out.ops.push_back({tag_of_kind(t.kind), (uint32_t)out.keys.size(), (uint32_t)t.key.size(), t.end, 0, first_part_id});
+         for (const std::string &k : t.key) out.keys.push_back(k);
++      }
+     }
+     i++;
+   }
+diff --git a/include/mustache/containers.hpp b/include/mustache/containers.hpp
+index da07fdc..83d9560 100644
+--- a/include/mustache/containers.hpp
++++ b/include/mustache/containers.hpp
+@@ -85,7 +85,7 @@ struct Table {
+   Scalar (*scalar_of)(const void *, NumberText);
+   size_t (*size_of)(const void *);
+   Value (*element)(const void *, size_t);
+-  std::optional<Value> (*find)(const void *, const std::string &);
++  Value (*find)(const void *, const std::string &);
+ };
+ 
+ template <class T>
+@@ -187,23 +187,23 @@ struct TableOf {
+     }
+   }
+ 
+-  static std::optional<Value> find(const void *const p, const std::string &key)
++  static Value find(const void *const p, const std::string &key)
+   {
+     const T &v = of(p);
+     if constexpr (variant_like<T>) {
+       return std::visit([&key](const auto &x) { return value_of(x).table->find(&x, key); }, variant_base(v));
+     }
+     else if constexpr (is_optional_v<T>) {
+-      if (!v) return std::nullopt;
++      if (!v) return Value{nullptr, nullptr};
+       return value_of(*v).table->find(std::addressof(*v), key);
+     }
+     else if constexpr (map_like<T>) {
+       const auto it = v.find(key);
+-      if (it == v.end()) return std::nullopt;
++      if (it == v.end()) return Value{nullptr, nullptr};
+       return value_of(it->second);
+     }
+     else {
+-      return std::nullopt;
++      return Value{nullptr, nullptr};
+     }
+   }
+ 
+@@ -224,10 +224,11 @@ struct Access {
+   static Scalar scalar_of(const Value v, const NumberText text) { return v.table->scalar_of(v.data, text); }
+   static size_t size_of(const Value v) { return v.table->size_of(v.data); }
+   static Value element(const Value v, const size_t i) { return v.table->element(v.data, i); }
+-  static std::optional<Value> find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
++  static Value find(const Value v, const std::string &key) { return v.table->find(v.data, key); }
++  static bool value_is_absent(const Value v) { return v.data == nullptr; }
+ 
+   template <class Program, class Stack>
+-  static std::optional<std::optional<Value>> bound(const Program &, uint32_t, const Stack &, int)
++  static std::optional<Value> bound(const Program &, uint32_t, const Stack &, int)
+   {
+     return std::nullopt;
+   }
+diff --git a/include/mustache/direct.hpp b/include/mustache/direct.hpp
+new file mode 100644
+index 0000000..3599a20
+--- /dev/null
++++ b/include/mustache/direct.hpp
+@@ -0,0 +1,257 @@
++// A walk over the closed set of types that a data type reaches, with no function pointer. A value is a pointer to one of
++// these types, and the code of each type stands in the operation that reads it.
++#pragma once
++
++#include <array>
++#include <charconv>
++#include <concepts>
++#include <cstddef>
++#include <cstdint>
++#include <limits>
++#include <memory>
++#include <optional>
++#include <ranges>
++#include <string>
++#include <string_view>
++#include <tuple>
++#include <type_traits>
++#include <utility>
++#include <variant>
++
++#include "containers.hpp"
++
++namespace mustache::detail::direct {
++
++using containers::falsy_like;
++using containers::is_optional_v;
++using containers::list_like;
++using containers::map_like;
++using containers::NumberText;
++using containers::number_like;
++using containers::Scalar;
++using containers::text_like;
++using containers::variant_base;
++using containers::variant_like;
++using mustache::Kind;
++
++struct unsupported {};
++
++template <class... Ts>
++struct types {};
++
++template <class A, class B>
++struct joined;
++template <class... A, class... B>
++struct joined<types<A...>, types<B...>> {
++  using type = types<A..., B...>;
++};
++
++template <class... A>
++types<A...> alternatives_of(const std::variant<A...> &);
++
++template <class T>
++auto
++children_of()
++{
++  if constexpr (variant_like<T>) return decltype(alternatives_of(std::declval<const T &>())){};
++  else if constexpr (is_optional_v<T>) return types<typename T::value_type>{};
++  else if constexpr (std::same_as<T, bool> || number_like<T> || text_like<T> || falsy_like<T>) return types<>{};
++  else if constexpr (map_like<T>) return types<typename T::mapped_type>{};
++  else if constexpr (list_like<T>) return types<std::remove_cvref_t<std::ranges::range_reference_t<const T>>>{};
++  else return types<unsupported>{};
++}
++
++template <class Seen, class Todo>
++struct closure;
++template <class... S>
++struct closure<types<S...>, types<>> {
++  using type = types<S...>;
++};
++template <class... S, class T, class... R>
++struct closure<types<S...>, types<T, R...>> {
++  using type = typename std::conditional_t<
++      (std::same_as<T, S> || ...), closure<types<S...>, types<R...>>,
++      closure<types<S..., T>, typename joined<types<R...>, decltype(children_of<T>())>::type>>::type;
++};
++
++template <class T, class List>
++struct holds;
++template <class T, class... Ts>
++struct holds<T, types<Ts...>> : std::bool_constant<(std::same_as<T, Ts> || ...)> {};
++
++template <class T>
++inline constexpr bool held_v = !variant_like<T> && !is_optional_v<T> && !std::same_as<T, unsupported>;
++
++template <class In, class Out = types<>>
++struct held_of;
++template <class Out>
++struct held_of<types<>, Out> {
++  using type = Out;
++};
++template <class T, class... R, class... O>
++struct held_of<types<T, R...>, types<O...>> {
++  using type = typename held_of<types<R...>, std::conditional_t<held_v<T>, types<O..., T>, types<O...>>>::type;
++};
++
++template <class T>
++using closure_of = typename closure<types<>, types<T>>::type;
++
++template <class T>
++inline constexpr bool walkable = !holds<unsupported, closure_of<T>>::value;
++
++template <class T, class... Ts>
++inline constexpr uint32_t index_in = []() {
++  constexpr std::array<bool, sizeof...(Ts)> same = {std::same_as<T, Ts>...};
++  return (uint32_t)std::distance(same.begin(), std::ranges::find(same, true));
++}();
++
++template <class T>
++Kind
++kind_held(const T &v)
++{
++  if constexpr (std::same_as<T, bool>) return v ? Kind::truthy : Kind::falsy;
++  else if constexpr (number_like<T> || text_like<T>) return Kind::text;
++  else if constexpr (falsy_like<T>) return Kind::falsy;
++  else if constexpr (map_like<T>) return v.empty() ? Kind::falsy : Kind::map;
++  else {
++    static_assert(list_like<T>, "a value is text, a number, a bool, an optional, a variant, a map or a list");
++    return Kind::list;
++  }
++}
++
++template <class T>
++Scalar
++scalar_held(const T &v, const NumberText text)
++{
++  if constexpr (std::same_as<T, bool>) {
++    return {v ? Kind::truthy : Kind::falsy, {}};
++  }
++  else if constexpr (number_like<T>) {
++    const std::to_chars_result r = std::to_chars(text.data(), std::to_address(text.end()), v);
++    return {Kind::text, {text.data(), r.ptr}};
++  }
++  else if constexpr (text_like<T>) {
++    return {Kind::text, std::string_view(v)};
++  }
++  else if constexpr (falsy_like<T>) {
++    return {Kind::falsy, {}};
++  }
++  else if constexpr (map_like<T>) {
++    return {v.empty() ? Kind::falsy : Kind::map, {}};
++  }
++  else {
++    static_assert(list_like<T>, "a value is text, a number, a bool, an optional, a variant, a map or a list");
++    return {Kind::list, {}};
++  }
++}
++
++template <class T>
++size_t
++size_held(const T &v)
++{
++  if constexpr (list_like<T>) return (size_t)std::ranges::size(v);
++  else return 0;
++}
++
++template <class... Es>
++struct Policy {
++  using Value = std::variant<std::monostate, const Es *...>;
++
++  template <class X>
++  static Value of(const X &x)
++  {
++    if constexpr (variant_like<X>) return std::visit([](const auto &a) { return of(a); }, variant_base(x));
++    else if constexpr (is_optional_v<X>) return x ? of(*x) : Value{};
++    else return Value(std::in_place_type<const X *>, std::addressof(x));
++  }
++
++  template <class R, class F>
++  static R apply(const Value &v, const F &f, const R &absent)
++  {
++    return std::visit(
++        [&f, &absent](auto p) -> R {
++          if constexpr (std::same_as<decltype(p), std::monostate>) return absent;
++          else return f(*p);
++        },
++        v);
++  }
++};
++
++template <class Policy>
++struct Access {
++  using Value = typename Policy::Value;
++
++  template <class X>
++  static Value of(const X &x)
++  {
++    return Policy::of(x);
++  }
++
++  static Kind kind_of(const Value v)
++  {
++    return Policy::template apply<Kind>(v, [](const auto &x) -> Kind { return kind_held(x); }, Kind::falsy);
++  }
++
++  static Scalar scalar_of(const Value v, const NumberText text)
++  {
++    return Policy::template apply<Scalar>(v, [text](const auto &x) -> Scalar { return scalar_held(x, text); },
++                                          Scalar{Kind::falsy, {}});
++  }
++
++  static size_t size_of(const Value v)
++  {
++    return Policy::template apply<size_t>(v, [](const auto &x) -> size_t { return size_held(x); }, size_t{0});
++  }
++
++  static Value element(const Value v, const size_t i)
++  {
++    return Policy::template apply<Value>(
++        v,
++        [v, i](const auto &x) -> Value {
++          if constexpr (list_like<std::remove_cvref_t<decltype(x)>>) {
++            return Policy::of(*std::ranges::next(std::ranges::begin(x), (std::ptrdiff_t)i));
++          }
++          else {
++            return v;
++          }
++        },
++        Value{});
++  }
++
++  static Value find(const Value v, const std::string &key)
++  {
++    return Policy::template apply<Value>(
++        v,
++        [&key](const auto &x) -> Value {
++          if constexpr (map_like<std::remove_cvref_t<decltype(x)>>) {
++            const auto it = x.find(key);
++            if (it == x.end()) return Value{};
++            return Policy::of(it->second);
++          }
++          else {
++            return Value{};
++          }
++        },
++        Value{});
++  }
++
++  static bool value_is_absent(const Value v) { return std::holds_alternative<std::monostate>(v); }
++
++  template <class Program, class Stack>
++  static std::optional<Value> bound(const Program &, uint32_t, const Stack &, int)
++  {
++    return std::nullopt;
++  }
++};
++
++template <class List>
++struct access_over;
++template <class... Es>
++struct access_over<types<Es...>> {
++  using type = Access<Policy<Es...>>;
++};
++
++template <class T>
++using AccessFor = typename access_over<typename held_of<closure_of<T>>::type>::type;
++
++}
+diff --git a/include/mustache/mustache.hpp b/include/mustache/mustache.hpp
+index c1c95e7..5d250aa 100644
+--- a/include/mustache/mustache.hpp
++++ b/include/mustache/mustache.hpp
+@@ -6,6 +6,7 @@
+ #include <string_view>
+ 
+ #include "containers.hpp"
++#include "direct.hpp"
+ #include "render.hpp"
+ 
+ #if defined(__cpp_impl_reflection)
+@@ -30,7 +31,13 @@ template <class T>
+ std::expected<std::string, Error>
+ render(const Template &t, const T &data, const Partials &partials = {}, const size_t initial_capacity = kInitialCapacity)
+ {
+-  return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
++  if constexpr (detail::direct::walkable<T>) {
++    using Data = detail::direct::AccessFor<T>;
++    return Walk<Data>(Data{}, &partials, kMaxRenderScore, initial_capacity).run(t, Data::of(data));
++  }
++  else {
++    return Walk<>(detail::containers::Access{}, &partials, kMaxRenderScore, initial_capacity).run(t, detail::containers::value_of(data));
++  }
+ }
+ 
+ }
+diff --git a/include/mustache/platform.hpp b/include/mustache/platform.hpp
+index abe6fee..a941981 100644
+--- a/include/mustache/platform.hpp
++++ b/include/mustache/platform.hpp
+@@ -3,8 +3,10 @@
+ 
+ #if defined(_MSC_VER) && !defined(__clang__)
+ #define MUSTACHE_ALWAYS_INLINE [[msvc::forceinline]]
++#define MUSTACHE_NEVER_INLINE [[msvc::noinline]]
+ #define MUSTACHE_FLATTEN [[msvc::flatten]]
+ #else
+ #define MUSTACHE_ALWAYS_INLINE [[gnu::always_inline]]
++#define MUSTACHE_NEVER_INLINE [[gnu::noinline]]
+ #define MUSTACHE_FLATTEN [[gnu::flatten]]
+ #endif
+diff --git a/include/mustache/render.hpp b/include/mustache/render.hpp
+index 2a2a9a1..71fa334 100644
+--- a/include/mustache/render.hpp
++++ b/include/mustache/render.hpp
+@@ -241,6 +241,7 @@ public:
+   {
+     stack_.at(0) = root;
+     depth_ = 1;
++    generation_++;
+     context_ = p.context;
+     if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
+     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
+@@ -271,11 +272,19 @@ private:
+     const Args         *outer;
+   };
+ 
++  struct FirstPart {
++    const Template      *program = nullptr;
++    uint64_t             generation = 0;
++    Value                base{};
++  };
++
+   Data data_;
+   const Partials *partials_;
+   Answer out_;
+   std::array<Value, kDepthMax> stack_{};
+   int   depth_ = 0;
++  uint64_t generation_ = 1;
++  std::array<FirstPart, kFirstPartIdMax> first_parts_{};
+   size_t score_ = 0;
+   size_t score_max_;
+   size_t initial_capacity_;
+@@ -340,17 +349,37 @@ private:
+     raw(all);
+   }
+ 
+-  std::optional<Value> lookup(const Template &p, const Op &op, const uint32_t pc)
++  Value first_part_found(const Template &p, const Op &op)
+   {
+-    if (const std::optional<std::optional<Value>> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
+-    if (op.b == 0) return stack_.at(depth_ - 1);
+     const std::string &first = p.keys.at(op.a);
+-    std::optional<Value> base;
++    Value base{};
+     for (int i = depth_ - 1; i >= 0; i--) {
+       base = data_.find(stack_.at(i), first);
+-      if (base) break;
++      if (!Data::value_is_absent(base)) break;
+     }
+-    for (uint32_t j = 1; j < op.b && base; j++) base = data_.find(*base, p.keys.at(op.a + j));
++    return base;
++  }
++
++  MUSTACHE_NEVER_INLINE Value first_part_without_id(const Template &p, const Op &op) { return first_part_found(p, op); }
++
++  MUSTACHE_ALWAYS_INLINE Value first_part_of(const Template &p, const Op &op)
++  {
++    if (op.e >= kFirstPartIdMax) [[unlikely]] return first_part_without_id(p, op);
++    FirstPart &kept = first_parts_.at(op.e);
++    if (kept.program != &p || kept.generation != generation_) {
++      kept.base = first_part_found(p, op);
++      kept.program = &p;
++      kept.generation = generation_;
++    }
++    return kept.base;
++  }
++
++  Value lookup(const Template &p, const Op &op, const uint32_t pc)
++  {
++    if (const std::optional<Value> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
++    if (op.b == 0) return stack_.at(depth_ - 1);
++    Value base = first_part_of(p, op);
++    for (uint32_t j = 1; j < op.b && !Data::value_is_absent(base); j++) base = data_.find(base, p.keys.at(op.a + j));
+     return base;
+   }
+ 
+@@ -362,8 +391,10 @@ private:
+       return false;
+     }
+     stack_.at(depth_++) = v;
++    generation_++;
+     const bool ok = run(p, pc, stop, pd, ind, args);
+     depth_--;
++    generation_++;
+     return ok;
+   }
+ 
+@@ -424,10 +455,10 @@ private:
+           break;
+         case Tag::var:
+         case Tag::raw: {
+-          const std::optional<Value> v = lookup(p, op, pc);
++          const Value v = lookup(p, op, pc);
+           pc++;
+-          if (!v) break;
+-          const auto [k, s] = data_.scalar_of(*v, detail::containers::NumberText(number_));
++          if (Data::value_is_absent(v)) break;
++          const auto [k, s] = data_.scalar_of(v, detail::containers::NumberText(number_));
+           if (k == Kind::falsy) break;
+           if (k != Kind::text) [[unlikely]] {
+             fault_ = Fault::not_text;
+@@ -440,24 +471,24 @@ private:
+           break;
+         }
+         case Tag::section: {
+-          const std::optional<Value> v = lookup(p, op, pc);
+-          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
++          const Value v = lookup(p, op, pc);
++          const Kind k = Data::value_is_absent(v) ? Kind::falsy : data_.kind_of(v);
+           if (k == Kind::list) {
+-            const size_t n = data_.size_of(*v);
++            const size_t n = data_.size_of(v);
+             for (size_t i = 0; i < n; i++) {
+-              if (!push_run(p, data_.element(*v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
++              if (!push_run(p, data_.element(v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+             }
+           }
+           else if (k != Kind::falsy) {
+-            if (!push_run(p, *v, pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
++            if (!push_run(p, v, pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+           }
+           pc = op.c;
+           break;
+         }
+         case Tag::inverted: {
+-          const std::optional<Value> v = lookup(p, op, pc);
+-          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
+-          const bool empty = k == Kind::falsy || (k == Kind::list && data_.size_of(*v) == 0);
++          const Value v = lookup(p, op, pc);
++          const Kind k = Data::value_is_absent(v) ? Kind::falsy : data_.kind_of(v);
++          const bool empty = k == Kind::falsy || (k == Kind::list && data_.size_of(v) == 0);
+           if (empty && !push_run(p, stack_.at(depth_ - 1), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+           pc = op.c;
+           break;
+diff --git a/include/mustache/typed.hpp b/include/mustache/typed.hpp
+index ace1cb2..736db39 100644
+--- a/include/mustache/typed.hpp
++++ b/include/mustache/typed.hpp
+@@ -461,37 +461,39 @@ public:
+     });
+   }
+ 
+-  std::optional<Entry> find(const Entry e, const std::string &key) const
++  static bool value_is_absent(const Entry e) { return e.p == nullptr; }
++
++  Entry find(const Entry e, const std::string &key) const
+   {
+-    return Table::with_type(e, [this, &key]<class V>(const V &v) -> std::optional<Entry> {
++    return Table::with_type(e, [this, &key]<class V>(const V &v) -> Entry {
+       if constexpr (variant_like<V>) return std::visit([this, &key](const auto &x) { return find(Table::entry(x), key); }, variant_base(v));
+       else if constexpr (is_optional_v<V>) {
+-        if (!v) return std::nullopt;
++        if (!v) return Entry{};
+         return find(Table::entry(*v), key);
+       }
+       else if constexpr (map_like<V>) {
+         const auto it = v.find(key);
+-        if (it == v.end()) return std::nullopt;
++        if (it == v.end()) return Entry{};
+         return Table::entry(it->second);
+       }
+       else if constexpr (struct_like<V>) {
+         const std::optional<Step> s = Table::template member_named<V>(key);
+-        if (!s) return std::nullopt;
++        if (!s) return Entry{};
+         return Entry{Table::member_at(v, s->member), s->type};
+       }
+-      else return std::nullopt;
++      else return Entry{};
+     });
+   }
+ 
+   template <class Stack>
+-  std::optional<std::optional<Entry>> bound(const Template &p, const uint32_t pc, const Stack &stack, const int) const
++  std::optional<Entry> bound(const Template &p, const uint32_t pc, const Stack &stack, const int) const
+   {
+     if (&p != &t_->program) return std::nullopt;
+     const Binding &bind = t_->bindings.at(pc);
+     if (!bind.fixed) return std::nullopt;
+     const void *at = stack.at(bind.level).p;
+     for (uint32_t i = 0; i < bind.count; i++) at = Table::followed(t_->steps.at(bind.first + i), at);
+-    return std::optional<Entry>(Entry{at, bind.type});
++    return Entry{at, bind.type};
+   }
+ 
+ private:

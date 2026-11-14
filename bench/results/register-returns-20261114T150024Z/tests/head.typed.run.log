@@ -1,0 +1,19 @@
+Running main() from ./googletest/src/gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from Typed
+[ RUN      ] Typed.RendersAStructWithoutASearch
+[       OK ] Typed.RendersAStructWithoutASearch (0 ms)
+[ RUN      ] Typed.RefusesAKeyThatNamesNoMember
+[       OK ] Typed.RefusesAKeyThatNamesNoMember (0 ms)
+[ RUN      ] Typed.EscapesByTheMediaType
+[       OK ] Typed.EscapesByTheMediaType (0 ms)
+[ RUN      ] Typed.ReadsMapsVariantsAndOptionalStructs
+[       OK ] Typed.ReadsMapsVariantsAndOptionalStructs (0 ms)
+[ RUN      ] Typed.RendersPartials
+[       OK ] Typed.RendersPartials (0 ms)
+[----------] 5 tests from Typed (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 5 tests.

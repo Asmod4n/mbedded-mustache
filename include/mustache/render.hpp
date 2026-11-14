@@ -189,8 +189,15 @@ struct Batch {
       dirty = true;
       return;
     }
-    dirty |= copied_string(room.subspan(size), s).marks != 0;
-    size += s.size();
+    if (copied_string(room.subspan(size), s).marks == 0) [[likely]] {
+      size += s.size();
+      return;
+    }
+    if (room_needed_for_the_escaped_value(Context::html_text, s) > kCopiedStringMax) [[unlikely]] {
+      dirty = true;
+      return;
+    }
+    size += escape_string_into(room.subspan(size), s);
   }
 };
 
@@ -234,6 +241,7 @@ public:
   {
     stack_.at(0) = root;
     depth_ = 1;
+    generation_++;
     context_ = p.context;
     if (!out_.opened(initial_capacity_)) [[unlikely]] return std::unexpected(out_.error());
     run(p, 0, (uint32_t)p.ops.size(), 0, nullptr, nullptr);
@@ -264,11 +272,19 @@ private:
     const Args         *outer;
   };
 
+  struct FirstPart {
+    const Template      *program = nullptr;
+    uint64_t             generation = 0;
+    Value                base{};
+  };
+
   Data data_;
   const Partials *partials_;
   Answer out_;
   std::array<Value, kDepthMax> stack_{};
   int   depth_ = 0;
+  uint64_t generation_ = 1;
+  std::array<FirstPart, kFirstPartIdMax> first_parts_{};
   size_t score_ = 0;
   size_t score_max_;
   size_t initial_capacity_;
@@ -333,17 +349,37 @@ private:
     raw(all);
   }
 
-  std::optional<Value> lookup(const Template &p, const Op &op, const uint32_t pc)
+  Value first_part_found(const Template &p, const Op &op)
   {
-    if (const std::optional<std::optional<Value>> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
-    if (op.b == 0) return stack_.at(depth_ - 1);
     const std::string &first = p.keys.at(op.a);
-    std::optional<Value> base;
+    Value base{};
     for (int i = depth_ - 1; i >= 0; i--) {
       base = data_.find(stack_.at(i), first);
-      if (base) break;
+      if (!Data::value_is_absent(base)) break;
     }
-    for (uint32_t j = 1; j < op.b && base; j++) base = data_.find(*base, p.keys.at(op.a + j));
+    return base;
+  }
+
+  MUSTACHE_NEVER_INLINE Value first_part_without_id(const Template &p, const Op &op) { return first_part_found(p, op); }
+
+  MUSTACHE_ALWAYS_INLINE Value first_part_of(const Template &p, const Op &op)
+  {
+    if (op.e >= kFirstPartIdMax) [[unlikely]] return first_part_without_id(p, op);
+    FirstPart &kept = first_parts_.at(op.e);
+    if (kept.program != &p || kept.generation != generation_) {
+      kept.base = first_part_found(p, op);
+      kept.program = &p;
+      kept.generation = generation_;
+    }
+    return kept.base;
+  }
+
+  Value lookup(const Template &p, const Op &op, const uint32_t pc)
+  {
+    if (const std::optional<Value> fixed = data_.bound(p, pc, stack_, depth_)) return *fixed;
+    if (op.b == 0) return stack_.at(depth_ - 1);
+    Value base = first_part_of(p, op);
+    for (uint32_t j = 1; j < op.b && !Data::value_is_absent(base); j++) base = data_.find(base, p.keys.at(op.a + j));
     return base;
   }
 
@@ -355,8 +391,10 @@ private:
       return false;
     }
     stack_.at(depth_++) = v;
+    generation_++;
     const bool ok = run(p, pc, stop, pd, ind, args);
     depth_--;
+    generation_++;
     return ok;
   }
 
@@ -417,16 +455,15 @@ private:
           break;
         case Tag::var:
         case Tag::raw: {
-          const std::optional<Value> v = lookup(p, op, pc);
+          const Value v = lookup(p, op, pc);
           pc++;
-          if (!v) break;
-          const Kind k = data_.kind_of(*v);
+          if (Data::value_is_absent(v)) break;
+          const auto [k, s] = data_.scalar_of(v, detail::containers::NumberText(number_));
           if (k == Kind::falsy) break;
           if (k != Kind::text) [[unlikely]] {
             fault_ = Fault::not_text;
             return false;
           }
-          const std::string_view s = data_.text_of(*v, detail::containers::NumberText(number_));
           if (s.empty()) break;
           indent_if_pending(ind);
           if (op.tag == Tag::var) escaped_in(context_, s);
@@ -434,24 +471,24 @@ private:
           break;
         }
         case Tag::section: {
-          const std::optional<Value> v = lookup(p, op, pc);
-          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
+          const Value v = lookup(p, op, pc);
+          const Kind k = Data::value_is_absent(v) ? Kind::falsy : data_.kind_of(v);
           if (k == Kind::list) {
-            const size_t n = data_.size_of(*v);
+            const size_t n = data_.size_of(v);
             for (size_t i = 0; i < n; i++) {
-              if (!push_run(p, data_.element(*v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+              if (!push_run(p, data_.element(v, i), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
             }
           }
           else if (k != Kind::falsy) {
-            if (!push_run(p, *v, pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
+            if (!push_run(p, v, pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
           }
           pc = op.c;
           break;
         }
         case Tag::inverted: {
-          const std::optional<Value> v = lookup(p, op, pc);
-          const Kind k = v ? data_.kind_of(*v) : Kind::falsy;
-          const bool empty = k == Kind::falsy || (k == Kind::list && data_.size_of(*v) == 0);
+          const Value v = lookup(p, op, pc);
+          const Kind k = Data::value_is_absent(v) ? Kind::falsy : data_.kind_of(v);
+          const bool empty = k == Kind::falsy || (k == Kind::list && data_.size_of(v) == 0);
           if (empty && !push_run(p, stack_.at(depth_ - 1), pc + 1, op.c, pd, ind, args)) [[unlikely]] return false;
           pc = op.c;
           break;
