@@ -1,5 +1,5 @@
 #!/bin/sh
-# Host side: exports include/, test/ and bench/render.cpp of HEAD and runs inside.sh in a container.
+# Host side: exports include/, test/ and bench/render.cpp of HEAD and runs inside.sh in a container. The result is the JSON that Google Benchmark writes.
 # Usage: bench/probes/readme-render/run.sh WORK_DIR [IMAGE]
 set -eu
 work=$1

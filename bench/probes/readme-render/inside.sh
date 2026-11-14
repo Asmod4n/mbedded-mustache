@@ -1,12 +1,13 @@
 #!/bin/sh
-# Container side: builds one binary for each workload and compiler at -O2, measures the noise floor, runs the
-# binaries as nobody in 6 rounds with a rotating order, writes /w/out. Stderr goes to log files.
+# Container side: builds one binary for each workload and compiler at -O2, measures the noise floor, runs each
+# binary once as nobody with 30 repetitions in random interleaving, and writes the JSON of Google Benchmark to
+# /w/out/json. Stderr goes to log files.
 set -u
-rounds=${ROUNDS:-6}
 apt-get update -q > /w/out/apt.log 2>&1
 apt-get install -y -q libbenchmark-dev sysbench >> /w/out/apt.log 2>&1
-mkdir -p /w/bin
+mkdir -p /w/bin /w/out/json
 chmod a+rwx /w/bin
+chmod a+rwx /w/out/json
 jobs=""
 for cxx in g++-16 clang++-23; do for level in -O2; do for workload in 1 2 3; do
   jobs="$jobs $cxx:$level:$workload"
@@ -18,43 +19,54 @@ echo $jobs | tr ' ' '\n' | xargs -P 4 -I{} sh -c '
     *)    std="-std=c++26"; align="-falign-functions=64 -falign-loops=64";;
   esac
   name=/w/bin/render-$workload-$cxx$level
-  $cxx $std $level -march=x86-64-v4 $align -DNDEBUG -DWORKLOAD=$workload -I/w/src/include \
-    /w/src/bench/render.cpp -lbenchmark -lpthread -o $name > $name.log 2>&1 || echo "$name: $(grep -m1 error $name.log)"
+  flags="$cxx $std $level -march=x86-64-v4 $align -DNDEBUG -DWORKLOAD=$workload"
+  echo "$flags" > $name.flags
+  $flags -I/w/src/include /w/src/bench/render.cpp -lbenchmark -lpthread -o $name > $name.log 2>&1 ||
+    echo "$name: $(grep -m1 error $name.log)" >> /w/out/failed.txt
 '
 chmod -R a+rX /w/bin
-ls /w/bin | grep -v '\.log$' > /w/out/binaries.txt
+ls /w/bin | grep -v '\.log$' | grep -v '\.flags$' > /w/out/binaries.txt
 cat > /w/run_as_user.sh <<'F'
 #!/bin/sh
 set -u
 cd /w
 cat /proc/loadavg > /w/out/loadavg-before.txt
 for i in 1 2 3 4 5 6 7 8 9 10; do sysbench cpu --threads=1 --time=1 run 2>> /w/out/sysbench.err | awk '/events per second/ {printf "%s ", $4}'; done > /w/out/noise.txt
-mkdir -p /w/out/runs
-count=$(wc -l < /w/out/binaries.txt)
-round=1
-while [ $round -le $ROUNDS ]; do
-  shift_by=$(( (round - 1) * count / ROUNDS ))
-  { tail -n +$((shift_by + 1)) /w/out/binaries.txt; head -n $shift_by /w/out/binaries.txt; } | while read -r b; do
-    /w/bin/$b --benchmark_format=json --benchmark_repetitions=5 --benchmark_report_aggregates_only=false \
-      --benchmark_min_time=0.05s > /w/out/runs/r$round-$b.json 2> /w/out/runs/r$round-$b.err ||
-      echo "round $round binary $b exit $?" >> /w/out/failed.txt
-  done
-  round=$((round + 1))
-done
-cat /proc/loadavg > /w/out/loadavg-after.txt
+{
+echo "commit=$PROBE_COMMIT"
+echo "dirty_files=$DIRTY"
+echo "image=$IMAGE_ID"
+echo "podman=$PODMAN_VERSION"
+echo "instruction_set=$(g++-16 -march=x86-64-v4 -dM -E -x c++ /dev/null | grep -E '__AVX|__SSE4' | awk '{print $2}' | sort | tr '\n' ' ')"
+echo "libstdcxx=$(ls -l $(ldconfig -p | awk '/libstdc\+\+.so.6 /{print $NF; exit}') | awk '{print $NF}')"
+echo "libc=$(ldd --version | head -1)"
+echo "kernel=$(uname -srv)"
+echo "sched_autogroup_enabled=$(cat /proc/sys/kernel/sched_autogroup_enabled)"
+echo "machine=$(lscpu | grep -E 'Hypervisor vendor|Virtualization type' | tr -s ' ' | tr '\n' ';')"
+echo "container=podman, cpus visible $(nproc)"
+echo "processor=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
+echo "processor_flags_digest=sha256:$(grep -m1 '^flags' /proc/cpuinfo | sha256sum | cut -c1-16)"
+echo "avx512_flags=$(grep -m1 '^flags' /proc/cpuinfo | tr ' ' '\n' | grep avx512 | sort | tr '\n' ' ')"
+echo "user=$(id -un)"
+echo "nice=$(nice)"
+echo "threads=1"
+echo "sysbench_cpu_events_per_second_10_runs_of_1s_1_thread=$(cat /w/out/noise.txt)"
+echo "loadavg_before=$(cat /w/out/loadavg-before.txt)"
+} > /w/out/context-common.txt
+while read -r b; do
+  { cat /w/out/context-common.txt
+    echo "binary=$b"
+    echo "flags=$(cat /w/bin/$b.flags)"
+    echo "compiler=$(readelf -p .comment /w/bin/$b | grep -iE 'GCC|clang' | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//')"
+  } > /w/out/context-$b.txt
+  set --
+  while IFS= read -r line; do set -- "$@" "--benchmark_context=$line"; done < /w/out/context-$b.txt
+  /w/bin/$b --benchmark_repetitions=30 --benchmark_enable_random_interleaving=true \
+    --benchmark_out=/w/out/json/$b.json --benchmark_out_format=json "$@" \
+    > /w/out/json/$b.console 2> /w/out/json/$b.err ||
+    echo "binary $b exit $?" >> /w/out/failed.txt
+done < /w/out/binaries.txt
 F
 chmod a+rx /w/run_as_user.sh
-runuser -u nobody -- env ROUNDS=$rounds sh /w/run_as_user.sh
-{
-echo "probe commit: $PROBE_COMMIT (dirty files: $DIRTY)"
-echo "run: $rounds rounds, the order of the binaries rotates by round, each run 5 repetitions of at least 0.05 s, one thread, as $(id -un nobody), nice $(runuser -u nobody -- nice)"
-echo "image: $IMAGE_ID; $PODMAN_VERSION"
-echo "instruction set: $(g++-16 -march=x86-64-v4 -dM -E -x c++ /dev/null | grep -E '__AVX|__SSE4' | awk '{print $2}' | sort | tr '\n' ' ')"
-echo "compiler of the binaries: $(readelf -p .comment /w/bin/render-1-g++-16-O2 | grep GCC | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//'); $(readelf -p .comment /w/bin/render-1-clang++-23-O2 | grep -i clang | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//')"
-echo "libstdc++ and libc: $(ls -l $(ldconfig -p | awk '/libstdc\+\+.so.6 /{print $NF; exit}') | awk '{print $NF}'); $(ldd --version | head -1)"
-echo "kernel: $(uname -srv); sched_autogroup_enabled=$(cat /proc/sys/kernel/sched_autogroup_enabled)"
-echo "machine: $(lscpu | grep -E 'Hypervisor vendor|Virtualization type' | tr -s ' ' | tr '\n' ';'); container: podman, cpus visible $(nproc)"
-echo "processor: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2); flags digest sha256:$(grep -m1 '^flags' /proc/cpuinfo | sha256sum | cut -c1-16)"
-echo "avx-512 flags of the processor: $(grep -m1 '^flags' /proc/cpuinfo | tr ' ' '\n' | grep avx512 | sort | tr '\n' ' ')"
-echo "load average before and after: $(cat /w/out/loadavg-before.txt) / $(cat /w/out/loadavg-after.txt)"
-} > /w/out/context.txt 2> /w/out/context.err
+runuser -u nobody -- env PROBE_COMMIT="$PROBE_COMMIT" DIRTY="$DIRTY" IMAGE_ID="$IMAGE_ID" PODMAN_VERSION="$PODMAN_VERSION" \
+  sh /w/run_as_user.sh
