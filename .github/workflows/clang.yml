@@ -1,0 +1,51 @@
+name: clang
+
+on:
+  push:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/clang.yml"
+      - "!test/arm_none_eabi.cpp"
+      - "!include/mustache/reflect.hpp"
+      - "!test/reflect.cpp"
+  pull_request:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/clang.yml"
+      - "!test/arm_none_eabi.cpp"
+      - "!include/mustache/reflect.hpp"
+      - "!test/reflect.cpp"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: x86-64 clang C++23
+    runs-on: ubuntu-24.04
+    container: fedora:44
+    timeout-minutes: 15
+    steps:
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel mandoc
+      - uses: actions/checkout@v4
+      - run: >
+          printf '#ifdef __cpp_impl_reflection\n#error "clang has reflection: clang.yml must watch reflect.hpp and test/reflect.cpp"\n#endif\n'
+          | clang++ -std=c++23 -O2 -march=x86-64-v3 -Wall -Wextra -Werror -fsyntax-only -x c++ -
+      - run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_CXX_STANDARD=23
+          -DMUSTACHE_REQUIRE_MANDOC=ON
+          -DMUSTACHE_REQUIRE_SIMDJSON=ON
+          "-DCMAKE_CXX_FLAGS=-O2 -march=x86-64-v3 -Wall -Wextra -Werror"
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure

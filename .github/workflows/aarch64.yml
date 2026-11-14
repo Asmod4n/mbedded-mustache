@@ -1,0 +1,44 @@
+name: aarch64
+
+on:
+  push:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/aarch64.yml"
+      - "!test/arm_none_eabi.cpp"
+  pull_request:
+    paths:
+      - "include/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - "refs/mustache-spec/*.json"
+      - ".github/workflows/aarch64.yml"
+      - "!test/arm_none_eabi.cpp"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: aarch64 g++ C++26 reflection
+    runs-on: ubuntu-24.04-arm
+    container: fedora:44
+    timeout-minutes: 15
+    steps:
+      - run: dnf -y install gcc-c++ clang cmake ninja-build git simdjson-devel gtest-devel gmock-devel libasan libubsan boost-devel mandoc
+      - uses: actions/checkout@v4
+      - run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_CXX_COMPILER=g++
+          -DCMAKE_C_COMPILER=gcc
+          -DCMAKE_CXX_STANDARD=26
+          -DMUSTACHE_REQUIRE_MANDOC=ON
+          -DMUSTACHE_REQUIRE_SIMDJSON=ON
+          "-DCMAKE_CXX_FLAGS=-freflection -O2 -Wall -Wextra -Werror"
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
