@@ -1,0 +1,14 @@
+[workspace]
+members = ["common", "ramhorns-bench", "sailfish-bench", "maud-bench", "markup-bench"]
+resolver = "3"
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "fat"
+
+[profile.bench]
+inherits = "release"
+opt-level = 3
+codegen-units = 1
+lto = "fat"

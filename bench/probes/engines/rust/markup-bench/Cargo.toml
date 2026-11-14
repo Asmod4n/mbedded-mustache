@@ -1,0 +1,13 @@
+[package]
+name = "markup-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+common = { path = "../common" }
+markup = "0.16.0"
+
+[[bench]]
+name = "render"
+harness = false

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{title}}</title></head>
+<body>
+<h1>{{title}}</h1>
+{{#articles}}<article>
+  <h2><a href="{{url}}">{{title}}</a></h2>
+  <p class="meta">{{author}} - {{date}}</p>
+  <p>{{teaser}}</p>
+  <ul>{{#tags}}<li>{{name}}</li>{{/tags}}</ul>
+</article>
+{{/articles}}</body>
+</html>

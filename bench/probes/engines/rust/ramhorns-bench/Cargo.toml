@@ -1,0 +1,13 @@
+[package]
+name = "ramhorns-bench"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+common = { path = "../common" }
+ramhorns = "1.0.1"
+
+[[bench]]
+name = "render"
+harness = false

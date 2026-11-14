@@ -1,0 +1,8 @@
+[package]
+name = "common"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
