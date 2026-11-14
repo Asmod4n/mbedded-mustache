@@ -128,8 +128,7 @@ struct Answer {
     if (!room_holds_the_escaped_value(Context::html_text, s, rest().size()) &&
         !grown(size + room_needed_for_the_escaped_value(Context::html_text, s))) [[unlikely]]
       return;
-    const std::span<char> room = rest();
-    size += (size_t)std::distance(room.data(), escape_string_into(room, s));
+    size += escape_string_into(rest(), s);
   }
 
   void escaped_in(const Context c, const std::string_view s)
@@ -190,12 +189,7 @@ struct Batch {
       dirty = true;
       return;
     }
-    const Copied c = copied_string(room.subspan(size), s);
-    if (c.w == nullptr) [[unlikely]] {
-      dirty = true;
-      return;
-    }
-    dirty |= c.marks != 0;
+    dirty |= copied_string(room.subspan(size), s).marks != 0;
     size += s.size();
   }
 };

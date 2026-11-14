@@ -2,9 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -24,22 +26,6 @@ escaped_by_rule(const std::string_view s)
     else r += c;
   }
   return r;
-}
-
-// copied_string reads 16 bytes from a std::string shorter than 16. That
-// is inside the string's own buffer only while its capacity holds them,
-// so each case runs with the short buffer, with a large heap buffer and
-// with a buffer that was shrunk after it held a long value.
-std::array<std::string, 3>
-held_three_ways(const std::string &value)
-{
-  std::string heap_held;
-  heap_held.reserve(100);
-  heap_held = value;
-  std::string shrunk(40, 'y');
-  shrunk = value;
-  shrunk.shrink_to_fit();
-  return {value, heap_held, shrunk};
 }
 
 std::vector<std::string>
@@ -62,31 +48,34 @@ every_case()
 
 TEST(EscapeString, MatchesTheRule)
 {
-  for (const std::string &value : every_case()) {
-    for (const std::string &s : held_three_ways(value)) {
-      SCOPED_TRACE(s);
-      std::array<char, 512> out{};
-      char *const end = mustache::escape_string_into(out, s);
-      EXPECT_EQ(std::string_view(out.data(), (size_t)(end - out.data())), escaped_by_rule(s));
-    }
+  for (const std::string &s : every_case()) {
+    SCOPED_TRACE(s);
+    std::array<char, 512> out{};
+    const size_t count = mustache::escape_string_into(out, s);
+    EXPECT_EQ(std::string_view(out.data(), count), escaped_by_rule(s));
   }
 }
 
-// Every SIMD form of copied_string is held to the scalar form.
+// Every SIMD form of copied_string is held to the scalar form. A value
+// longer than kCopiedStringMax is not copied: the count is 0 and no byte
+// of the room changes. The mark is held to the rule of the spec.
 TEST(CopiedString, MatchesTheScalarForm)
 {
-  for (const std::string &value : every_case()) {
-    for (const std::string &s : held_three_ways(value)) {
-      SCOPED_TRACE(s);
-      std::array<char, 64> wide{};
-      std::array<char, 64> scalar{};
-      const mustache::Copied w = mustache::copied_string(wide, s);
-      const mustache::Copied c = mustache::copied_string_scalar(scalar, s);
-      EXPECT_EQ(c.w != nullptr, s.size() <= mustache::kCopiedStringMax);
-      if (w.w == nullptr || c.w == nullptr) continue;
-      EXPECT_EQ(w.marks != 0, c.marks != 0);
-      EXPECT_EQ(w.w - wide.data(), c.w - scalar.data());
-      EXPECT_EQ(std::string_view(wide.data(), s.size()), std::string_view(scalar.data(), s.size()));
+  for (const std::string &s : every_case()) {
+    SCOPED_TRACE(s);
+    std::array<char, 64> wide{};
+    std::array<char, 64> scalar{};
+    const mustache::Copied w = mustache::copied_string(wide, s);
+    const mustache::Copied c = mustache::copied_string_scalar(scalar, s);
+    const bool copied = s.size() <= mustache::kCopiedStringMax;
+    EXPECT_EQ(c.count, copied ? s.size() : 0);
+    EXPECT_EQ(c.marks != 0, copied && escaped_by_rule(s) != s);
+    EXPECT_EQ(w.count, c.count);
+    EXPECT_EQ(w.marks != 0, c.marks != 0);
+    EXPECT_EQ(std::string_view(wide.data(), c.count), std::string_view(scalar.data(), c.count));
+    if (!copied) {
+      EXPECT_TRUE(std::ranges::all_of(wide, [](const char b) { return b == 0; }));
+      EXPECT_TRUE(std::ranges::all_of(scalar, [](const char b) { return b == 0; }));
     }
   }
 }

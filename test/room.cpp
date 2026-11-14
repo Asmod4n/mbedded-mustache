@@ -172,7 +172,7 @@ expect_the_escape_stays_in_its_room(const Context c, const std::string &s)
   if (c == Context::html_text) {
     EXPECT_EQ(w.text, escaped_by_rule(s)) << described(c, s);
     const Written e = written_in_room(required, [&s](const std::span<char> room) {
-      return mustache::escape_string_into(room, s);
+      return room.subspan(mustache::escape_string_into(room, s)).data();
     });
     EXPECT_TRUE(e.inside) << described(c, s);
     if (e.inside) {
@@ -196,15 +196,15 @@ expect_the_copy_stays_in_its_room(const std::string &s)
   if (required > 0) {
     EXPECT_FALSE(mustache::room_holds_the_copied_value(s, required - 1)) << described(s);
   }
-  bool copied = false;
-  const Written w = written_in_room(required, [&s, &copied](const std::span<char> room) {
-    const mustache::Copied c = mustache::copied_string(room, s);
-    copied = c.w != nullptr;
-    return copied ? c.w : room.data();
+  size_t count = 0;
+  const Written w = written_in_room(required, [&s, &count](const std::span<char> room) {
+    count = mustache::copied_string(room, s).count;
+    return room.subspan(count).data();
   });
   EXPECT_TRUE(w.inside) << described(s);
   EXPECT_TRUE(w.tail_untouched) << described(s);
-  EXPECT_EQ(copied, s.size() <= mustache::kCopiedStringMax) << described(s);
+  const bool copied = s.size() <= mustache::kCopiedStringMax;
+  EXPECT_EQ(count, copied ? s.size() : 0) << described(s);
   if (copied) {
     EXPECT_EQ(w.text, s) << described(s);
   }
