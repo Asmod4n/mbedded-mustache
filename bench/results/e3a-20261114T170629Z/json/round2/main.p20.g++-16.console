@@ -1,0 +1,37 @@
+------------------------------------------------------------
+Benchmark                  Time             CPU   Iterations
+------------------------------------------------------------
+run_time                7850 ns         7318 ns        12018
+run_time                8171 ns         8168 ns        12018
+run_time                6109 ns         6110 ns        12018
+run_time                5729 ns         5728 ns        12018
+run_time                5770 ns         5748 ns        12018
+run_time                5771 ns         5767 ns        12018
+run_time                5808 ns         5808 ns        12018
+run_time                5770 ns         5764 ns        12018
+run_time                5822 ns         5818 ns        12018
+run_time                5862 ns         5862 ns        12018
+run_time                5803 ns         5803 ns        12018
+run_time                5832 ns         5831 ns        12018
+run_time                5831 ns         5831 ns        12018
+run_time                5807 ns         5795 ns        12018
+run_time                5782 ns         5782 ns        12018
+run_time                5820 ns         5820 ns        12018
+run_time                5813 ns         5814 ns        12018
+run_time                6050 ns         5971 ns        12018
+run_time                5808 ns         5808 ns        12018
+run_time                5799 ns         5798 ns        12018
+run_time                5853 ns         5853 ns        12018
+run_time                5888 ns         5889 ns        12018
+run_time                5823 ns         5823 ns        12018
+run_time                5854 ns         5849 ns        12018
+run_time                5856 ns         5856 ns        12018
+run_time                5868 ns         5860 ns        12018
+run_time                5875 ns         5870 ns        12018
+run_time                5856 ns         5853 ns        12018
+run_time                5890 ns         5890 ns        12018
+run_time                5955 ns         5950 ns        12018
+run_time_mean           5991 ns         5968 ns           30
+run_time_median         5832 ns         5831 ns           30
+run_time_stddev          556 ns          501 ns           30
+run_time_cv             9.28 %          8.39 %            30

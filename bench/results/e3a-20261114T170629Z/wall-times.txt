@@ -1,0 +1,7 @@
+Wall time of each phase, seconds, one machine, container localhost/mbedded-cbor-docs.
+build of the arms (make arms, 8 compiles four at a time, .text sizes, byte checks of both compilers): 34
+run of the tests (spec and typed of E3a with g++-16, 2 binaries built and run): 9
+timed part (noise floor and 10 rounds of 6 binaries): 136 (125 between timed-start and timed-end)
+compare.py (apt install of scipy, clone of Google Benchmark, 4 comparisons): 18
+Arms: head is include/ of ac4de90, head twin is a second copy of it, E3a is e3a-on-e1.patch on it with initial capacity 1024. In the files the arm head is named main and head twin is named twin.
+Probe commit: 9220f9e. Compiler flags: -std=c++26 -O2 -march=x86-64-v4 -DNDEBUG with -falign-functions=64 -falign-loops=64 (g++-16 also -falign-jumps=64 and -freflection).

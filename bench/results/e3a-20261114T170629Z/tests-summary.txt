@@ -1,0 +1,2 @@
+e3a spec g++-16 exit=0 [  PASSED  ] 326 tests.  warnings=0 build_seconds=8.5
+e3a typed g++-16 exit=0 [  PASSED  ] 5 tests.  warnings=0 build_seconds=5.6

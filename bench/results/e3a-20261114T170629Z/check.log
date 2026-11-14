@@ -1,0 +1,14 @@
+same g++-16 main p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 twin p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 e3a1024 p20 against main, bdbb652bd0adb523 7737 bytes
+same g++-16 extras main against main, f3d2334634dbb449 4074823 bytes
+same g++-16 extras e3a against main, f3d2334634dbb449 4074823 bytes
+same g++-16 main p20 against bench/render.cpp of 5d3c154
+same clang++-23 main p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 twin p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 e3a1024 p20 against main, bdbb652bd0adb523 7737 bytes
+same clang++-23 extras main against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 extras e3a against main, a91f47f133e23b19 3775640 bytes
+same clang++-23 main p20 against bench/render.cpp of 5d3c154
+same main p20 of g++-16 against main p20 of clang++-23
+note: extras of g++-16 (with reflection sections) and clang++-23 differ by design
