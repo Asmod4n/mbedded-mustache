@@ -1,0 +1,20 @@
+{
+ "name": "compute-loop",
+ "what": "time of a loop of 700 xorshift steps (bench/probes/compute-loop/alu.cpp), the same shape of process as the render bench",
+ "purpose_in_the_task_list": "malloc tunables and a compute loop of the same shape",
+ "method": "not the method of mbedded-cbor/bench/README.md: 12 processes in sequence, each 5 repetitions of at least 0.05 s; no gate, no steal",
+ "arms": {"alu": "the one arm"},
+ "builds": "g++-16 -std=c++26 -O2 (no -march, no -DNDEBUG)",
+ "headers": "none (the probe uses no header of the tree)",
+ "probe": {"commit": "112c65fd950edc0831f878cb08d6e297c47ef3f5", "files": ["bench/probes/compute-loop/alu.sh", "bench/probes/compute-loop/alu.cpp"]},
+ "time_in_file_name": "last write of the raw file (end of the run)",
+ "context": {"processor": "Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cpus (read by the compare runs of 2026-11-12 and by plan-review-4 run1 of 2026-11-13)", "virtual_machine": "KVM, full virtualization (read by the compare run of 2026-11-12T19:49Z)", "container": "podman", "threads": "1 (each bench process is single-threaded)", "pinned": "no (the scripts use no taskset and no cpu set)", "image": "localhost/mbedded-cbor-docs sha256:dae8337e9939c6499c7898effabed4b224dd22ada32029cf327943d59909624e, Debian sid (read by the compare run of 2026-11-12T19:49Z in the same container)", "kernel": "6.18.44-fc-v378 (read by the compare runs of 2026-11-12T19:08Z and 19:49Z in the same container)", "cxx_library": "libstdc++.so.6.0.36 (read by the compare run of 2026-11-12T19:49Z)", "c_library": "glibc 2.43-7 (read by the compare run of 2026-11-12T19:49Z)", "cpu_flags_digest": "sha256:39a8dd34f3afdd38 (first 16 hex digits; read by the compare run of 2026-11-12T19:49Z)", "user": "not recorded (the binaries in the scratch directory are owned by nobody)", "priority": "nice not recorded", "compiler_read_off_the_binaries": ["GCC: (Debian 16.2.0-4) 16.2.0"]},
+ "not_recorded": ["gate (vmstat and the busy share before the run)", "steal of each round", "scheduler settings", "an A/A binary built twice, unless the arms name one", "resolved instruction set"],
+ "recorded_by": "bench/record.py from the raw files in the scratch directory of the session, on 2026-11-14; the raw files are not kept",
+ "facts_read_off_the_raw_files": [{"raw": "mbres/alu.txt", "lines_without_values": []}],
+ "measurements": [
+  {"name": "alu", "unit": "ns per iteration (google benchmark real time, rounded to 0.1 ns by the script)", "raw": "mbres/alu.txt", "reader": "labelled_lines", "values_are": "each repetition; a round is one process", "cells": [
+   {"key": {}, "rounds": {"1": [1621.9, 1467.5, 1468.3, 1468.9, 1470.6], "2": [1488.7, 1486.5, 1535.8, 1568.2, 1465.0], "3": [1514.5, 1525.1, 1501.4, 1514.4, 1516.3], "4": [1518.5, 1556.6, 1484.2, 1480.8, 1461.1], "5": [1482.8, 1485.7, 1479.4, 1483.3, 1479.9], "6": [1488.1, 1487.5, 1515.9, 1520.4, 1523.6], "7": [1479.7, 1725.0, 1500.7, 1506.3, 1523.5], "8": [1495.7, 1498.9, 1556.5, 1588.0, 1588.2], "9": [1549.4, 1500.4, 1570.2, 1522.9, 1494.9], "10": [1473.6, 1477.1, 1503.3, 1488.9, 1496.5], "11": [1508.5, 1488.2, 1468.9, 1473.8, 1474.2], "12": [1504.8, 1528.1, 1506.8, 1529.7, 1705.3]}, "n": 60, "median": 1500.55, "min": 1461.1, "max": 1725.0, "spread": 0.1806}
+  ]}
+ ]
+}
