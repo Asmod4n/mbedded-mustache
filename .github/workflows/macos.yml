@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   test:
-    name: arm64 macOS Homebrew g++ C++26 reflection
+    name: arm64 macOS Apple clang C++23 and Homebrew g++ C++26 reflection
     runs-on: macos-latest
     timeout-minutes: 15
     steps:
@@ -35,7 +35,7 @@ jobs:
           path: ~/Library/Caches/Homebrew
           key: brew-${{ env.WEEK }}
           restore-keys: brew-
-      - run: brew install cmake ninja gcc
+      - run: brew install cmake ninja gcc googletest simdjson
         env:
           HOMEBREW_NO_INSTALL_CLEANUP: 1
       - run: echo "CXX=$(ls "$(brew --prefix gcc)"/bin/g++-[0-9]* | sort -V | tail -1)" >> "$GITHUB_ENV"
@@ -44,11 +44,22 @@ jobs:
       - run: git clone --depth 1 --branch v1.17.0 https://github.com/google/googletest.git "$RUNNER_TEMP/googletest"
       - run: uname -m | grep -x arm64
       - run: >
-          cmake -S . -B build -G Ninja
+          cmake -S . -B build-clang -G Ninja
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_CXX_STANDARD=23
+          -DMUSTACHE_REQUIRE_SIMDJSON=ON
+          "-DCMAKE_CXX_FLAGS=-O2 -Wall -Wextra -Werror"
+      - run: cmake --build build-clang
+      - run: ctest --test-dir build-clang --output-on-failure
+      - run: >
+          cmake -S . -B build-gxx -G Ninja
           -DCMAKE_CXX_COMPILER="$CXX"
           -DCMAKE_C_COMPILER="$CC"
           -DCMAKE_CXX_STANDARD=26
+          -DCMAKE_DISABLE_FIND_PACKAGE_GTest=ON
+          -DCMAKE_DISABLE_FIND_PACKAGE_simdjson=ON
           -DMUSTACHE_GOOGLETEST_SOURCE_DIR="$RUNNER_TEMP/googletest"
           "-DCMAKE_CXX_FLAGS=-freflection -O2 -Wall -Wextra -Werror"
-      - run: cmake --build build
-      - run: ctest --test-dir build --output-on-failure
+      - run: cmake --build build-gxx
+      - run: ctest --test-dir build-gxx --output-on-failure
