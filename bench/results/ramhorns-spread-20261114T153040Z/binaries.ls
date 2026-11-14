@@ -1,0 +1,3 @@
+-rwxr-xr-x 1 root root  167128 Nov 14 15:31 /w/bin/mbedded.2.clang++-23
+-rwxr-xr-x 1 root root 2445288 Nov 14 15:32 /w/rbin/A/render
+-rwxr-xr-x 1 root root 2445288 Nov 14 15:32 /w/rbin/Ap/render

@@ -1,0 +1,1 @@
+user=nobody nice=0 threads=1 not pinned

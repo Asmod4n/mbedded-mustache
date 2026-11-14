@@ -1,0 +1,16 @@
+rustc=rustc 1.98.1 (48a229cea 2026-09-01) (built from a source tarball)
+cargo=cargo 1.98.1 (797e8a9bc 2026-08-05) (built from a source tarball)
+debian_packages=cargo 1.98.1+dfsg1-1; libbenchmark-dev 1.9.1-1+b2; rustc 1.98.1+dfsg1-1; 
+clang=Debian clang version 23.1.5 (2)
+rust_crates="criterion" "0.8.2"; "ramhorns" "1.0.1"; 
+rustflags=-C target-cpu=x86-64-v4, profile bench: opt-level 3, codegen-units 1, lto fat
+mbedded_flags=clang++-23 -std=c++26 -O2 -march=x86-64-v4 -falign-functions=64 -falign-loops=64 -DNDEBUG
+commit=9aa4b55b3ca4bbc7bf8bbe6b727ea153d419121f
+dirty_files=0
+image=sha256:333ddac6440e908c9c0a6ba331ceb5929b368a8f96be274f967cad3bfe5406dc 3a18f18efd74d0b7f81fba1af946d34f39196d7519d8524762f3b32f38bf8e7e
+podman=podman version 4.9.3
+kernel=Linux 6.18.44-fc-v470 #1 SMP PREEMPT_DYNAMIC @0
+machine=Hypervisor vendor: KVM;Virtualization type: full;
+container=podman, cpus visible 4
+processor= Intel(R) Xeon(R) Processor @ 2.30GHz
+processor_flags_digest=sha256:0750228a0e310f80

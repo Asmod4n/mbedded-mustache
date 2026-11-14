@@ -1,0 +1,5 @@
+round 1: Ap A M 
+round 2: Ap M A 
+round 3: A M Ap 
+round 4: A Ap M 
+round 5: A Ap M 
