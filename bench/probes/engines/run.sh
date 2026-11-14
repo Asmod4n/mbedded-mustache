@@ -8,7 +8,7 @@ image=${2:-localhost/mbedded-cbor-docs}
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
 mkdir -p "$work/out" "$work/src"
-git -C "$root" archive HEAD include test bench/render.cpp bench/probes/engines | tar -x -C "$work/src"
+git -C "$root" archive HEAD include test bench/render.cpp bench/node.hpp bench/probes/engines | tar -x -C "$work/src"
 cp "$here/inside.sh" "$here/build_one.sh" "$here/flags.sh" "$here/run_as_user.sh" "$work/"
 commit=$(git -C "$root" rev-parse HEAD)
 dirty=$(git -C "$root" status --porcelain | wc -l)

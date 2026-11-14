@@ -68,11 +68,12 @@ def main():
         for median, arm, tool, spread in sorted(rows):
             print("| %s | %.1f | %s | %s |" % (arm, median, tool, spread))
         print()
-    a = google.get(("2", "mbedded", "run_time", "g++-16"), {}).get("median")
-    b = google.get(("2", "mbedded-twin", "run_time", "g++-16"), {}).get("median")
-    if a and b:
-        print("A/A, run_time of g++-16 built twice: %.1f ns and %.1f ns, second over first minus 1: %+.2f %%" % (a, b, (b / a - 1) * 100))
-        print()
+    for name, label in (("run_time", "run_time"), ("reflection", "reflection")):
+        a = google.get(("2", "mbedded", name, "g++-16"), {}).get("median")
+        b = google.get(("2", "mbedded-twin", name, "g++-16"), {}).get("median")
+        if a and b:
+            print("A/A, %s of g++-16 built twice: %.1f ns and %.1f ns, second over first minus 1: %+.2f %%" % (label, a, b, (b / a - 1) * 100))
+            print()
     with open(os.path.join(directory, "context-common.txt")) as handle:
         for line in handle:
             if line.startswith("sysbench_cpu_events_per_second"):
