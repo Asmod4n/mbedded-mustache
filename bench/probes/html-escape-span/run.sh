@@ -1,0 +1,23 @@
+#!/bin/sh
+# Host side: builds every arm of probe.cpp in eight builds and runs them in a container, 6 rounds.
+# The arm before takes include/ of the commit BEFORE (default 738ff29) from git.
+# ARMS and BUILDS in the environment choose a part of them (see inside.sh).
+# Usage: bench/probes/html-escape-span/run.sh WORK_DIR [IMAGE]
+set -eu
+work=$1
+image=${2:-localhost/mbedded-cbor-docs}
+here=$(cd "$(dirname "$0")" && pwd)
+mkdir -p "$work/out"
+before=${BEFORE:-738ff29}
+cp "$here/probe.cpp" "$here/escape_span.hpp" "$here/inside.sh" "$work/"
+rm -rf "$work/old"
+mkdir -p "$work/old"
+git -C "$(git -C "$here" rev-parse --show-toplevel)" archive "$before" include | tar -x -C "$work/old"
+commit=$(git -C "$here" rev-parse HEAD)
+dirty=$(git -C "$here" status --porcelain | wc -l)
+digest=$(podman image inspect "$image" --format '{{.Digest}} {{.Id}}')
+chmod -R a+rX "$work"
+chmod a+w "$work/out"
+date -u +%Y%m%dT%H%M%SZ > "$work/out/stamp.txt"
+podman run --rm -v "$work":/w -e ARMS -e BUILDS -e PROBE_COMMIT="$commit" -e BEFORE_COMMIT="$(git -C "$here" rev-parse "$before")" -e DIRTY="$dirty" -e IMAGE_ID="$digest" \
+  -e PODMAN_VERSION="$(podman --version)" "$image" sh /w/inside.sh
