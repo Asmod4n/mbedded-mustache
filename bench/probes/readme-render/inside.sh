@@ -1,6 +1,6 @@
 #!/bin/sh
 # Container side: builds one binary for each workload and compiler at -O2, measures the noise floor, runs each
-# binary once as nobody with 30 repetitions in random interleaving, and writes the JSON of Google Benchmark to
+# binary once as nobody with 30 repetitions of at least 0.05 s in random interleaving, and writes the JSON of Google Benchmark to
 # /w/out/json. Stderr goes to log files.
 set -u
 apt-get update -q > /w/out/apt.log 2>&1
@@ -61,7 +61,7 @@ while read -r b; do
   } > /w/out/context-$b.txt
   set --
   while IFS= read -r line; do set -- "$@" "--benchmark_context=$line"; done < /w/out/context-$b.txt
-  /w/bin/$b --benchmark_repetitions=30 --benchmark_enable_random_interleaving=true \
+  /w/bin/$b --benchmark_min_time=0.05s --benchmark_repetitions=30 --benchmark_enable_random_interleaving=true \
     --benchmark_out=/w/out/json/$b.json --benchmark_out_format=json "$@" \
     > /w/out/json/$b.console 2> /w/out/json/$b.err ||
     echo "binary $b exit $?" >> /w/out/failed.txt

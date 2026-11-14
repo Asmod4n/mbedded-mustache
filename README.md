@@ -51,7 +51,7 @@ Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark
 | [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.4 µs | 1.43 µs |
 | news page (20 articles, 3 tags each) | 8.0 µs | 8.3 µs | 1.52 µs |
 
-*Run time* compiles the template at run time and renders from `std::map` data (see [Data](#data) for faster map types); *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
+*Run time* compiles the template at run time and renders from `std::unordered_map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
 
 ## Installation
 
@@ -107,7 +107,6 @@ A key that isn't in the data renders as nothing, as the specification says.
 |---|---|---|
 | `std::unordered_map` | 10.0 µs | 7.9 µs |
 | `std::flat_map` | 10.9 µs | 9.5 µs |
-| `std::map` | 11.1 µs | 14.1 µs |
 
 ([this run](bench/results/runtime-speed-20261114T130319Z/), `-O2 -march=x86-64-v4`, median of 30 repetitions)
 
