@@ -91,6 +91,7 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | plan-review-7 | A check: the writers in a room of the exact size with guard bytes. |
 | plan-review-8 | A check: two plan forms of the headers (patches against 7564b32). |
 | short-value-copy | Ten forms of copied_string for a value under 16 bytes, each held to the scalar form. |
+| short-value-copy, arms 10 and 11 | A value of 1 to 16 bytes read with one masked load of AVX-512BW and AVX-512VL; arm 11 also stores with a mask. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
 They find the stores past the written count with guard bytes, and give no time.
@@ -117,6 +118,7 @@ No result file stands for them.
 | compare-20261114T064610Z.json | compare.sh, dbd4cac against d13b6ca |
 | short-value-copy-20261114T070339Z.json | short-value-copy, arms 0 to 7 |
 | short-value-copy-20261114T071115Z.json | short-value-copy, arms 0 to 9 |
+| short-value-copy-20261114T080549Z.json | short-value-copy, arms 0, 1, 8, 10 and 11, x86-64-v4 only |
 | compare-20261114T072127Z.json | compare.sh, dbd4cac against 5385275 |
 | compare-20261114T072715Z.json | compare.sh, dbd4cac against d3a413d |
 
