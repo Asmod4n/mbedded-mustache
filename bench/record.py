@@ -7,6 +7,7 @@ from pathlib import Path
 
 DECIMALS_OF_A_TIME = 3
 DECIMALS_OF_A_SPREAD = 4
+DECIMALS_OF_A_MEDIAN = 6
 LOAD_AVERAGE_OF_ONE_MINUTE = 0
 EXIT_CODE_OF_A_MISMATCH = 1
 EXIT_CODE_OF_A_WRONG_USE = 2
@@ -24,7 +25,7 @@ def summarize(rounds):
         return {"n": 0}
     low, high = min(values), max(values)
     spread = round(high / low - 1, DECIMALS_OF_A_SPREAD) if low > 0 else None
-    return {"n": len(values), "median": statistics.median(values), "min": low, "max": high, "spread": spread}
+    return {"n": len(values), "median": round(statistics.median(values), DECIMALS_OF_A_MEDIAN), "min": low, "max": high, "spread": spread}
 
 
 def make_cells(collected):
