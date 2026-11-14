@@ -47,11 +47,11 @@ Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark
 
 | template | run time, g++ 16 | run time, clang 23 | reflection, g++ 16 |
 |---|---|---|---|
-| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 136 ns | 144 ns | 45 ns |
-| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 11.2 µs | 14.4 µs | 1.43 µs |
-| news page (20 articles, 3 tags each) | 8.0 µs | 8.3 µs | 1.52 µs |
+| [ramhorns "simple"](https://github.com/maciejhirsz/ramhorns) | 136 ns | 108 ns | 46 ns |
+| [stocks page](https://github.com/mbosecke/template-benchmark) (20 rows) | 10.0 µs | 7.8 µs | 1.42 µs |
+| news page (20 articles, 3 tags each) | 7.6 µs | 5.6 µs | 1.56 µs |
 
-*Run time* compiles the template at run time and renders from `std::unordered_map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T112518Z/)).
+*Run time* compiles the template at run time and renders from `std::unordered_map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T133248Z/)).
 
 ## Installation
 
