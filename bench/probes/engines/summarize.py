@@ -35,7 +35,7 @@ def google_rows(directory):
 
 def criterion_rows(directory):
     rows = {}
-    for path in sorted(glob.glob(os.path.join(directory, "criterion", "*", "w*", "new", "estimates.json"))):
+    for path in sorted(glob.glob(os.path.join(directory, "criterion", "*", "*", "w*", "new", "estimates.json"))):
         parts = path.split(os.sep)
         engine, workload = parts[-4], parts[-3][1:]
         with open(path) as handle:

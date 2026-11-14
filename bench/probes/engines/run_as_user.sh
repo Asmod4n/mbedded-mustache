@@ -27,18 +27,18 @@ while read -r b; do
       mkdir -p /w/out/check/$crate
       /w/rbin/$crate/render --output-dir /w/out/check/$crate 2>> check.err < /dev/null || echo "output of $b failed" >> check.log
       for w in 1 2 3; do
-        echo "check $crate rustc workload $w: $(python3 -I $here/check.py /w/out/check/expected-$w.html /w/out/check/$crate/w$w.html | tr '\n' ' ')" >> check.log
+        printf '%s\n' "check $crate rustc workload $w: $(python3 -I $here/check.py /w/out/check/expected-$w.html /w/out/check/$crate/w$w.html | tr '\n' ' ')" >> check.log
       done
-      echo "escapes $crate rustc: $(python3 -I $here/escapes.py /w/out/check/$crate/w2.html /w/out/check/$crate/w3.html | tr '\n' ' ')" >> check.log
+      printf '%s\n' "escapes $crate rustc: $(python3 -I $here/escapes.py /w/out/check/$crate/w2.html /w/out/check/$crate/w3.html | tr '\n' ' ')" >> check.log
       ;;
     *)
       "/w/bin/$b" --output_file="/w/out/check/$b.html" 2>> check.err < /dev/null || echo "output of $b failed" >> check.log
       engine=$(echo "$b" | cut -d. -f1)
       w=$(echo "$b" | cut -d. -f2)
       compiler=$(echo "$b" | cut -d. -f3)
-      echo "check $engine $compiler workload $w: $(python3 -I $here/check.py /w/out/check/expected-$w.html /w/out/check/$b.html | tr '\n' ' ')" >> check.log
+      printf '%s\n' "check $engine $compiler workload $w: $(python3 -I $here/check.py /w/out/check/expected-$w.html /w/out/check/$b.html | tr '\n' ' ')" >> check.log
       if [ "$w" = 3 ]; then
-        echo "escapes $engine $compiler: $(python3 -I $here/escapes.py /w/out/check/$engine.2.$compiler.html /w/out/check/$engine.3.$compiler.html | tr '\n' ' ')" >> check.log
+        printf '%s\n' "escapes $engine $compiler: $(python3 -I $here/escapes.py /w/out/check/$engine.2.$compiler.html /w/out/check/$engine.3.$compiler.html | tr '\n' ' ')" >> check.log
       fi
       ;;
   esac

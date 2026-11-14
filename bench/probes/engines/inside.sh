@@ -24,10 +24,10 @@ done
 
 jobs=""
 for cxx in g++-16 clang++-23; do for workload in 1 2 3; do for engine in mbedded inja mstch kainjow; do
-  jobs="$jobs $engine:$cxx:$workload"
+  jobs="$jobs$engine $cxx $workload\n"
 done; done; done
-for workload in 1 2 3; do jobs="$jobs mbedded-twin:g++-16:$workload"; done
-echo $jobs | tr ' ' '\n' | xargs -P 4 -I{} sh -c 'IFS=:; set -- {}; sh /w/build_one.sh "$1" "$2" "$3"'
+for workload in 1 2 3; do jobs="${jobs}mbedded-twin g++-16 $workload\n"; done
+printf "$jobs" | xargs -P 4 -L 1 sh /w/build_one.sh
 
 # Rust: one workspace, built once as root; each bench executable is copied for nobody.
 cp -r /w/src/bench/probes/engines/rust /w/rwork
