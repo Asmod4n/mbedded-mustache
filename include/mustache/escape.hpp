@@ -353,7 +353,7 @@ stored(const std::span<char, sizeof(__m128i)> o, const __m128i v)
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
-  if (n < sizeof(__m128i)) {
+  if (n <= sizeof(__m128i)) {
     if (n == 0) return {0, 0};
     const std::span<const char> owned = owned_chars_of(s);
     if (owned.size() < sizeof(__m128i)) [[unlikely]] return copied_string_scalar(out, s);
@@ -451,13 +451,13 @@ stored(const std::span<char, kVectorBytes> o, const uint8x16_t v)
 copied_string(const std::span<char> out, const std::string &s)
 {
   const size_t n = s.size();
-  if (n < kVectorBytes) {
+  if (n <= kVectorBytes) {
     if (n == 0) return {0, 0};
     const std::span<const char> owned = owned_chars_of(s);
     if (owned.size() < kVectorBytes) [[unlikely]] return copied_string_scalar(out, s);
     const uint8x16_t v = loaded(owned.first<kVectorBytes>());
     stored(out.first<kVectorBytes>(), v);
-    return {n, marks_of(v) & kLaneMarkBits & ((uint64_t{1} << (kBitsPerLane * n)) - 1)};
+    return {n, marks_of(v) & kLaneMarkBits & (~uint64_t{0} >> (kBitsPerLane * (kVectorBytes - n)))};
   }
   if (n > kCopiedStringMax) return copied_string_scalar(out, s);
   const std::span<const char> in(s);
