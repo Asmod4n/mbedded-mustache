@@ -10,7 +10,8 @@
 // a fixed replacement) and a table of the words of the classes; the word of a byte is the word of its class,
 // with the byte put in by a mask where the class is 0 and the two hex digits, made by arithmetic, put in by a
 // mask where the class is 1; 5 arm 4 with the classes of all five contexts in bit fields of one table of 256
-// entries of 16 bits; 6 the same code as arm 2, a second binary: the noise of the cell.
+// entries of 16 bits; 6 the same code as arm 2, a second binary: the noise of the cell; 7 arm 2 with a table of
+// 128 words for each context, for the bytes under 0x80, and a byte from 0x80 on written as the byte itself.
 // Each arm writes into a room of escaped_size_max_in(context, n) + 32 bytes, as the callers in out.hpp prove.
 #include <algorithm>
 #include <array>
@@ -345,8 +346,14 @@ troff_word_of(const char c)
 inline constexpr std::string_view kLineSeparator = "\xe2\x80\xa8";
 inline constexpr std::string_view kParagraphSeparator = "\xe2\x80\xa9";
 
+#if ARM == 7
+inline constexpr size_t kTableWords = 128;
+#else
+inline constexpr size_t kTableWords = 256;
+#endif
+
 struct Entities {
-  std::array<uint64_t, 256> word;
+  std::array<uint64_t, kTableWords> word;
 };
 
 template <class WordOf>
@@ -364,6 +371,31 @@ inline constexpr Entities kJsEntities = entities_by(js_word_of);
 inline constexpr Entities kCssEntities = entities_by(css_word_of);
 inline constexpr Entities kTroffEntities = entities_by(troff_word_of);
 
+#if ARM == 7
+
+consteval bool
+every_byte_past_the_table_is_plain()
+{
+  for (size_t c = kTableWords; c < 256; c++) {
+    const char x = static_cast<char>(static_cast<unsigned char>(c));
+    if (xml_word_of(x) != byte_word_of(x) || json_word_of(x) != byte_word_of(x) || js_word_of(x) != byte_word_of(x) ||
+        css_word_of(x) != byte_word_of(x) || troff_word_of(x) != byte_word_of(x))
+      return false;
+  }
+  return true;
+}
+
+static_assert(every_byte_past_the_table_is_plain(), "no context escapes a byte from 0x80 on");
+
+[[gnu::always_inline]] constexpr uint64_t
+entity_word_of(const Entities &table, const unsigned char c)
+{
+  if (c >= kTableWords) return byte_word_of(static_cast<char>(c));
+  return table.word[c];
+}
+
+#else
+
 [[gnu::always_inline]] constexpr uint64_t
 entity_word_of(const Entities &table, const unsigned char c)
 {
@@ -371,6 +403,8 @@ entity_word_of(const Entities &table, const unsigned char c)
                 "every value of unsigned char indexes an entry of the table");
   return table.word[c];
 }
+
+#endif
 
 #if ARM != 3
 
