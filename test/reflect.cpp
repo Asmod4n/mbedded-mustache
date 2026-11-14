@@ -4,6 +4,7 @@
 
 #include "node.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory_resource>
@@ -346,6 +347,23 @@ TEST(ReflectRenderTo, AppendsToAStringOfAnotherAllocator)
   ASSERT_TRUE(mustache::render_to<"{{x}}{{y}}">(out, data));
   ASSERT_TRUE(mustache::render_to<"{{x}}{{y}}">(out, data, "text/html"));
   EXPECT_EQ(std::string_view(out), "keep:vwvw");
+}
+
+// A vector of char and of std::byte take the bytes the same way.
+TEST(ReflectRenderTo, AppendsToAByteVector)
+{
+  const Pair data{"a<b", "w"};
+  std::vector<char> chars = {'k'};
+  ASSERT_TRUE(mustache::render_to<"{{x}}|{{y}}">(chars, data));
+  ASSERT_TRUE(mustache::render_to<"{{x}}">(chars, data, "text/html"));
+  EXPECT_EQ(std::string(chars.begin(), chars.end()), "ka&lt;b|wa&lt;b");
+  std::vector<std::byte> octets = {std::byte{'k'}};
+  ASSERT_TRUE(mustache::render_to<"{{y}}">(octets, data, 0));
+  ASSERT_EQ(octets.size(), 2U);
+  EXPECT_EQ(octets.at(1), std::byte{'w'});
+  const std::expected<void, mustache::Error> refused = mustache::render_to<"{{y}}">(octets, data, "text/plain");
+  ASSERT_FALSE(refused);
+  EXPECT_EQ(octets.size(), 2U);
 }
 
 }

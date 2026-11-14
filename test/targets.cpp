@@ -5,14 +5,17 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstdint>
 #include <cstddef>
 #include <expected>
 #include <limits>
 #include <map>
 #include <memory_resource>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -241,6 +244,101 @@ TEST(RenderToString, ReturnsTheErrorOfTheRenderForAStringOfAnotherAllocator)
   ASSERT_FALSE(r);
   EXPECT_EQ(r.error().fault, mustache::Fault::not_text);
   EXPECT_EQ(std::string_view(out), "keep");
+}
+
+std::vector<std::byte>
+bytes_of(const std::string_view s)
+{
+  const auto b = std::as_bytes(std::span<const char>(s));
+  return std::vector<std::byte>(b.begin(), b.end());
+}
+
+// A vector of char and a vector of std::byte take the bytes of the
+// render behind the bytes they hold, and the high bytes of a UTF-8
+// value are not changed.
+TEST(RenderToVector, AppendsTheBytesThatRenderReturns)
+{
+  const mustache::Template t = compiled("\xC3\xA9{{name}}\xFF");
+  const Node data = page();
+  const std::string whole = "\xC3\xA9" "Ada &lt;&amp;&gt; co\xFF";
+  ASSERT_EQ(*mustache::render(t, data), whole);
+
+  std::vector<char> chars = {'h', 'e', 'a', 'd'};
+  ASSERT_TRUE(mustache::render_to(chars, t, data));
+  EXPECT_EQ(std::string(chars.begin(), chars.end()), "head" + whole);
+
+  std::vector<std::byte> octets = bytes_of("head");
+  ASSERT_TRUE(mustache::render_to(octets, t, data));
+  EXPECT_EQ(octets, bytes_of("head" + whole));
+}
+
+// The vector keeps its block when it has room for the bytes.
+TEST(RenderToVector, KeepsTheBlockOfAVectorWithRoom)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  std::vector<char> out;
+  out.reserve(100000);
+  const char *const block = out.data();
+  for (int i = 0; i < 3; i++) ASSERT_TRUE(mustache::render_to(out, t, data));
+  EXPECT_EQ(out.data(), block);
+  EXPECT_EQ(out.capacity(), 100000U);
+  EXPECT_EQ(out.size(), 3 * kRendered.size());
+}
+
+// Any other element type is refused when the call is compiled: a
+// vector of unsigned char or int, and the packed vector of bool.
+TEST(RenderToVector, RefusesAnElementThatIsNotCharOrByte)
+{
+  const mustache::Template t = compiled(kSource);
+  const Node data = page();
+  const auto accepts = []<class V>(V &v) { return requires { mustache::render_to(v, t, data); }; };
+  std::vector<char> c;
+  std::vector<std::byte> b;
+  std::vector<unsigned char> u;
+  std::vector<std::int8_t> i;
+  std::vector<int> n;
+  std::vector<bool> flags;
+  EXPECT_TRUE(accepts(c));
+  EXPECT_TRUE(accepts(b));
+  EXPECT_FALSE(accepts(u));
+  EXPECT_FALSE(accepts(i));
+  EXPECT_FALSE(accepts(n));
+  EXPECT_FALSE(accepts(flags));
+}
+
+TEST(RenderToVector, LeavesTheVectorAsItWasOnAnError)
+{
+  const mustache::Template t = compiled("ab{{a}}");
+  const Node not_text{NodeMap{{"a", Node{NodeMap{{"x", Node{true}}}}}}};
+  std::vector<std::byte> out = bytes_of("keep");
+  const std::expected<void, mustache::Error> r = mustache::render_to(out, t, not_text);
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::not_text);
+  EXPECT_EQ(out, bytes_of("keep"));
+
+  const mustache::Template u = compiled(kSource);
+  const Node data = page();
+  const std::expected<void, mustache::Error> over =
+      mustache::render_to(out, u, data, {}, std::numeric_limits<size_t>::max());
+  ASSERT_FALSE(over);
+  EXPECT_EQ(over.error().fault, mustache::Fault::over_limit);
+  EXPECT_EQ(out, bytes_of("keep"));
+}
+
+// A vector of another allocator that is full gives no_memory and keeps
+// what it held.
+TEST(RenderToVector, ReturnsNoMemoryForAVectorThatIsFull)
+{
+  const Node data{NodeMap{{"a", Node{std::string(4000, 'x')}}}};
+  const mustache::Template t = compiled("{{{a}}}");
+  std::array<std::byte, 256> buffer;
+  std::pmr::monotonic_buffer_resource memory(buffer.data(), buffer.size(), std::pmr::null_memory_resource());
+  std::pmr::vector<char> out({'k', 'e', 'e', 'p'}, &memory);
+  const std::expected<void, mustache::Error> r = mustache::render_to(out, t, data);
+  ASSERT_FALSE(r);
+  EXPECT_EQ(r.error().fault, mustache::Fault::no_memory);
+  EXPECT_EQ(std::string(out.begin(), out.end()), "keep");
 }
 
 }

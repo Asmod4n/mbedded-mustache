@@ -802,11 +802,33 @@ render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const 
 }
 
 /// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// the same arguments. On an error `out` is as it was before the call. The render is
+/// made in a temporary std::string and copied once.
+template <fixed_string Src, class... Partials, detail::byte_element Element, class Allocator, class T>
+std::expected<void, Error>
+render_to(std::vector<Element, Allocator> &out, const T &data, const std::string_view media_type,
+          const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(
+      out, detail::MediaTypeAppender<Src, static_partial_list<Partials...>, T>{data, media_type, initial_capacity});
+}
+
+/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
 /// the same arguments. On an error `out` is as it was before the call. A std::string keeps
 /// its capacity and takes the render without a copy; another string type takes one copy.
 template <fixed_string Src, class... Partials, class Traits, class Allocator, class T>
 std::expected<void, Error>
 render_to(std::basic_string<char, Traits, Allocator> &out, const T &data, const size_t initial_capacity = kInitialCapacity)
+{
+  return detail::appended_to(out, detail::DefaultMediaAppender<Src, static_partial_list<Partials...>, T>{data, initial_capacity});
+}
+
+/// Provisional name and comment. Appends the rendered bytes to `out`, as render does with
+/// the same arguments. On an error `out` is as it was before the call. The render is
+/// made in a temporary std::string and copied once.
+template <fixed_string Src, class... Partials, detail::byte_element Element, class Allocator, class T>
+std::expected<void, Error>
+render_to(std::vector<Element, Allocator> &out, const T &data, const size_t initial_capacity = kInitialCapacity)
 {
   return detail::appended_to(out, detail::DefaultMediaAppender<Src, static_partial_list<Partials...>, T>{data, initial_capacity});
 }

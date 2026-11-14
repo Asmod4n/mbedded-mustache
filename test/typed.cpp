@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
 #include <expected>
 #include <limits>
 #include <memory_resource>
@@ -137,6 +138,25 @@ TEST(TypedRenderTo, AppendsToAStringOfAnotherAllocator)
   std::pmr::string out("keep:");
   ASSERT_TRUE(mustache::render_to(out, *t, page));
   EXPECT_EQ(std::string_view(out), "keep:<x>");
+}
+
+// A vector of char and of std::byte take the bytes the same way.
+TEST(TypedRenderTo, AppendsToAByteVector)
+{
+  const Page page{"x", {}, std::nullopt, false};
+  const std::expected<mustache::TypedTemplate<Page>, mustache::Error> t = mustache::compile<Page>("<{{single}}>");
+  ASSERT_TRUE(t);
+  std::vector<char> chars = {'k'};
+  ASSERT_TRUE(mustache::render_to(chars, *t, page));
+  EXPECT_EQ(std::string(chars.begin(), chars.end()), "k<x>");
+  std::vector<std::byte> octets = {std::byte{'k'}};
+  ASSERT_TRUE(mustache::render_to(octets, *t, page));
+  ASSERT_EQ(octets.size(), 4U);
+  EXPECT_EQ(octets.at(1), std::byte{'<'});
+  const std::expected<void, mustache::Error> over =
+      mustache::render_to(octets, *t, page, {}, std::numeric_limits<size_t>::max());
+  ASSERT_FALSE(over);
+  EXPECT_EQ(octets.size(), 4U);
 }
 
 }
