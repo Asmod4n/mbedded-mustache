@@ -1,0 +1,32 @@
+{
+ "name": "plan-review-5",
+ "what": "time of one call that makes a std::string of 200 bytes with a room hint of 1056 bytes: zero fill with resize against resize_and_overwrite",
+ "purpose_in_the_task_list": "bound, retry, cost of the string",
+ "method": "not the method of mbedded-cbor/bench/README.md: 6 rounds, the arm order turns in each round; each process prints 3 repetitions, each the mean of 4000000 calls timed with std::chrono::steady_clock; no google benchmark, no gate, no steal",
+ "arms": {"0": "resize to the hint, write, resize to the length (zero fill)", "1": "the same code as arm 0: the noise of the cell", "2": "resize_and_overwrite"},
+ "builds": "g++-16 and clang++-23, -O2 and -Os, -std=c++26 -Wall -Wextra -Werror -DARM=<arm> (no -march, no -DNDEBUG)",
+ "headers": "none (cost.cpp uses no header of the tree)",
+ "probe": {"commit": "112c65fd950edc0831f878cb08d6e297c47ef3f5", "files": ["bench/probes/plan-review-5/cost.cpp", "bench/probes/plan-review-5/run3.sh"]},
+ "time_in_file_name": "last write of the raw file (end of the run)",
+ "context": {"processor": "Intel(R) Xeon(R) Processor @ 2.10GHz, 4 cpus (read by the compare runs of 2026-11-12 and by plan-review-4 run1 of 2026-11-13)", "virtual_machine": "KVM, full virtualization (read by the compare run of 2026-11-12T19:49Z)", "container": "podman", "threads": "1 (each bench process is single-threaded)", "pinned": "no (the scripts use no taskset and no cpu set)", "image": "not recorded (the runs of 2026-11-12 used localhost/mbedded-cbor-docs sha256:dae8337e...; libbenchmark-dev was installed again with apt in this container)", "kernel": "not recorded in this run (the run plan-review-4 run1 read 6.18.44-fc-v445 on 2026-11-13 at about 05:03Z)", "cxx_library": "not recorded", "c_library": "not recorded", "cpu_flags_digest": "not recorded", "user": "nobody (the script runs the bench with runuser -u nobody)", "priority": "nice not recorded (the script does not change it)", "compiler_read_off_the_binaries": ["Debian clang version 23.1.5 (2)", "GCC: (Debian 16.2.0-4) 16.2.0"]},
+ "not_recorded": ["gate (vmstat and the busy share before the run)", "steal of each round", "scheduler settings", "an A/A binary built twice, unless the arms name one", "resolved instruction set"],
+ "recorded_by": "bench/record.py from the raw files in the scratch directory of the session, on 2026-11-14; the raw files are not kept",
+ "notes": ["run2.sh tried the same run with google benchmark first; the binaries were not found and it wrote no value."],
+ "facts_read_off_the_raw_files": [{"raw": "plan-review-5/res/cost.txt", "lines_without_values": []}],
+ "measurements": [
+  {"name": "string", "unit": "ns per call (mean of 4000000 calls)", "raw": "plan-review-5/res/cost.txt", "reader": "labelled_lines", "values_are": "each repetition (3 for each process; a round is one process)", "cells": [
+   {"key": {"arm": "0", "build": "clang++-23-O2"}, "rounds": {"1": [36.07, 33.93, 34.6], "2": [36.46, 34.41, 35.27], "3": [47.41, 33.66, 34.86], "4": [41.94, 33.61, 34.37], "5": [46.23, 34.13, 34.26], "6": [41.55, 51.76, 40.55]}, "n": 18, "median": 35.065, "min": 33.61, "max": 51.76, "spread": 0.54},
+   {"key": {"arm": "0", "build": "clang++-23-Os"}, "rounds": {"1": [47.79, 44.9, 43.68], "2": [42.92, 43.25, 53.53], "3": [46.32, 47.62, 45.85], "4": [48.98, 45.19, 43.06], "5": [44.87, 44.66, 49.67], "6": [42.79, 46.46, 41.19]}, "n": 18, "median": 45.045, "min": 41.19, "max": 53.53, "spread": 0.2996},
+   {"key": {"arm": "0", "build": "g++-16-O2"}, "rounds": {"1": [41.81, 42.48, 42.1], "2": [47.31, 45.12, 38.3], "3": [42.03, 39.06, 42.32], "4": [39.37, 38.19, 38.29], "5": [47.65, 38.83, 38.2], "6": [39.47, 38.32, 37.86]}, "n": 18, "median": 39.42, "min": 37.86, "max": 47.65, "spread": 0.2586},
+   {"key": {"arm": "0", "build": "g++-16-Os"}, "rounds": {"1": [72.28, 62.18, 61.05], "2": [60.82, 60.15, 62.23], "3": [66.2, 67.09, 73.48], "4": [65.5, 67.95, 63.48], "5": [62.31, 64.8, 60.26], "6": [65.73, 64.29, 65.59]}, "n": 18, "median": 64.545, "min": 60.15, "max": 73.48, "spread": 0.2216},
+   {"key": {"arm": "1", "build": "clang++-23-O2"}, "rounds": {"1": [36.29, 34.15, 34.32], "2": [44.02, 35.72, 36.65], "3": [36.62, 35.37, 36.62], "4": [36.93, 37.84, 41.39], "5": [37.94, 36.0, 36.08], "6": [35.42, 33.6, 34.78]}, "n": 18, "median": 36.185, "min": 33.6, "max": 44.02, "spread": 0.3101},
+   {"key": {"arm": "1", "build": "clang++-23-Os"}, "rounds": {"1": [46.41, 47.77, 41.86], "2": [46.99, 44.83, 45.2], "3": [49.2, 47.08, 44.95], "4": [45.31, 45.93, 45.11], "5": [44.21, 47.79, 48.96], "6": [46.24, 43.99, 45.21]}, "n": 18, "median": 45.62, "min": 41.86, "max": 49.2, "spread": 0.1753},
+   {"key": {"arm": "1", "build": "g++-16-O2"}, "rounds": {"1": [39.59, 38.02, 38.22], "2": [39.87, 38.98, 40.55], "3": [45.92, 36.5, 36.12], "4": [43.07, 41.84, 44.35], "5": [40.62, 38.41, 39.4], "6": [54.5, 43.28, 37.57]}, "n": 18, "median": 39.73, "min": 36.12, "max": 54.5, "spread": 0.5089},
+   {"key": {"arm": "1", "build": "g++-16-Os"}, "rounds": {"1": [70.25, 61.11, 61.71], "2": [61.63, 64.81, 91.6], "3": [61.17, 60.85, 60.5], "4": [68.24, 63.81, 64.4], "5": [63.61, 68.37, 63.12], "6": [77.35, 66.74, 63.25]}, "n": 18, "median": 63.71, "min": 60.5, "max": 91.6, "spread": 0.514},
+   {"key": {"arm": "2", "build": "clang++-23-O2"}, "rounds": {"1": [31.01, 28.53, 29.72], "2": [33.81, 30.58, 31.58], "3": [32.79, 30.31, 28.54], "4": [29.74, 28.06, 29.84], "5": [32.86, 30.57, 31.49], "6": [31.11, 29.68, 29.5]}, "n": 18, "median": 30.44, "min": 28.06, "max": 33.81, "spread": 0.2049},
+   {"key": {"arm": "2", "build": "clang++-23-Os"}, "rounds": {"1": [46.4, 38.14, 36.92], "2": [46.9, 37.11, 35.16], "3": [36.57, 34.49, 35.2], "4": [39.51, 37.75, 34.89], "5": [35.28, 34.55, 34.75], "6": [38.84, 37.54, 35.58]}, "n": 18, "median": 36.745, "min": 34.49, "max": 46.9, "spread": 0.3598},
+   {"key": {"arm": "2", "build": "g++-16-O2"}, "rounds": {"1": [32.93, 31.36, 31.19], "2": [31.47, 31.89, 31.23], "3": [36.69, 29.11, 30.3], "4": [32.81, 31.66, 31.62], "5": [35.77, 30.79, 31.53], "6": [34.49, 32.08, 35.4]}, "n": 18, "median": 31.64, "min": 29.11, "max": 36.69, "spread": 0.2604},
+   {"key": {"arm": "2", "build": "g++-16-Os"}, "rounds": {"1": [44.53, 43.27, 60.65], "2": [46.64, 45.37, 47.41], "3": [60.3, 44.81, 43.97], "4": [44.82, 45.05, 44.53], "5": [46.45, 45.16, 45.54], "6": [46.37, 45.06, 46.44]}, "n": 18, "median": 45.265, "min": 43.27, "max": 60.65, "spread": 0.4017}
+  ]}
+ ]
+}
