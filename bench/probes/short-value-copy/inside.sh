@@ -1,10 +1,11 @@
 #!/bin/sh
-# Container side: builds 80 binaries (10 arms, 2 compilers, 2 levels, 2 instruction sets) with their assembly,
-# measures the noise floor, runs the arms alternately as nobody, writes /w/out.
+# Container side: builds one binary for each arm and build with its assembly (by default 10 arms, 2 compilers,
+# 2 levels, 2 instruction sets), measures the noise floor, runs the arms alternately as nobody, writes /w/out.
+# ARMS and BUILDS choose a part of the arms and builds.
 set -u
 rounds=${ROUNDS:-6}
-arms="0 1 2 3 4 5 6 7 8 9"
-builds="g++-16:-O2:v3 g++-16:-Os:v3 g++-16:-O2:v4 g++-16:-Os:v4 clang++-23:-O2:v3 clang++-23:-Os:v3 clang++-23:-O2:v4 clang++-23:-Os:v4"
+arms=${ARMS:-0 1 2 3 4 5 6 7 8 9}
+builds=${BUILDS:-g++-16:-O2:v3 g++-16:-Os:v3 g++-16:-O2:v4 g++-16:-Os:v4 clang++-23:-O2:v3 clang++-23:-Os:v3 clang++-23:-O2:v4 clang++-23:-Os:v4}
 apt-get update -q > /w/out/apt.log 2>&1
 apt-get install -y -q sysbench >> /w/out/apt.log 2>&1
 mkdir -p /w/bin
@@ -48,10 +49,13 @@ echo "run: $rounds rounds, arm order alternates by round, each process 5 repetit
 echo "image: $IMAGE_ID; $PODMAN_VERSION"
 echo "instruction set v3: $(g++-16 -march=x86-64-v3 -dM -E -x c++ /dev/null | grep -E '__AVX|__SSE4|__BMI' | awk '{print $2}' | sort | tr '\n' ' ')"
 echo "instruction set v4: $(g++-16 -march=x86-64-v4 -dM -E -x c++ /dev/null | grep -E '__AVX|__SSE4|__BMI' | awk '{print $2}' | sort | tr '\n' ' ')"
-echo "compiler of the binaries: $(readelf -p .comment /w/bin/probe-g++-16-O2-v3-0 | grep GCC | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//'); $(readelf -p .comment /w/bin/probe-clang++-23-O2-v3-0 | grep -i clang | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//')"
+echo "arms: $arms"
+echo "builds: $builds"
+echo "compiler of the binaries: $(readelf -p .comment $(ls /w/bin/probe-g++-16-* | grep -v '\.' | head -1) | grep GCC | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//'); $(readelf -p .comment $(ls /w/bin/probe-clang++-23-* | grep -v '\.' | head -1) | grep -i clang | head -1 | sed 's/^ *\[ *[0-9a-f]*\] *//')"
 echo "libstdc++ and libc: $(ls -l $(ldconfig -p | awk '/libstdc\+\+.so.6 /{print $NF; exit}') | awk '{print $NF}'); $(ldd --version | head -1)"
 echo "kernel: $(uname -srv); sched_autogroup_enabled=$(cat /proc/sys/kernel/sched_autogroup_enabled)"
 echo "machine: $(lscpu | grep -E 'Hypervisor vendor|Virtualization type' | tr -s ' ' | tr '\n' ';'); container: podman, cpus visible $(nproc)"
 echo "processor: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2); flags digest sha256:$(grep -m1 '^flags' /proc/cpuinfo | sha256sum | cut -c1-16)"
+echo "avx-512 flags of the processor: $(grep -m1 '^flags' /proc/cpuinfo | tr ' ' '\n' | grep avx512 | sort | tr '\n' ' ')"
 echo "load average before and after: $(cat /w/out/loadavg-before.txt) / $(cat /w/out/loadavg-after.txt)"
 } > /w/out/context.txt

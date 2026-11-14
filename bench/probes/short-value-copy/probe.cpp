@@ -6,9 +6,16 @@
 // 6 one 16-byte read through a span over capacity() + 1 chars, 7 the same read through a span over
 // capacity() chars (a short string of libstdc++ then takes arm 5), 8 arm 6 with the test of a value
 // under 16 bytes first, 9 arm 8 without the early return of the empty value (it stores a block also
-// for the empty value).
+// for the empty value), 10 a value of 1 to 16 bytes read with one masked load (_mm_maskz_loadu_epi8) that
+// reads only the bytes of the value and gives zero for the other bytes, one 16-byte store, 11 arm 10 with a
+// masked store of the bytes of the value (_mm_mask_storeu_epi8), so that nothing is stored past the length.
+// Arms 10 and 11 need AVX-512BW and AVX-512VL; a build without them does not compile them.
 // Each arm stores into a room of at least 32 bytes, as the callers in render.hpp prove.
 #include <immintrin.h>
+
+#if (ARM == 10 || ARM == 11) && !(defined(__AVX512BW__) && defined(__AVX512VL__))
+#error "arms 10 and 11 need AVX-512BW and AVX-512VL"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -338,6 +345,37 @@ copied_in_capacity_short_first(const std::span<char> out, const std::string &s)
   if (n <= kCopiedStringMax) return copied_long(out, s);
   return copied_string_scalar(out, s);
 }
+#if ARM == 10 || ARM == 11
+inline Copied
+copied_view_scalar(const std::span<char> out, const std::string_view s)
+{
+  if (s.size() > kCopiedStringMax) [[unlikely]] return {0, 0};
+  std::copy_n(s.begin(), s.size(), out.first(s.size()).begin());
+  return {s.size(), std::ranges::any_of(s, is_marked) ? uint64_t{1} : uint64_t{0}};
+}
+
+// Arms 10 and 11: the mask holds the low n bits, n from 1 to 16; the shift is on 32 bits, so that n = 16
+// is no shift by the full width. A byte that the mask leaves out is zero in v, and zero is no mark.
+[[gnu::always_inline]] inline Copied
+copied_masked(const std::span<char> out, const std::string_view in)
+{
+  const size_t n = in.size();
+  if (n <= kBlock) {
+    if (n == 0) return {0, 0};
+    const auto mask = static_cast<__mmask16>((uint32_t{1} << n) - 1);
+    const __m128i v = _mm_maskz_loadu_epi8(mask, in.data());
+#if ARM == 10
+    stored(out.first<kBlock>(), v);
+#else
+    _mm_mask_storeu_epi8(out.first<kBlock>().data(), mask, v);
+#endif
+    return {n, marks16_of(v)};
+  }
+  if (n <= kCopiedStringMax) return copied_long(out, in);
+  return copied_view_scalar(out, in);
+}
+#endif
+
 enum class Short { in_array, in_words, in_pieces };
 
 template <Short form>
@@ -370,6 +408,8 @@ copied(const std::span<char> out, const std::string &s)
   return copied_in_capacity(out, s);
 #elif ARM == 8 || ARM == 9
   return copied_in_capacity_short_first(out, s);
+#elif ARM == 10 || ARM == 11
+  return copied_masked(out, s);
 #endif
 }
 
@@ -427,6 +467,37 @@ held_to_the_scalar_form(const std::string &s)
   return same;
 }
 
+#if ARM == 10 || ARM == 11
+// The value is a std::string_view that ends at the last byte of a std::array; marks stand in the array
+// behind it. A read past the length that reaches the result shows as a mark, or as a byte that is not
+// zero in the room behind the count.
+struct ValueAtTheEnd {
+  std::array<char, kCopiedStringMax + 8> value;
+  std::array<char, kBlock>               marks_behind;
+};
+
+bool
+held_at_the_end_of_an_array(const std::string &s)
+{
+  ValueAtTheEnd v{};
+  std::ranges::fill(v.value, '<');
+  std::ranges::fill(v.marks_behind, '<');
+  const std::span<char> at = std::span<char>(v.value).last(s.size());
+  std::ranges::copy(s, at.begin());
+  const std::string_view in(at.begin(), at.end());
+  std::array<char, 2 * kCopiedStringMax> a{};
+  std::array<char, 2 * kCopiedStringMax> b{};
+  const Copied w = copied_masked(std::span<char>(a).first(kRoom), in);
+  const Copied c = copied_string_scalar(b, s);
+  const size_t behind = s.size() <= kBlock ? c.count : kRoom;
+  const bool same = w.count == c.count && (w.marks != 0) == (c.marks != 0) &&
+                    std::ranges::equal(std::span(a).first(c.count), std::span(b).first(c.count)) &&
+                    std::ranges::all_of(std::span(a).subspan(behind), [](const char x) { return x == 0; });
+  if (!same) std::println(stderr, "arm {} differs at the end of an array at a value of {} bytes", ARM, s.size());
+  return same;
+}
+#endif
+
 bool
 every_case_held()
 {
@@ -434,12 +505,18 @@ every_case_held()
   bool all = true;
   for (size_t n = 0; n <= kCopiedStringMax + 8; n++) {
     all = held_to_the_scalar_form(std::string(n, 'x')) && all;
+#if ARM == 10 || ARM == 11
+    all = held_at_the_end_of_an_array(std::string(n, 'x')) && all;
+#endif
     if (n < kBlock) all = held_to_the_scalar_form(with_marks_behind(std::string(n, 'x'))) && all;
     for (size_t at = 0; at < n; at++) {
       for (const char m : kMarks) {
         std::string s(n, 'x');
         s.at(at) = m;
         all = held_to_the_scalar_form(s) && all;
+#if ARM == 10 || ARM == 11
+        all = held_at_the_end_of_an_array(s) && all;
+#endif
         if (n < kBlock) all = held_to_the_scalar_form(with_marks_behind(s)) && all;
       }
     }

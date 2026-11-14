@@ -1,5 +1,6 @@
 #!/bin/sh
 # Host side: builds every arm of probe.cpp in eight builds and runs them in a container, 6 rounds.
+# ARMS and BUILDS in the environment choose a part of them (see inside.sh).
 # Usage: bench/probes/short-value-copy/run.sh WORK_DIR [IMAGE]
 set -eu
 work=$1
@@ -13,5 +14,5 @@ digest=$(podman image inspect "$image" --format '{{.Digest}} {{.Id}}')
 chmod -R a+rX "$work"
 chmod a+w "$work/out"
 date -u +%Y%m%dT%H%M%SZ > "$work/out/stamp.txt"
-podman run --rm -v "$work":/w -e PROBE_COMMIT="$commit" -e DIRTY="$dirty" -e IMAGE_ID="$digest" \
+podman run --rm -v "$work":/w -e ARMS -e BUILDS -e PROBE_COMMIT="$commit" -e DIRTY="$dirty" -e IMAGE_ID="$digest" \
   -e PODMAN_VERSION="$(podman --version)" "$image" sh /w/inside.sh
