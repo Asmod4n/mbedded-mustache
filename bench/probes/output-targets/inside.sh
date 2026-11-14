@@ -90,7 +90,7 @@ measure() {
     --arg flags_sha256 "$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //' | tr -d '\n' | sha256sum | cut -d' ' -f1)" \
     --argjson cpus "$(nproc)" --arg l3 "$(cat /sys/devices/system/cpu/cpu0/cache/index3/size)" \
     --argjson uid "$(id -u)" --arg priority "$(cat "$out/priority")" --argjson steal_limit $steal_limit_percent \
-    --argjson same_check "$same_check" --arg resolved_march "$($cxx $flags -Q --help=target | awk '$1 == "-march=" {print $2}')" \
+    --argjson same_check "$same_check" --arg resolved_march "$($cxx -march=x86-64-v4 -Q --help=target | awk '$1 == "-march=" {print $2}')" \
     --rawfile host "$out/host" --rawfile elf "$out/elf_type" --rawfile gate_build "$out/gate-before-build" \
     --rawfile gate_runs "$out/gate-before-runs" --rawfile rounds_text "$out/rounds" --rawfile failed "$out/failed.txt" \
     --rawfile err "$out/err.txt" --rawfile packages "$out/packages" \
