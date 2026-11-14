@@ -41,6 +41,10 @@ Hello, Ada <"admin">!
 - **Spec compliant.** Passes all 163 cases of the core [Mustache specification](https://github.com/mustache/spec).
 - **Tested on** g++, clang, Apple clang and MSVC, on Linux, macOS and Windows.
 
+## Performance
+
+Measurements, with their sources and the full context of each run, are in [`bench/`](bench/README.md).
+
 ## Installation
 
 You need a C++23 compiler and CMake 3.25 or newer.
@@ -225,10 +229,6 @@ if (!tpl) {
 
 - **Lambdas** (optional in the spec). Data never runs code.
 - **Dynamic names** (optional in the spec). Data never chooses which partial to render.
-
-## Performance
-
-Measurements, with their sources and the full context of each run, are in [`bench/`](bench/README.md).
 
 ## Building the tests
 
