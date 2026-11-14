@@ -6,8 +6,8 @@ directory = sys.argv[1]
 
 
 def criterion(path):
-    estimates = json.load(open(os.path.join(path, "criterion", "w2", "estimates.json")))
-    sample = json.load(open(os.path.join(path, "criterion", "w2", "sample.json")))
+    estimates = json.load(open(os.path.join(path, "criterion", "ramhorns", "w2", "new", "estimates.json")))
+    sample = json.load(open(os.path.join(path, "criterion", "ramhorns", "w2", "new", "sample.json")))
     per_iteration = [t / n for n, t in zip(sample["iters"], sample["times"])]
     half = len(per_iteration) // 2
     return {
