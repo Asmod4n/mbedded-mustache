@@ -559,14 +559,14 @@ compile(const std::string_view src)
   std::vector<uint32_t> op_of(ts.size() + 1, 0);
   Compiled out;
   std::vector<std::optional<size_t>> placed(s.indents.size());
-  auto indent_at = [&](const Token &t) {
-    if (!t.indented) return size_t{0};
+  auto indent_at = [&](const Token &t) -> size_t {
+    if (!t.indented) return 0;
     std::optional<size_t> &line = placed.at(t.indent.line);
     if (!line) {
       line = out.texts.size();
       out.texts += s.indents.at(t.indent.line);
     }
-    return *line + t.indent.skip;
+    return *line + size_t{t.indent.skip};
   };
   size_t i = 0;
   while (i < ts.size()) {
