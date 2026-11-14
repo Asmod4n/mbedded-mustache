@@ -90,6 +90,7 @@ One comment in plan-review-4/arms.hpp names the path of final.cpp in this tree i
 | plan-review-5 | The cost of the zero fill of a string (cost.cpp), and checks. |
 | plan-review-7 | A check: the writers in a room of the exact size with guard bytes. |
 | plan-review-8 | A check: two plan forms of the headers (patches against 7564b32). |
+| short-value-copy | Ten forms of copied_string for a value under 16 bytes, each held to the scalar form. |
 
 plan-review-5/bound.cpp, retry.cpp and twice.cpp, plan-review-7 and plan-review-8 are checks.
 They find the stores past the written count with guard bytes, and give no time.
@@ -114,5 +115,7 @@ No result file stands for them.
 | plan-review-5-cost-20261113T064347Z.json | plan-review-5, cost.cpp |
 | compare-20261114T063020Z.json | compare.sh, 93683bc against fee69a6 |
 | compare-20261114T064610Z.json | compare.sh, dbd4cac against d13b6ca |
+| short-value-copy-20261114T070339Z.json | short-value-copy, arms 0 to 7 |
+| short-value-copy-20261114T071115Z.json | short-value-copy, arms 0 to 9 |
 
 These runs did not follow the method of mbedded-cbor. Each file says what is not recorded.
