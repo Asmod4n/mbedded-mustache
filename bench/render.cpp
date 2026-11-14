@@ -4,9 +4,9 @@
 
 #include "node.hpp"
 
-#include <cstdio>
-#include <cstdlib>
+#include <exception>
 #include <fstream>
+#include <print>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -236,7 +236,7 @@ mustache::Template
 compiled()
 {
   std::expected<mustache::Template, mustache::Error> t = mustache::compile(kSource);
-  if (!t) std::abort();
+  if (!t) std::terminate();
   return std::move(*t);
 }
 
@@ -246,7 +246,7 @@ std::string
 rendered_at_run_time()
 {
   std::expected<std::string, mustache::Error> r = mustache::render(kTemplate, kRoot);
-  if (!r) std::abort();
+  if (!r) std::terminate();
   return std::move(*r);
 }
 
@@ -255,7 +255,7 @@ std::string
 rendered_by_reflection()
 {
   std::expected<std::string, mustache::Error> r = mustache::render<SOURCE>(kData);
-  if (!r) std::abort();
+  if (!r) std::terminate();
   return std::move(*r);
 }
 #endif
@@ -297,7 +297,7 @@ main(int argc, char **argv)
   const std::string expected = rendered_at_run_time();
 #ifdef __cpp_impl_reflection
   if (rendered_by_reflection() != expected) {
-    std::fprintf(stderr, "the arms render different bytes\n");
+    std::println(stderr, "the arms render different bytes");
     return 1;
   }
 #endif
@@ -310,7 +310,7 @@ main(int argc, char **argv)
       return out ? 0 : 1;
     }
   }
-  std::fprintf(stderr, "output: %zu bytes\n", expected.size());
+  std::println(stderr, "output: {} bytes", expected.size());
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();

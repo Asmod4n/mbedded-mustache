@@ -53,6 +53,21 @@ Median of 30 repetitions ([Google Benchmark](https://github.com/google/benchmark
 
 *Run time* compiles the template at run time and renders from `std::unordered_map` data; *reflection* renders a struct with a template compiled at compile time. The sources, the method and every repetition are in [`bench/`](bench/README.md) ([this run](bench/results/readme-render-20261114T133248Z/)).
 
+### Compared with other engines
+
+The [stocks page](https://github.com/mbosecke/template-benchmark), one run on one machine (x86-64 with AVX-512), median time per render. C++ engines with Google Benchmark (`-O2 -march=x86-64-v4`), Rust engines with Criterion (release, `target-cpu=x86-64-v4`, fat LTO):
+
+| template compiled at run time | | template compiled at build time | |
+|---|---|---|---|
+| [ramhorns](https://github.com/maciejhirsz/ramhorns) (Rust) | 3.9 µs | **mustache** (reflection, g++ 16) | **0.91 µs** |
+| **mustache** (clang 23) | **5.8 µs** | [Sailfish](https://github.com/rust-sailfish/sailfish) (Rust) | 1.15 µs |
+| **mustache** (g++ 16) | **6.1 µs** | [Maud](https://github.com/lambda-fairy/maud) (Rust) | 1.58 µs |
+| [kainjow/Mustache](https://github.com/kainjow/Mustache) | 56 µs | [Markup](https://github.com/utkarshkukreti/markup.rs) (Rust) | 2.71 µs |
+| [inja](https://github.com/pantor/inja) | 75 µs | | |
+| [mstch](https://github.com/no1msd/mstch) | 88 µs | | |
+
+mstch parses the template on every render. Maud and Markup build HTML from Rust code, not from a template file. ramhorns renders a struct; mustache renders from `std::unordered_map` here. [This run](bench/results/engines-20261114T152308Z/).
+
 ## Installation
 
 You need a C++23 compiler and CMake 3.25 or newer.
